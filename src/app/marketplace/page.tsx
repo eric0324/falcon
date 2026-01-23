@@ -8,7 +8,8 @@ import { TOOL_CATEGORIES } from "@/lib/categories";
 import { Navbar } from "@/components/navbar";
 import { MarketplaceToolCard } from "@/components/marketplace-tool-card";
 import { SearchBar } from "@/components/search-bar";
-import { TrendingUp, Clock } from "lucide-react";
+import { TrendingUp, Clock, Trophy } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default async function MarketplacePage() {
   const session = await getServerSession(authOptions);
@@ -100,9 +101,17 @@ export default async function MarketplacePage() {
           <SearchBar />
         </div>
 
-        {/* Categories */}
+        {/* Categories & Leaderboard */}
         <section className="mb-12">
-          <h2 className="text-lg font-semibold mb-4">分類瀏覽</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">分類瀏覽</h2>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/marketplace/leaderboard" className="gap-1.5">
+                <Trophy className="h-4 w-4 text-yellow-500" />
+                排行榜
+              </Link>
+            </Button>
+          </div>
           <div className="flex flex-wrap gap-2">
             {TOOL_CATEGORIES.map((category) => (
               <Link
