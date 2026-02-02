@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatDistanceToNow } from "@/lib/format";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MoreVertical, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, ExternalLink, Wrench } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 interface Tool {
@@ -72,55 +71,58 @@ export function ToolCard({ tool }: ToolCardProps) {
 
   return (
     <>
-      <Card className="hover:shadow-md transition-shadow">
-        <CardHeader className="pb-2">
-          <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg truncate">{tool.name}</CardTitle>
-              <CardDescription className="line-clamp-2 mt-1">
-                {tool.description || "No description"}
-              </CardDescription>
+      <div className="glass-card glass-card-hover p-6 h-full">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Wrench className="h-5 w-5 text-primary" />
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link href={`/tool/${tool.id}`}>
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Open
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href={`/studio?edit=${tool.id}`}>
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Edit
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
-                  onClick={() => setShowDeleteDialog(true)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium truncate">{tool.name}</h4>
+              <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                {tool.description || "No description"}
+              </p>
+            </div>
           </div>
-        </CardHeader>
-        <CardContent>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 -mr-2 -mt-1">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={`/tool/${tool.id}`}>
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  開啟
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/studio?edit=${tool.id}`}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  編輯
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                刪除
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <div className="mt-4 pt-4 border-t border-border/50">
           <Link
             href={`/tool/${tool.id}`}
-            className="block text-sm text-muted-foreground hover:text-foreground"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Updated {formatDistanceToNow(new Date(tool.updatedAt))}
+            更新於 {formatDistanceToNow(new Date(tool.updatedAt))}
           </Link>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>

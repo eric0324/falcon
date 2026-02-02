@@ -3,9 +3,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { MessageSquare, Plus, Wrench } from "lucide-react";
+import { MessageSquare, Plus, Wrench, Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToolCard } from "@/components/tool-card";
 import { Navbar } from "@/components/navbar";
 import { formatDistanceToNow } from "@/lib/format";
@@ -46,77 +45,82 @@ export default async function HomePage() {
   ]);
 
   return (
-    <div className="h-full overflow-auto bg-background">
+    <div className="h-full overflow-auto dashboard-bg">
       <Navbar user={session.user} />
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
+      <main className="container mx-auto px-4 py-12 max-w-6xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-12">
           <div>
-            <h2 className="text-2xl font-bold">Dashboard</h2>
-            <p className="text-muted-foreground">Your conversations and tools</p>
+            <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+            <p className="text-muted-foreground mt-1">管理你的對話和工具</p>
           </div>
-          <Button asChild>
+          <Button asChild size="lg" className="shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300">
             <Link href="/studio">
               <Plus className="mr-2 h-4 w-4" />
-              New Conversation
+              開始新對話
             </Link>
           </Button>
         </div>
 
+        {/* Empty State */}
         {conversations.length === 0 && tools.length === 0 && (
-          <Card className="border-dashed">
-            <CardHeader className="text-center">
-              <CardTitle>Get Started</CardTitle>
-              <CardDescription>
-                Start a conversation to ask questions, explore data, or build tools
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-center pb-8">
-              <Button asChild>
-                <Link href="/studio">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Open Studio
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="glass-card p-12 text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-6">
+              <Sparkles className="h-10 w-10 text-primary" />
+            </div>
+            <h3 className="text-2xl font-semibold mb-3">歡迎來到 Falcon</h3>
+            <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+              開始你的第一個對話，探索資料、回答問題，或打造屬於你的小工具
+            </p>
+            <Button asChild size="lg" className="shadow-lg shadow-primary/25">
+              <Link href="/studio">
+                開始使用
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
         )}
 
+        {/* Recent Conversations */}
         {conversations.length > 0 && (
-          <section className="mb-12">
-            <h3 className="text-lg font-semibold mb-4">Recent Conversations</h3>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <section className="mb-16">
+            <h3 className="text-xl font-semibold mb-6">最近對話</h3>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {conversations.map((conv) => (
                 <Link key={conv.id} href={`/studio?id=${conv.id}`}>
-                  <Card className="hover:shadow-md transition-shadow">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg truncate">
-                        <MessageSquare className="inline-block h-4 w-4 mr-2 text-muted-foreground" />
-                        {conv.title || "Untitled"}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(conv.updatedAt))}
+                  <div className="glass-card glass-card-hover p-6 h-full">
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <MessageSquare className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium truncate">
+                          {conv.title || "Untitled"}
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {formatDistanceToNow(new Date(conv.updatedAt))}
+                        </p>
+                      </div>
+                    </div>
+                    {conv.tool && (
+                      <span className="inline-flex items-center gap-1.5 text-xs text-primary bg-primary/10 px-3 py-1 rounded-full">
+                        <Wrench className="h-3 w-3" />
+                        已建立工具
                       </span>
-                      {conv.tool && (
-                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                          <Wrench className="h-3 w-3" />
-                          Tool
-                        </span>
-                      )}
-                    </CardContent>
-                  </Card>
+                    )}
+                  </div>
                 </Link>
               ))}
             </div>
           </section>
         )}
 
+        {/* My Tools */}
         {tools.length > 0 && (
           <section>
-            <h3 className="text-lg font-semibold mb-4">My Tools</h3>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <h3 className="text-xl font-semibold mb-6">我的工具</h3>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {tools.map((tool) => (
                 <ToolCard key={tool.id} tool={tool} />
               ))}
