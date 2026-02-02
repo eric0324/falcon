@@ -137,7 +137,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
         )}
       >
         {/* Header */}
-        <div className="p-3">
+        <div className="p-3 flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
@@ -146,6 +146,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
           >
             <PanelLeft className="h-5 w-5" />
           </Button>
+          <span className="font-semibold text-white">Falcon</span>
         </div>
 
         {/* Navigation */}
@@ -233,7 +234,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
           </ScrollArea>
         </div>
 
-        {/* Footer with User & Info */}
+        {/* Footer */}
         <div className="p-3 mt-auto space-y-3">
           {/* User */}
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-400 hover:bg-neutral-800 hover:text-white transition-colors cursor-pointer">
@@ -246,21 +247,19 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
             <span className="text-sm truncate">{user.name || user.email}</span>
           </div>
 
-          {/* App Info */}
-          <div className="flex items-center justify-between px-3 text-xs text-neutral-500">
-            <span>&copy; {new Date().getFullYear()} Falcon</span>
-            <div className="flex items-center gap-2">
-              <span>v0.1.0</span>
-              <a
-                href="https://github.com/eric0324"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white transition-colors"
-                aria-label="GitHub"
-              >
-                <Github className="h-3.5 w-3.5" />
-              </a>
-            </div>
+          {/* Version & GitHub */}
+          <div className="flex items-center justify-center gap-2 text-xs text-neutral-500">
+            <span>v0.1.0</span>
+            <span>·</span>
+            <a
+              href="https://github.com/eric0324"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition-colors"
+              aria-label="GitHub"
+            >
+              <Github className="h-3.5 w-3.5" />
+            </a>
           </div>
         </div>
       </aside>
