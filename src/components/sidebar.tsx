@@ -237,7 +237,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
         {/* Footer */}
         <div className="p-3 mt-auto">
           {/* Version & GitHub */}
-          <div className="flex items-center justify-between text-xs text-neutral-500">
+          <div className="flex items-center justify-between text-xs text-white">
             <span>v0.1.0</span>
             <a
               href="https://github.com/eric0324"
