@@ -11,15 +11,18 @@ export function Footer() {
             &copy; {currentYear} Falcon
           </p>
 
-          <a
-            href="https://github.com/eric0324"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="GitHub"
-          >
-            <Github className="h-4 w-4" />
-          </a>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground">v0.1.0</span>
+            <a
+              href="https://github.com/eric0324"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="GitHub"
+            >
+              <Github className="h-4 w-4" />
+            </a>
+          </div>
         </div>
       </div>
     </footer>
