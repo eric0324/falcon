@@ -15,6 +15,7 @@ import { ToolCallDisplay, ToolCall } from "@/components/tool-call-display";
 import { ModelSelector } from "@/components/model-selector";
 import { FileUpload, FileList, UploadedFile } from "@/components/file-upload";
 import { DataSourceSelector } from "@/components/data-source-selector";
+import { ConversationList } from "@/components/conversation-list";
 import { ModelId, defaultModel } from "@/lib/ai/models";
 
 interface Message {
@@ -48,6 +49,9 @@ function StudioContent() {
 
   // Conversation persistence
   const [convId, setConvId] = useState<string | null>(searchParams.get("id"));
+
+  // Sidebar state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -456,6 +460,41 @@ function StudioContent() {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
+  const handleSelectConversation = async (id: string) => {
+    if (id === convId) return;
+
+    try {
+      const res = await fetch(`/api/conversations/${id}`);
+      if (!res.ok) throw new Error("Failed to load");
+      const conv = await res.json();
+
+      setMessages(conv.messages || []);
+      setConvId(id);
+      if (conv.model) setSelectedModel(conv.model);
+      if (conv.dataSources?.length) setSelectedDataSources(conv.dataSources);
+
+      // Extract code from last assistant message
+      const lastAssistant = [...(conv.messages || [])]
+        .reverse()
+        .find((m: { role: string }) => m.role === "assistant");
+      if (lastAssistant) {
+        const extracted = extractCode(lastAssistant.content);
+        if (extracted) setCode(extracted);
+        else setCode("");
+      } else {
+        setCode("");
+      }
+
+      router.replace(`/studio?id=${id}`, { scroll: false });
+    } catch {
+      toast({
+        title: "錯誤",
+        description: "無法載入對話",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -489,8 +528,17 @@ function StudioContent() {
 
       {/* Main Content */}
       <div className="flex-1 flex min-h-0">
+        {/* Conversation History Sidebar */}
+        <ConversationList
+          currentId={convId}
+          onSelect={handleSelectConversation}
+          onNew={handleReset}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+
         {/* Chat Panel */}
-        <div className={`${hasCode ? "w-1/2 border-r" : "w-full max-w-4xl mx-auto"} flex flex-col transition-all duration-300`}>
+        <div className={`${hasCode ? "w-1/2 border-r" : "flex-1"} flex flex-col transition-all duration-300`}>
           <ScrollArea className="flex-1 p-4" ref={scrollRef}>
             <div className="space-y-4">
               {messages.length === 0 && (
@@ -585,7 +633,7 @@ function StudioContent() {
 
         {/* Preview Panel - only shown when code exists */}
         {hasCode && (
-          <div className="w-1/2 h-full">
+          <div className="flex-1 h-full">
             <PreviewPanel code={code} />
           </div>
         )}
