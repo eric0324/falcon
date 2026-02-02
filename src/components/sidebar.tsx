@@ -6,16 +6,16 @@ import { useState, useEffect, Suspense } from "react";
 import {
   Store,
   Wrench,
-  MessageSquare,
   Trash2,
   Loader2,
-  PanelLeftClose,
+  PanelLeft,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/sidebar-provider";
-import { formatDistanceToNow } from "@/lib/format";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ConversationItem {
   id: string;
@@ -26,6 +26,11 @@ interface ConversationItem {
 
 interface SidebarProps {
   conversations: ConversationItem[];
+  user: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
 }
 
 const navItems = [
@@ -33,16 +38,15 @@ const navItems = [
   { href: "/", label: "我的工具", icon: Wrench, exact: true },
 ];
 
-function SidebarContent({ conversations: initialConversations }: SidebarProps) {
+function SidebarContent({ conversations: initialConversations, user }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { isOpen, isMobile, close } = useSidebar();
+  const { isOpen, isMobile, close, toggle } = useSidebar();
   const [conversations, setConversations] = useState(initialConversations);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const currentConvId = searchParams.get("id");
 
-  // Refetch conversations when a new one is created
   useEffect(() => {
     if (currentConvId && !conversations.find((c) => c.id === currentConvId)) {
       fetch("/api/conversations?limit=50")
@@ -71,50 +75,79 @@ function SidebarContent({ conversations: initialConversations }: SidebarProps) {
   };
 
   const handleNavClick = () => {
-    if (isMobile) {
-      close();
-    }
+    if (isMobile) close();
   };
 
+  // Collapsed state
   if (!isOpen) {
-    return null;
+    return (
+      <div className="w-16 bg-neutral-900 flex flex-col items-center py-4 shrink-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggle}
+          className="h-10 w-10 text-neutral-400 hover:text-white hover:bg-neutral-800"
+        >
+          <PanelLeft className="h-5 w-5" />
+        </Button>
+        <Link href="/studio" className="mt-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 text-neutral-400 hover:text-white hover:bg-neutral-800"
+          >
+            <Plus className="h-5 w-5" />
+          </Button>
+        </Link>
+        <div className="flex-1" />
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={user.image || undefined} />
+          <AvatarFallback className="bg-neutral-700 text-white text-xs">
+            {user.name?.[0] || user.email?.[0] || "U"}
+          </AvatarFallback>
+        </Avatar>
+      </div>
+    );
   }
 
   return (
     <>
-      {/* Overlay for mobile */}
       {isMobile && (
         <div
-          className="fixed inset-0 bg-black/50 z-40"
+          className="fixed inset-0 bg-black/60 z-40"
           onClick={close}
-          aria-hidden="true"
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={cn(
-          "w-64 border-r bg-background flex flex-col shrink-0 z-50",
-          isMobile && "fixed inset-y-0 left-0 shadow-lg"
+          "w-64 bg-neutral-900 text-white flex flex-col shrink-0 z-50",
+          isMobile && "fixed inset-y-0 left-0"
         )}
       >
-        {/* Header with collapse button (mobile) */}
-        {isMobile && (
-          <div className="h-14 border-b flex items-center justify-between px-4">
-            <span className="font-semibold">選單</span>
+        {/* Header */}
+        <div className="p-4 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggle}
+            className="h-9 w-9 text-neutral-400 hover:text-white hover:bg-neutral-800"
+          >
+            <PanelLeft className="h-5 w-5" />
+          </Button>
+          <Link href="/studio">
             <Button
               variant="ghost"
               size="icon"
-              onClick={close}
-              className="h-8 w-8"
+              className="h-9 w-9 text-neutral-400 hover:text-white hover:bg-neutral-800"
             >
-              <PanelLeftClose className="h-5 w-5" />
+              <Plus className="h-5 w-5" />
             </Button>
-          </div>
-        )}
+          </Link>
+        </div>
 
         {/* Navigation */}
-        <nav className="p-3 space-y-1">
+        <nav className="px-3 space-y-0.5">
           {navItems.map((item) => {
             const isActive = item.exact
               ? pathname === item.href
@@ -127,10 +160,10 @@ function SidebarContent({ conversations: initialConversations }: SidebarProps) {
                 href={item.href}
                 onClick={handleNavClick}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
                   isActive
-                    ? "bg-accent text-accent-foreground font-medium"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? "bg-neutral-800 text-white"
+                    : "text-neutral-400 hover:bg-neutral-800 hover:text-white"
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -140,24 +173,15 @@ function SidebarContent({ conversations: initialConversations }: SidebarProps) {
           })}
         </nav>
 
-        {/* Divider */}
-        <div className="px-3">
-          <div className="border-t" />
-        </div>
-
-        {/* Conversation History */}
-        <div className="flex-1 flex flex-col min-h-0 pt-3">
-          <h3 className="px-4 text-xs font-medium text-muted-foreground mb-2">
-            對話紀錄
-          </h3>
-          <ScrollArea className="flex-1">
+        {/* Conversations */}
+        <div className="flex-1 flex flex-col min-h-0 mt-6">
+          <ScrollArea className="flex-1 px-3">
             {conversations.length === 0 ? (
-              <div className="text-center py-8 px-4">
-                <MessageSquare className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground">還沒有對話紀錄</p>
-              </div>
+              <p className="text-neutral-500 text-sm px-3 py-4">
+                開始你的第一個對話
+              </p>
             ) : (
-              <div className="px-3 space-y-1 pb-4">
+              <div className="space-y-0.5 pb-4">
                 {conversations.map((conv) => {
                   const isActive = pathname === "/studio" && currentConvId === conv.id;
 
@@ -167,43 +191,31 @@ function SidebarContent({ conversations: initialConversations }: SidebarProps) {
                       href={`/studio?id=${conv.id}`}
                       onClick={handleNavClick}
                       className={cn(
-                        "group relative flex items-start gap-2 px-3 py-2 rounded-md text-sm transition-colors",
+                        "group relative flex items-center px-3 py-2.5 rounded-lg text-sm transition-colors",
                         isActive
-                          ? "bg-accent text-accent-foreground"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                          ? "bg-neutral-800 text-white"
+                          : "text-neutral-400 hover:bg-neutral-800 hover:text-white"
                       )}
                     >
-                      <MessageSquare className="h-4 w-4 mt-0.5 shrink-0" />
-                      <div className="flex-1 min-w-0 pr-6">
-                        <p className="truncate font-medium">
-                          {conv.title || "新對話"}
-                        </p>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-xs opacity-70">
-                            {formatDistanceToNow(new Date(conv.updatedAt))}
-                          </span>
-                          {conv.hasTool && (
-                            <Wrench className="h-3 w-3 opacity-70" />
-                          )}
-                        </div>
-                      </div>
+                      <span className="truncate pr-6">
+                        {conv.title || "新對話"}
+                      </span>
 
-                      {/* Delete button */}
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={(e) => handleDelete(e, conv.id)}
                         disabled={deletingId === conv.id}
                         className={cn(
-                          "absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6",
+                          "absolute right-1 h-6 w-6",
                           "opacity-0 group-hover:opacity-100 transition-opacity",
-                          "hover:bg-destructive/10 hover:text-destructive"
+                          "text-neutral-500 hover:text-red-400 hover:bg-transparent"
                         )}
                       >
                         {deletingId === conv.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : (
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         )}
                       </Button>
                     </Link>
@@ -212,6 +224,19 @@ function SidebarContent({ conversations: initialConversations }: SidebarProps) {
               </div>
             )}
           </ScrollArea>
+        </div>
+
+        {/* User */}
+        <div className="p-3 mt-auto">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-400 hover:bg-neutral-800 hover:text-white transition-colors cursor-pointer">
+            <Avatar className="h-7 w-7">
+              <AvatarImage src={user.image || undefined} />
+              <AvatarFallback className="bg-neutral-700 text-white text-xs">
+                {user.name?.[0] || user.email?.[0] || "U"}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-sm truncate">{user.name || user.email}</span>
+          </div>
         </div>
       </aside>
     </>
