@@ -10,6 +10,7 @@ import {
   Loader2,
   PanelLeft,
   Plus,
+  Github,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -100,6 +101,15 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
           </Button>
         </Link>
         <div className="flex-1" />
+        <a
+          href="https://github.com/eric0324"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-neutral-500 hover:text-white transition-colors mb-3"
+          aria-label="GitHub"
+        >
+          <Github className="h-4 w-4" />
+        </a>
         <Avatar className="h-8 w-8">
           <AvatarImage src={user.image || undefined} />
           <AvatarFallback className="bg-neutral-700 text-white text-xs">
@@ -226,8 +236,9 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
           </ScrollArea>
         </div>
 
-        {/* User */}
-        <div className="p-3 mt-auto">
+        {/* Footer with User & Info */}
+        <div className="p-3 mt-auto space-y-3">
+          {/* User */}
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-400 hover:bg-neutral-800 hover:text-white transition-colors cursor-pointer">
             <Avatar className="h-7 w-7">
               <AvatarImage src={user.image || undefined} />
@@ -236,6 +247,23 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
               </AvatarFallback>
             </Avatar>
             <span className="text-sm truncate">{user.name || user.email}</span>
+          </div>
+
+          {/* App Info */}
+          <div className="flex items-center justify-between px-3 text-xs text-neutral-500">
+            <span>&copy; {new Date().getFullYear()} Falcon</span>
+            <div className="flex items-center gap-2">
+              <span>v0.1.0</span>
+              <a
+                href="https://github.com/eric0324"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white transition-colors"
+                aria-label="GitHub"
+              >
+                <Github className="h-3.5 w-3.5" />
+              </a>
+            </div>
           </div>
         </div>
       </aside>
