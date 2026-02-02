@@ -235,18 +235,18 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
         </div>
 
         {/* Footer */}
-        <div className="p-3 mt-auto space-y-3">
+        <div className="p-3 mt-auto">
           {/* Version & GitHub */}
-          <div className="flex items-center justify-center gap-2 text-xs text-white">
+          <div className="flex items-center justify-between text-xs text-neutral-500">
+            <span>v0.1.0</span>
             <a
               href="https://github.com/eric0324"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-neutral-300 transition-colors flex items-center gap-1.5"
+              className="hover:text-white transition-colors"
               aria-label="GitHub"
             >
               <Github className="h-3.5 w-3.5" />
-              <span>v0.1.0</span>
             </a>
           </div>
         </div>
