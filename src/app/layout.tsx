@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Falcon",
-  description: "Build internal tools with AI",
+  description: "Your AI integration platform",
 };
 
 export default function RootLayout({
