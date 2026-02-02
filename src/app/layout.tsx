@@ -8,8 +8,8 @@ import { Footer } from "@/components/footer";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Falcon | Vibe Coding Platform",
-  description: "Create internal tools with natural language",
+  title: "Falcon",
+  description: "Build internal tools with AI",
 };
 
 export default function RootLayout({
