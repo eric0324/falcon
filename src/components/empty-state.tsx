@@ -23,7 +23,7 @@ const defaultContent: Record<string, {
     icon: Package,
     title: "還沒有工具",
     description: "成為第一個在這裡分享工具的人吧！",
-    actionLabel: "建立工具",
+    actionLabel: "Open Studio",
     actionHref: "/studio",
   },
   "no-results": {

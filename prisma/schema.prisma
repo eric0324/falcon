@@ -88,7 +88,7 @@ model Tool {
   authorId String
 
   conversation   Conversation? @relation(fields: [conversationId], references: [id])
-  conversationId String?
+  conversationId String?       @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -104,16 +104,21 @@ model Tool {
 }
 
 model Conversation {
-  id       String @id @default(cuid())
-  messages Json[]
+  id          String   @id @default(cuid())
+  title       String?
+  messages    Json[]
+  model       String?
+  dataSources String[] @default([])
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
-  tools Tool[]
+  tool Tool?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId, updatedAt])
 }
 
 enum UsageSource {

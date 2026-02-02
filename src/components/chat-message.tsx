@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Bot, User, Check, Loader2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 interface ChatMessageProps {
   message: {
@@ -69,7 +70,12 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
             : "bg-muted"
         )}
       >
-        <span className="whitespace-pre-wrap">{displayContent}</span>
+        <div className={cn(
+          "prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0",
+          isUser ? "prose-invert" : "dark:prose-invert"
+        )}>
+          <ReactMarkdown>{displayContent}</ReactMarkdown>
+        </div>
         {isGeneratingCode && (
           <span className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
             <Loader2 className="h-3 w-3 animate-spin" />

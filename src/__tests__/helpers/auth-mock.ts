@@ -1,5 +1,3 @@
-import { vi } from "vitest";
-
 // Session fixtures
 export const mockSession = {
   user: {

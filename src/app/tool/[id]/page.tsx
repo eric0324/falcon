@@ -40,7 +40,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
   const isOwner = tool.authorId === session?.user?.id;
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-full flex flex-col">
       {/* Header */}
       <header className="border-b px-4 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">

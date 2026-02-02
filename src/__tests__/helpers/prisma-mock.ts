@@ -32,8 +32,11 @@ export function createPrismaMockFields() {
       aggregate: vi.fn(),
     },
     conversation: {
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     },
     account: {
       findUnique: vi.fn(),

@@ -86,13 +86,18 @@ export function PreviewPanel({ code }: PreviewPanelProps) {
     }
   }, [code]);
 
+  // Remove React imports from user code to avoid duplicates (we provide our own)
+  const cleanCode = code
+    ? code.replace(/^import\s+.*?from\s+['"]react['"];?\s*\n?/gm, '')
+    : null;
+
   const appCode = `
 ${MOCK_API}
 
-import React from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 
-${code || DEFAULT_CODE}
+${cleanCode || DEFAULT_CODE}
 
 const container = document.getElementById('root');
 const root = createRoot(container);

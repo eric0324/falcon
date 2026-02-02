@@ -57,25 +57,13 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { name, description, code, messages, category, tags, visibility, allowedSources } = await req.json();
+    const { name, description, code, category, tags, visibility, allowedSources, conversationId } = await req.json();
 
     if (!name || !code) {
       return NextResponse.json(
         { error: "Name and code are required" },
         { status: 400 }
       );
-    }
-
-    // Create conversation if messages exist
-    let conversationId: string | undefined;
-    if (messages && messages.length > 0) {
-      const conversation = await prisma.conversation.create({
-        data: {
-          userId: userId,
-          messages: messages,
-        },
-      });
-      conversationId = conversation.id;
     }
 
     const tool = await prisma.tool.create({
@@ -88,7 +76,7 @@ export async function POST(req: Request) {
         visibility: visibility || "PRIVATE",
         allowedSources: allowedSources || [],
         authorId: userId,
-        conversationId,
+        conversationId: conversationId || undefined,
       },
     });
 

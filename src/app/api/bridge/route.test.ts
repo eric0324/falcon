@@ -120,6 +120,7 @@ describe("POST /api/bridge", () => {
     });
 
     const res = await POST(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       makeRequest({ toolId: "t1", operation: "invalid" as any, source: "db-main" })
     );
     expect(res.status).toBe(400);

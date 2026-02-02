@@ -19,9 +19,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} min-h-screen flex flex-col`}>
+      <body className={`${inter.className} h-dvh flex flex-col overflow-hidden`}>
         <Providers>
-          <div className="flex-1">{children}</div>
+          <div className="flex-1 min-h-0 overflow-auto">{children}</div>
           <Footer />
           <Toaster />
         </Providers>

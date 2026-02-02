@@ -75,7 +75,7 @@ export async function PATCH(
 
   try {
     const { id } = await params;
-    const { name, description, code, messages, category, tags, visibility, allowedSources } = await req.json();
+    const { name, description, code, category, tags, visibility, allowedSources, conversationId } = await req.json();
 
     // Check ownership
     const existingTool = await prisma.tool.findUnique({
@@ -90,27 +90,6 @@ export async function PATCH(
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    // Update conversation if messages provided
-    if (messages && messages.length > 0) {
-      if (existingTool.conversationId) {
-        await prisma.conversation.update({
-          where: { id: existingTool.conversationId },
-          data: { messages },
-        });
-      } else {
-        const conversation = await prisma.conversation.create({
-          data: {
-            userId: userId,
-            messages,
-          },
-        });
-        await prisma.tool.update({
-          where: { id },
-          data: { conversationId: conversation.id },
-        });
-      }
-    }
-
     const tool = await prisma.tool.update({
       where: { id },
       data: {
@@ -121,6 +100,7 @@ export async function PATCH(
         ...(tags !== undefined && { tags }),
         ...(visibility && { visibility }),
         ...(allowedSources !== undefined && { allowedSources }),
+        ...(conversationId && !existingTool.conversationId && { conversationId }),
       },
     });
 

@@ -4,7 +4,6 @@ const mockGetServerSession = vi.hoisted(() => vi.fn());
 const prismaMock = vi.hoisted(() => ({
   user: { findUnique: vi.fn() },
   tool: { findUnique: vi.fn(), update: vi.fn(), delete: vi.fn() },
-  conversation: { create: vi.fn(), update: vi.fn() },
 }));
 
 vi.mock("next-auth", () => ({ getServerSession: mockGetServerSession }));
@@ -127,54 +126,57 @@ describe("PATCH /api/tools/[id]", () => {
     expect(res.status).toBe(403);
   });
 
-  it("updates existing conversation when messages provided", async () => {
-    setLoggedIn();
-    prismaMock.tool.findUnique.mockResolvedValue({
-      id: "t1",
-      authorId: "user-1",
-      conversationId: "conv-1",
-    });
-    prismaMock.conversation.update.mockResolvedValue({});
-    prismaMock.tool.update.mockResolvedValue({ id: "t1", name: "Tool" });
-
-    const req = new Request("http://localhost", {
-      method: "PATCH",
-      body: JSON.stringify({
-        name: "Tool",
-        messages: [{ role: "user", content: "hello" }],
-      }),
-    });
-    const res = await PATCH(req, makeParams("t1"));
-    expect(res.status).toBe(200);
-    expect(prismaMock.conversation.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: "conv-1" },
-      })
-    );
-  });
-
-  it("creates new conversation when messages provided but no existing conversation", async () => {
+  it("links conversationId when tool has no existing conversation", async () => {
     setLoggedIn();
     prismaMock.tool.findUnique.mockResolvedValue({
       id: "t1",
       authorId: "user-1",
       conversationId: null,
     });
-    prismaMock.conversation.create.mockResolvedValue({ id: "conv-new" });
     prismaMock.tool.update.mockResolvedValue({ id: "t1", name: "Tool" });
 
     const req = new Request("http://localhost", {
       method: "PATCH",
       body: JSON.stringify({
         name: "Tool",
-        messages: [{ role: "user", content: "hello" }],
+        conversationId: "conv-1",
       }),
     });
     const res = await PATCH(req, makeParams("t1"));
     expect(res.status).toBe(200);
-    expect(prismaMock.conversation.create).toHaveBeenCalled();
-    // Should also update the tool with the new conversationId
-    expect(prismaMock.tool.update).toHaveBeenCalledTimes(2);
+    expect(prismaMock.tool.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          conversationId: "conv-1",
+        }),
+      })
+    );
+  });
+
+  it("does not overwrite existing conversationId", async () => {
+    setLoggedIn();
+    prismaMock.tool.findUnique.mockResolvedValue({
+      id: "t1",
+      authorId: "user-1",
+      conversationId: "conv-existing",
+    });
+    prismaMock.tool.update.mockResolvedValue({ id: "t1", name: "Tool" });
+
+    const req = new Request("http://localhost", {
+      method: "PATCH",
+      body: JSON.stringify({
+        name: "Tool",
+        conversationId: "conv-new",
+      }),
+    });
+    await PATCH(req, makeParams("t1"));
+    expect(prismaMock.tool.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.not.objectContaining({
+          conversationId: expect.anything(),
+        }),
+      })
+    );
   });
 
   it("updates tool successfully", async () => {

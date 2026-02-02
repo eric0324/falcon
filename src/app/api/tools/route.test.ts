@@ -6,7 +6,6 @@ const prismaMock = vi.hoisted(() => ({
   user: { findUnique: vi.fn() },
   tool: { findMany: vi.fn(), create: vi.fn() },
   toolStats: { create: vi.fn() },
-  conversation: { create: vi.fn() },
 }));
 
 vi.mock("next-auth", () => ({ getServerSession: mockGetServerSession }));
@@ -110,9 +109,8 @@ describe("POST /api/tools", () => {
     expect(body.name).toBe("Test Tool");
   });
 
-  it("creates conversation when messages provided", async () => {
+  it("links conversationId when provided", async () => {
     setLoggedIn();
-    prismaMock.conversation.create.mockResolvedValue({ id: "conv-1" });
     prismaMock.tool.create.mockResolvedValue({ id: "t1", name: "Test" });
     prismaMock.toolStats.create.mockResolvedValue({});
 
@@ -121,10 +119,16 @@ describe("POST /api/tools", () => {
       body: JSON.stringify({
         name: "Test",
         code: "<div />",
-        messages: [{ role: "user", content: "hello" }],
+        conversationId: "conv-1",
       }),
     });
     await POST(req);
-    expect(prismaMock.conversation.create).toHaveBeenCalled();
+    expect(prismaMock.tool.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          conversationId: "conv-1",
+        }),
+      })
+    );
   });
 });
