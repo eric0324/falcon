@@ -47,6 +47,7 @@ function StudioContent() {
 
   // Conversation persistence
   const [convId, setConvId] = useState<string | null>(searchParams.get("id"));
+  const [convTitle, setConvTitle] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -92,6 +93,7 @@ function StudioContent() {
       })
       .then((conv) => {
         setMessages(conv.messages || []);
+        if (conv.title) setConvTitle(conv.title);
         if (conv.model) setSelectedModel(conv.model);
         if (conv.dataSources?.length) setSelectedDataSources(conv.dataSources);
         // Extract code from last assistant message
@@ -338,6 +340,7 @@ function StudioContent() {
             if (createRes.ok) {
               const conv = await createRes.json();
               setConvId(conv.id);
+              if (conv.title) setConvTitle(conv.title);
               router.replace(`/studio?id=${conv.id}`, { scroll: false });
             }
           } else if (convId) {
@@ -438,6 +441,7 @@ function StudioContent() {
     setSelectedDataSources([]);
     setUploadedFiles([]);
     setConvId(null);
+    setConvTitle(null);
     router.replace("/studio", { scroll: false });
   };
 
@@ -449,8 +453,8 @@ function StudioContent() {
     <div className="h-full flex flex-col">
       {/* Header */}
       <header className="border-b px-4 py-2 flex items-center justify-between shrink-0 bg-background">
-        <h1 className="font-semibold">
-          {editId ? "編輯工具" : "Studio"}
+        <h1 className="font-semibold truncate">
+          {editId ? "編輯工具" : convTitle || "新對話"}
         </h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleReset}>
