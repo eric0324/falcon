@@ -2,9 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { SidebarProvider } from "@/components/sidebar-provider";
-import { TopBar } from "@/components/top-bar";
-import { Sidebar } from "@/components/sidebar";
+import { AppShellClient } from "@/components/app-shell-client";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -47,16 +45,8 @@ export async function AppShell({ children }: AppShellProps) {
   }));
 
   return (
-    <SidebarProvider>
-      <div className="h-full flex flex-col">
-        <TopBar user={session.user} />
-        <div className="flex-1 flex min-h-0">
-          <Sidebar conversations={formattedConversations} />
-          <main className="flex-1 min-w-0 overflow-auto">
-            {children}
-          </main>
-        </div>
-      </div>
-    </SidebarProvider>
+    <AppShellClient user={session.user} conversations={formattedConversations}>
+      {children}
+    </AppShellClient>
   );
 }
