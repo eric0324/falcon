@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { User } from "lucide-react";
 
 interface UserAvatarProps {
@@ -32,9 +33,11 @@ export function UserAvatar({ src, name, size = "md", className = "" }: UserAvata
 
   if (src) {
     return (
-      <img
+      <Image
         src={src}
         alt={name || "User"}
+        width={size === "lg" ? 48 : size === "md" ? 32 : 24}
+        height={size === "lg" ? 48 : size === "md" ? 32 : 24}
         className={`${sizeClass} rounded-full object-cover ${className}`}
       />
     );
