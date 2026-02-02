@@ -80,11 +80,6 @@ export function SidebarProvider({ children }: SidebarProviderProps) {
   const close = useCallback(() => setIsOpen(false), []);
   const open = useCallback(() => setIsOpen(true), []);
 
-  // Prevent hydration mismatch by not rendering until mounted
-  if (!mounted) {
-    return <>{children}</>;
-  }
-
   return (
     <SidebarContext.Provider value={{ isOpen, isMobile, toggle, close, open }}>
       {children}
