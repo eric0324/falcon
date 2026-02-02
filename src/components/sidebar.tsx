@@ -236,24 +236,13 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
 
         {/* Footer */}
         <div className="p-3 mt-auto space-y-3">
-          {/* User */}
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-neutral-400 hover:bg-neutral-800 hover:text-white transition-colors cursor-pointer">
-            <Avatar className="h-7 w-7">
-              <AvatarImage src={user.image || undefined} />
-              <AvatarFallback className="bg-neutral-700 text-white text-xs">
-                {user.name?.[0] || user.email?.[0] || "U"}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-sm truncate">{user.name || user.email}</span>
-          </div>
-
           {/* Version & GitHub */}
-          <div className="flex items-center justify-center gap-2 text-xs text-neutral-500">
+          <div className="flex items-center justify-center gap-2 text-xs text-white">
             <a
               href="https://github.com/eric0324"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-white transition-colors flex items-center gap-1.5"
+              className="hover:text-neutral-300 transition-colors flex items-center gap-1.5"
               aria-label="GitHub"
             >
               <Github className="h-3.5 w-3.5" />
