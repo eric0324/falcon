@@ -4,7 +4,6 @@ import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Visibility, Prisma } from "@prisma/client";
-import { Navbar } from "@/components/navbar";
 import { MarketplaceToolCard } from "@/components/marketplace-tool-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, TrendingUp, Star, Eye, Sparkles } from "lucide-react";
@@ -133,10 +132,7 @@ export default async function LeaderboardPage({ searchParams }: LeaderboardPageP
   };
 
   return (
-    <div>
-      <Navbar user={session?.user} />
-
-      <main className="container mx-auto px-4 py-8">
+    <div className="p-6">
         {/* Breadcrumb */}
         <div className="mb-6">
           <Button variant="ghost" size="sm" asChild className="-ml-2">
@@ -187,7 +183,6 @@ export default async function LeaderboardPage({ searchParams }: LeaderboardPageP
             {renderToolList(risingStarsTools, "還沒有新星工具")}
           </TabsContent>
         </Tabs>
-      </main>
     </div>
   );
 }

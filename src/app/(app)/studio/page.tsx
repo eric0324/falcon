@@ -2,8 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, Send, Loader2, Save, RotateCcw } from "lucide-react";
+import { Send, Loader2, Save, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,7 +14,6 @@ import { ToolCallDisplay, ToolCall } from "@/components/tool-call-display";
 import { ModelSelector } from "@/components/model-selector";
 import { FileUpload, FileList, UploadedFile } from "@/components/file-upload";
 import { DataSourceSelector } from "@/components/data-source-selector";
-import { ConversationList } from "@/components/conversation-list";
 import { ModelId, defaultModel } from "@/lib/ai/models";
 
 interface Message {
@@ -49,9 +47,6 @@ function StudioContent() {
 
   // Conversation persistence
   const [convId, setConvId] = useState<string | null>(searchParams.get("id"));
-
-  // Sidebar state
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -213,30 +208,20 @@ function StudioContent() {
       const toolCallsMap = new Map<string, ToolCall>();
 
       if (reader) {
-        console.log('[Studio] Starting stream read...');
         while (true) {
           const { done, value } = await reader.read();
-          if (done) {
-            console.log('[Studio] Stream done');
-            break;
-          }
+          if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
-          console.log('[Studio] Received chunk:', chunk);
           buffer += chunk;
           const lines = buffer.split("\n");
           buffer = lines.pop() || "";
 
           for (const line of lines) {
-            console.log('[Studio] Processing line:', line);
             const parsed = parseDataStreamLine(line);
-            if (!parsed) {
-              console.log('[Studio] Could not parse line');
-              continue;
-            }
+            if (!parsed) continue;
 
             const { type, data } = parsed;
-            console.log('[Studio] Parsed:', type, data);
 
             switch (type) {
               case "0": // Text content
@@ -460,55 +445,13 @@ function StudioContent() {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
-  const handleSelectConversation = async (id: string) => {
-    if (id === convId) return;
-
-    try {
-      const res = await fetch(`/api/conversations/${id}`);
-      if (!res.ok) throw new Error("Failed to load");
-      const conv = await res.json();
-
-      setMessages(conv.messages || []);
-      setConvId(id);
-      if (conv.model) setSelectedModel(conv.model);
-      if (conv.dataSources?.length) setSelectedDataSources(conv.dataSources);
-
-      // Extract code from last assistant message
-      const lastAssistant = [...(conv.messages || [])]
-        .reverse()
-        .find((m: { role: string }) => m.role === "assistant");
-      if (lastAssistant) {
-        const extracted = extractCode(lastAssistant.content);
-        if (extracted) setCode(extracted);
-        else setCode("");
-      } else {
-        setCode("");
-      }
-
-      router.replace(`/studio?id=${id}`, { scroll: false });
-    } catch {
-      toast({
-        title: "錯誤",
-        description: "無法載入對話",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <header className="border-b px-4 py-3 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <h1 className="font-semibold">
-            {editId ? "編輯工具" : "Studio"}
-          </h1>
-        </div>
+      <header className="border-b px-4 py-2 flex items-center justify-between shrink-0 bg-background">
+        <h1 className="font-semibold">
+          {editId ? "編輯工具" : "Studio"}
+        </h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleReset}>
             <RotateCcw className="h-4 w-4 mr-2" />
@@ -528,15 +471,6 @@ function StudioContent() {
 
       {/* Main Content */}
       <div className="flex-1 flex min-h-0">
-        {/* Conversation History Sidebar */}
-        <ConversationList
-          currentId={convId}
-          onSelect={handleSelectConversation}
-          onNew={handleReset}
-          collapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
-
         {/* Chat Panel */}
         <div className={`${hasCode ? "w-1/2 border-r" : "flex-1"} flex flex-col transition-all duration-300`}>
           <ScrollArea className="flex-1 p-4" ref={scrollRef}>

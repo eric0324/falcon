@@ -1,29 +1,29 @@
 import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Visibility, Prisma } from "@prisma/client";
-import { Navbar } from "@/components/navbar";
+import { Visibility } from "@prisma/client";
+import { TOOL_CATEGORIES, getCategoryById } from "@/lib/categories";
 import { MarketplaceToolCard } from "@/components/marketplace-tool-card";
-import { SearchBar } from "@/components/search-bar";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-interface SearchPageProps {
-  searchParams: Promise<{ q?: string }>;
+interface CategoryPageProps {
+  params: Promise<{ id: string }>;
 }
 
-export default async function SearchPage({ searchParams }: SearchPageProps) {
+export default async function CategoryPage({ params }: CategoryPageProps) {
   const session = await getServerSession(authOptions);
-  const { q: query } = await searchParams;
+  const { id: categoryId } = await params;
 
   if (!session?.user?.id) {
     redirect("/login");
   }
 
-  if (!query) {
-    redirect("/marketplace");
+  const category = getCategoryById(categoryId);
+  if (!category) {
+    notFound();
   }
 
   // Get user's department
@@ -32,32 +32,20 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     select: { department: true },
   });
 
-  const visibilityFilter: Prisma.ToolWhereInput = {
-    OR: [
-      { visibility: Visibility.PUBLIC },
-      { visibility: Visibility.COMPANY },
-      ...(user?.department
-        ? [
-            {
-              visibility: Visibility.DEPARTMENT,
-              author: { department: user.department },
-            },
-          ]
-        : []),
-    ],
-  };
-
   const tools = await prisma.tool.findMany({
     where: {
-      AND: [
-        visibilityFilter,
-        {
-          OR: [
-            { name: { contains: query, mode: Prisma.QueryMode.insensitive } },
-            { description: { contains: query, mode: Prisma.QueryMode.insensitive } },
-            { tags: { has: query } },
-          ],
-        },
+      category: categoryId,
+      OR: [
+        { visibility: Visibility.PUBLIC },
+        { visibility: Visibility.COMPANY },
+        ...(user?.department
+          ? [
+              {
+                visibility: Visibility.DEPARTMENT,
+                author: { department: user.department },
+              },
+            ]
+          : []),
       ],
     },
     include: {
@@ -85,10 +73,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   });
 
   return (
-    <div>
-      <Navbar user={session?.user} />
-
-      <main className="container mx-auto px-4 py-8">
+    <div className="p-6">
         {/* Breadcrumb */}
         <div className="mb-6">
           <Button variant="ghost" size="sm" asChild className="-ml-2">
@@ -99,19 +84,29 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           </Button>
         </div>
 
-        {/* Search Bar */}
-        <div className="max-w-xl mb-8">
-          <SearchBar />
+        {/* Category Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-3xl">{category.icon}</span>
+            <h1 className="text-2xl font-bold">{category.name}</h1>
+          </div>
+          <p className="text-muted-foreground">
+            {tools.length} 個工具
+          </p>
         </div>
 
-        {/* Results Header */}
-        <div className="mb-6">
-          <h1 className="text-xl font-semibold">
-            搜尋「{query}」的結果
-          </h1>
-          <p className="text-muted-foreground">
-            找到 {tools.length} 個工具
-          </p>
+        {/* Other Categories */}
+        <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+          {TOOL_CATEGORIES.filter((c) => c.id !== categoryId).map((c) => (
+            <Link
+              key={c.id}
+              href={`/marketplace/category/${c.id}`}
+              className="flex items-center gap-1 px-3 py-1.5 border rounded-full text-sm hover:bg-muted whitespace-nowrap"
+            >
+              <span>{c.icon}</span>
+              <span>{c.name}</span>
+            </Link>
+          ))}
         </div>
 
         {/* Tools Grid */}
@@ -123,11 +118,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           </div>
         ) : (
           <div className="text-center py-16 text-muted-foreground">
-            <p className="text-lg mb-2">找不到相關工具</p>
-            <p className="text-sm">試試其他關鍵字，或瀏覽分類</p>
+            <p className="text-lg mb-2">這個分類還沒有工具</p>
+            <p className="text-sm">成為第一個在此分類發布工具的人吧！</p>
           </div>
         )}
-      </main>
     </div>
   );
 }

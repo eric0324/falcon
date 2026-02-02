@@ -7,7 +7,6 @@ import { getCategoryById } from "@/lib/categories";
 import { formatDistanceToNow } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { ArrowLeft, Pencil, Play, Share2, Database } from "lucide-react";
-import { Navbar } from "@/components/navbar";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import { ToolStats } from "@/components/tool-stats";
@@ -83,10 +82,7 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
   };
 
   return (
-    <div>
-      <Navbar user={session?.user} />
-
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="p-6 max-w-4xl mx-auto">
         {/* Breadcrumb */}
         <div className="mb-6">
           <Button variant="ghost" size="sm" asChild className="-ml-2">
@@ -207,7 +203,6 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
           existingReview={userReview}
           canReview={true}
         />
-      </main>
     </div>
   );
 }
