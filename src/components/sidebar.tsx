@@ -35,8 +35,9 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { href: "/marketplace", label: "探索市集", icon: Store },
-  { href: "/", label: "我的工具", icon: Wrench, exact: true },
+  { href: "/studio", label: "對話", icon: Plus },
+  { href: "/", label: "工具", icon: Wrench, exact: true },
+  { href: "/marketplace", label: "探索", icon: Store },
 ];
 
 function SidebarContent({ conversations: initialConversations, user }: SidebarProps) {
@@ -136,7 +137,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
         )}
       >
         {/* Header */}
-        <div className="p-4 flex items-center justify-between">
+        <div className="p-3">
           <Button
             variant="ghost"
             size="icon"
@@ -145,15 +146,6 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
           >
             <PanelLeft className="h-5 w-5" />
           </Button>
-          <Link href="/studio">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 text-neutral-400 hover:text-white hover:bg-neutral-800"
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
-          </Link>
         </div>
 
         {/* Navigation */}
@@ -183,8 +175,13 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
           })}
         </nav>
 
+        {/* Divider */}
+        <div className="px-3 py-3">
+          <div className="border-t border-neutral-800" />
+        </div>
+
         {/* Conversations */}
-        <div className="flex-1 flex flex-col min-h-0 mt-6">
+        <div className="flex-1 flex flex-col min-h-0">
           <ScrollArea className="flex-1 px-3">
             {conversations.length === 0 ? (
               <p className="text-neutral-500 text-sm px-3 py-4">
