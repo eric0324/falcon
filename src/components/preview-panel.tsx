@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { RefreshCw } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { RefreshCw, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface PreviewPanelProps {
   code: string;
   onError?: (error: string | null) => void;
+  onShare?: () => void;
 }
 
 const DEFAULT_CODE = `export default function App() {
@@ -56,7 +57,7 @@ function buildPreviewHtml(code: string): string {
 </html>`;
 }
 
-export function PreviewPanel({ code, onError }: PreviewPanelProps) {
+export function PreviewPanel({ code, onError, onShare }: PreviewPanelProps) {
   const [key, setKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const displayCode = code || DEFAULT_CODE;
@@ -89,20 +90,16 @@ export function PreviewPanel({ code, onError }: PreviewPanelProps) {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="border-b px-4 py-2 shrink-0 flex items-center justify-between">
-        <div>
-          <span className="text-sm font-medium">Preview</span>
-          {code && !error && <span className="ml-2 text-xs text-green-600">● Live</span>}
-          {error && <span className="ml-2 text-xs text-red-600">● Error</span>}
-        </div>
-        <div className="flex items-center gap-2">
-          {code && (
-            <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
-              使用模擬資料
-            </span>
-          )}
+        <span className="text-sm font-medium">Preview</span>
+        <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleRefresh}>
             <RefreshCw className="h-3.5 w-3.5" />
           </Button>
+          {code && onShare && (
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onShare}>
+              <Share2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
       </div>
       <div className="flex-1 relative bg-white">

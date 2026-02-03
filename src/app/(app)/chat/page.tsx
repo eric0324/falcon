@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Send, Loader2, Save } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -152,6 +152,7 @@ function StudioContent() {
         }
 
         if (foundCode) setCode(foundCode);
+        setConvId(loadId);
       })
       .catch(() => {
         toast({
@@ -161,7 +162,7 @@ function StudioContent() {
         });
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -622,21 +623,10 @@ function StudioContent() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <header className="border-b px-4 py-2 flex items-center justify-between shrink-0 bg-background">
+      <header className="border-b px-4 py-2 flex items-center shrink-0 bg-background">
         <h1 className="font-semibold truncate">
           {editId ? t("title.edit") : convTitle || t("title.new")}
         </h1>
-        <div className="flex items-center gap-2">
-          {hasCode && (
-            <Button
-              size="sm"
-              onClick={() => setShowDeployDialog(true)}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {editId ? tCommon("save") : tCommon("deploy")}
-            </Button>
-          )}
-        </div>
       </header>
 
       {/* Main Content */}
@@ -733,7 +723,11 @@ function StudioContent() {
         {/* Preview Panel - only shown when code exists */}
         {hasCode && (
           <div className="flex-1 h-full">
-            <PreviewPanel code={code} onError={handlePreviewError} />
+            <PreviewPanel
+              code={code}
+              onError={handlePreviewError}
+              onShare={() => setShowDeployDialog(true)}
+            />
           </div>
         )}
       </div>
