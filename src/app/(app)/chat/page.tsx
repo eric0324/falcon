@@ -53,6 +53,12 @@ function StudioContent() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Auto-fix preview errors
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [errorRetryCount, setErrorRetryCount] = useState(0);
+  const lastCodeRef = useRef<string>("");
+  const MAX_ERROR_RETRIES = 2;
+
   const hasCode = code.length > 0;
 
   // Reset state when navigating to /chat without id (new conversation)
@@ -118,14 +124,34 @@ function StudioContent() {
         setMessages(conv.messages || []);
         if (conv.title) setConvTitle(conv.title);
         if (conv.model) setSelectedModel(conv.model);
-        // Extract code from last assistant message
-        const lastAssistant = [...(conv.messages || [])]
-          .reverse()
-          .find((m: { role: string }) => m.role === "assistant");
-        if (lastAssistant) {
-          const extracted = extractCode(lastAssistant.content);
-          if (extracted) setCode(extracted);
+
+        // Extract code from messages - check tool calls first, then content
+        const messages = conv.messages || [];
+        let foundCode: string | null = null;
+
+        // Search backwards through messages
+        for (let i = messages.length - 1; i >= 0 && !foundCode; i--) {
+          const msg = messages[i];
+          if (msg.role === "assistant") {
+            // First check tool calls for updateCode result
+            if (msg.toolCalls) {
+              for (const toolCall of msg.toolCalls) {
+                if (toolCall.name === "updateCode" && toolCall.result?.code) {
+                  const extracted = extractCode(toolCall.result.code);
+                  foundCode = extracted || toolCall.result.code;
+                  break;
+                }
+              }
+            }
+            // If no tool call code, try extracting from content
+            if (!foundCode && msg.content) {
+              const extracted = extractCode(msg.content);
+              if (extracted) foundCode = extracted;
+            }
+          }
         }
+
+        if (foundCode) setCode(foundCode);
       })
       .catch(() => {
         toast({
@@ -397,6 +423,148 @@ function StudioContent() {
     }
   };
 
+  // Handle preview errors - auto request fix from AI
+  const handlePreviewError = useCallback((error: string | null) => {
+    setPreviewError(error);
+
+    // Reset retry count when code changes
+    if (code !== lastCodeRef.current) {
+      lastCodeRef.current = code;
+      setErrorRetryCount(0);
+    }
+  }, [code]);
+
+  // Auto-fix preview errors
+  useEffect(() => {
+    if (!previewError || isLoading || errorRetryCount >= MAX_ERROR_RETRIES) return;
+
+    const autoFix = async () => {
+      setErrorRetryCount((prev) => prev + 1);
+
+      const fixMessage = `Preview 出現錯誤，請修正程式碼：\n\n\`\`\`\n${previewError}\n\`\`\``;
+
+      setMessages((prev) => [...prev, { role: "user", content: fixMessage }]);
+      setIsLoading(true);
+      setCurrentToolCalls([]);
+
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [...messages, { role: "user", content: fixMessage }],
+            model: selectedModel,
+          }),
+        });
+
+        if (!res.ok) throw new Error("Failed to get response");
+
+        const reader = res.body?.getReader();
+        const decoder = new TextDecoder();
+        let assistantMessage = "";
+        let buffer = "";
+        const toolCallsMap = new Map<string, ToolCall>();
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            buffer += chunk;
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+
+            for (const line of lines) {
+              const parsed = parseDataStreamLine(line);
+              if (!parsed) continue;
+
+              const { type, data } = parsed;
+
+              switch (type) {
+                case "0":
+                  assistantMessage += data as string;
+                  setMessages((prev) => {
+                    const lastMessage = prev[prev.length - 1];
+                    if (lastMessage?.role === "assistant") {
+                      return [
+                        ...prev.slice(0, -1),
+                        { ...lastMessage, content: assistantMessage },
+                      ];
+                    } else {
+                      return [...prev, { role: "assistant", content: assistantMessage }];
+                    }
+                  });
+
+                  const extractedCode = extractCode(assistantMessage);
+                  if (extractedCode) {
+                    setCode(extractedCode);
+                  }
+                  break;
+
+                case "9": {
+                  const toolData = data as { toolCallId: string; toolName: string; args: Record<string, unknown> };
+                  const toolCall: ToolCall = {
+                    id: toolData.toolCallId,
+                    name: toolData.toolName,
+                    args: toolData.args,
+                    status: "calling",
+                  };
+                  toolCallsMap.set(toolCall.id, toolCall);
+                  setCurrentToolCalls(Array.from(toolCallsMap.values()));
+                  break;
+                }
+
+                case "a": {
+                  const resultData = data as { toolCallId: string; result: unknown };
+                  const existing = toolCallsMap.get(resultData.toolCallId);
+                  if (existing) {
+                    existing.status = "completed";
+                    existing.result = resultData.result;
+                    toolCallsMap.set(existing.id, existing);
+                    setCurrentToolCalls(Array.from(toolCallsMap.values()));
+
+                    if (existing.name === "updateCode" && typeof resultData.result === "object" && resultData.result) {
+                      const result = resultData.result as { code?: string };
+                      if (result.code) {
+                        const extracted = extractCode(result.code);
+                        const finalCode = extracted || result.code;
+                        setCode(finalCode);
+                      }
+                    }
+                  }
+                  break;
+                }
+              }
+            }
+          }
+
+          if (toolCallsMap.size > 0) {
+            setMessages((prev) => {
+              const lastMessage = prev[prev.length - 1];
+              if (lastMessage?.role === "assistant") {
+                return [
+                  ...prev.slice(0, -1),
+                  { ...lastMessage, content: assistantMessage, toolCalls: Array.from(toolCallsMap.values()) },
+                ];
+              }
+              return prev;
+            });
+          }
+        }
+      } catch {
+        // Auto-fix failure is non-critical
+      } finally {
+        setIsLoading(false);
+        setCurrentToolCalls([]);
+      }
+    };
+
+    // Small delay before auto-fix
+    const timer = setTimeout(autoFix, 1000);
+    return () => clearTimeout(timer);
+  }, [previewError, isLoading, errorRetryCount, messages, selectedModel, parseDataStreamLine, extractCode]);
+
   const handleDeploy = async (data: {
     name: string;
     description: string;
@@ -565,7 +733,7 @@ function StudioContent() {
         {/* Preview Panel - only shown when code exists */}
         {hasCode && (
           <div className="flex-1 h-full">
-            <PreviewPanel code={code} />
+            <PreviewPanel code={code} onError={handlePreviewError} />
           </div>
         )}
       </div>
