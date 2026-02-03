@@ -40,6 +40,16 @@
     "conversation": {
       "empty": "No conversations",
       "newConversation": "New conversation"
+    },
+    "settings": {
+      "title": "Settings",
+      "profile": "Profile",
+      "language": "Language",
+      "changelog": "Changelog",
+      "changelogV010": "初始版本發布 - 支援 AI 對話、工具建立與市集功能",
+      "about": "About",
+      "aboutDescription": "Falcon is an AI-powered enterprise assistant platform that combines chat, data queries, and tool creation.",
+      "logout": "Logout"
     }
   },
   "studio": {

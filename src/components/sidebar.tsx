@@ -11,12 +11,12 @@ import {
   Loader2,
   PanelLeft,
   Plus,
-  Github,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/sidebar-provider";
+import { SettingsDialog } from "@/components/settings-dialog";
 
 interface ConversationItem {
   id: string;
@@ -112,15 +112,7 @@ function SidebarContent({ conversations: initialConversations }: SidebarProps) {
           </Button>
         </Link>
         <div className="flex-1" />
-        <a
-          href="https://github.com/eric0324"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-neutral-500 hover:text-neutral-900 transition-colors"
-          aria-label="GitHub"
-        >
-          <Github className="h-4 w-4" />
-        </a>
+        <SettingsDialog collapsed />
       </div>
     );
   }
@@ -151,7 +143,8 @@ function SidebarContent({ conversations: initialConversations }: SidebarProps) {
             <PanelLeft className="h-5 w-5" />
           </Button>
           <span className="font-semibold text-neutral-900">Falcon</span>
-          <span className="text-xs text-neutral-500 bg-neutral-100 px-1.5 py-0.5 rounded-md ml-1.5">v0.1.0</span>
+          <div className="flex-1" />
+          <SettingsDialog />
         </div>
 
         {/* Navigation */}
@@ -241,18 +234,6 @@ function SidebarContent({ conversations: initialConversations }: SidebarProps) {
           </ScrollArea>
         </div>
 
-        {/* Footer */}
-        <div className="p-3 mt-auto flex justify-center">
-          <a
-            href="https://github.com/eric0324"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-neutral-500 hover:text-neutral-900 transition-colors"
-            aria-label="GitHub"
-          >
-            <Github className="h-4 w-4" />
-          </a>
-        </div>
       </aside>
     </>
   );

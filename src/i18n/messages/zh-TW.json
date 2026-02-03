@@ -40,6 +40,16 @@
     "conversation": {
       "empty": "沒有對話",
       "newConversation": "新對話"
+    },
+    "settings": {
+      "title": "設定",
+      "profile": "個人設定",
+      "language": "語言",
+      "changelog": "更新日誌",
+      "changelogV010": "初始版本發布 - 支援 AI 對話、工具建立與市集功能",
+      "about": "關於",
+      "aboutDescription": "Falcon 是一個 AI 驅動的企業助理平台，結合對話、資料查詢與工具建立功能。",
+      "logout": "登出"
     }
   },
   "studio": {
