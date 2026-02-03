@@ -94,7 +94,6 @@ describe("POST /api/conversations", () => {
       title: "幫我查訂單",
       messages,
       model: "claude-sonnet-4-20250514",
-      dataSources: ["db-main"],
       userId: "user-1",
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -104,7 +103,6 @@ describe("POST /api/conversations", () => {
       makeRequest({
         messages,
         model: "claude-sonnet-4-20250514",
-        dataSources: ["db-main"],
       })
     );
     expect(res.status).toBe(201);

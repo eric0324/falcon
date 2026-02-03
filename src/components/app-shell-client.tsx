@@ -11,20 +11,15 @@ interface ConversationItem {
 }
 
 interface AppShellClientProps {
-  user: {
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-  };
   conversations: ConversationItem[];
   children: React.ReactNode;
 }
 
-export function AppShellClient({ user, conversations, children }: AppShellClientProps) {
+export function AppShellClient({ conversations, children }: AppShellClientProps) {
   return (
     <SidebarProvider>
       <div className="h-full flex">
-        <Sidebar conversations={conversations} user={user} />
+        <Sidebar conversations={conversations} />
         <main className="flex-1 min-w-0 overflow-auto">
           {children}
         </main>

@@ -1,0 +1,212 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "open": "Open",
+    "share": "Share",
+    "reset": "Reset",
+    "deploy": "Deploy",
+    "loading": "Loading...",
+    "error": "Error",
+    "anonymous": "Anonymous",
+    "submit": "Submit",
+    "submitting": "Submitting...",
+    "saving": "Saving...",
+    "deploying": "Deploying...",
+    "deleting": "Deleting...",
+    "updatedAt": "Updated {time}",
+    "noDepartment": "No department",
+    "publishedAt": "Published {time}",
+    "useTool": "Use Tool",
+    "backToMarketplace": "Back to Marketplace",
+    "viewMore": "View More"
+  },
+  "myTools": {
+    "title": "My Tools",
+    "description": "Manage your created tools",
+    "newChat": "New Chat",
+    "getStarted": "Get Started",
+    "getStartedDescription": "Start a conversation to ask questions, search data, or build tools",
+    "openStudio": "New Chat"
+  },
+  "sidebar": {
+    "nav": {
+      "chat": "Chat",
+      "tools": "Tools",
+      "explore": "Explore"
+    },
+    "conversation": {
+      "empty": "No conversations",
+      "newConversation": "New conversation"
+    }
+  },
+  "studio": {
+    "title": {
+      "edit": "Edit Tool",
+      "new": "New Conversation"
+    },
+    "welcome": {
+      "title": "How can I help you?",
+      "description": "Ask me anything, search for data, or describe the tool you want to build."
+    },
+    "input": {
+      "placeholder": "Ask something, or describe the feature you want..."
+    },
+    "thinking": "Thinking...",
+    "toast": {
+      "error": "Error",
+      "loadToolError": "Failed to load tool",
+      "loadConversationError": "Failed to load conversation",
+      "responseError": "Failed to get response. Please try again.",
+      "saveError": "Save failed. Please try again.",
+      "toolUpdated": "Tool updated",
+      "toolPublished": "Tool published",
+      "toolSaveSuccess": "\"{name}\" has been {action} successfully."
+    }
+  },
+  "marketplace": {
+    "hero": {
+      "title": "Tool Marketplace",
+      "description": "Discover useful tools created by your colleagues, or share your own"
+    },
+    "sections": {
+      "categories": "Browse Categories",
+      "leaderboard": "Leaderboard",
+      "trending": "Trending This Week",
+      "newest": "Newest"
+    },
+    "empty": {
+      "trending": "No trending tools yet. Be the first to share a tool!",
+      "newest": "No tools yet. Create one now!"
+    }
+  },
+  "deploy": {
+    "title": {
+      "save": "Save Tool",
+      "deploy": "Deploy Tool"
+    },
+    "description": {
+      "save": "Update your tool's name and description.",
+      "deploy": "Give your tool a name and description so you can find it later."
+    },
+    "form": {
+      "name": "Name",
+      "namePlaceholder": "e.g., Expense Report Tool",
+      "description": "Description (optional)",
+      "descriptionPlaceholder": "e.g., For submitting and tracking expense reports",
+      "category": "Category",
+      "categoryPlaceholder": "Select category",
+      "tags": "Tags (max 5, press Enter to add)",
+      "tagsPlaceholder": "Enter tag...",
+      "visibility": "Visibility"
+    },
+    "visibility": {
+      "private": "Private",
+      "department": "Department",
+      "company": "Company-wide",
+      "public": "Public"
+    }
+  },
+  "review": {
+    "title": "Reviews",
+    "sort": {
+      "newest": "Newest",
+      "rating": "Highest Rated"
+    },
+    "form": {
+      "updateTitle": "Update your review",
+      "createTitle": "Write a review",
+      "rating": "Rating",
+      "ratingRequired": "Please select a rating",
+      "content": "Review",
+      "contentOptional": "(optional)",
+      "contentPlaceholder": "Share your experience...",
+      "submit": "Submit Review",
+      "update": "Update Review",
+      "submitting": "Submitting..."
+    },
+    "list": {
+      "empty": "No reviews yet. Be the first to review!",
+      "author": "Author",
+      "replyPlaceholder": "Reply to this review...",
+      "reply": "Reply"
+    },
+    "error": "An error occurred"
+  },
+  "search": {
+    "placeholder": "Search tool name, description, or tags..."
+  },
+  "categories": {
+    "productivity": "Productivity",
+    "data": "Data Analysis",
+    "finance": "Finance",
+    "hr": "HR",
+    "marketing": "Marketing",
+    "design": "Design",
+    "other": "Other"
+  },
+  "tool": {
+    "details": {
+      "statistics": "Statistics"
+    },
+    "stats": {
+      "totalUsage": "Total Usage",
+      "weeklyUsage": "Weekly Usage",
+      "averageRating": "Average Rating",
+      "totalReviews": "Total Reviews"
+    },
+    "card": {
+      "noDescription": "No description",
+      "deleteTitle": "Delete Tool",
+      "deleteDescription": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+      "deleteSuccess": "Tool deleted",
+      "deleteSuccessDescription": "The tool has been deleted successfully.",
+      "deleteError": "Error",
+      "deleteErrorDescription": "Failed to delete tool. Please try again."
+    }
+  },
+  "fileUpload": {
+    "upload": "Upload"
+  },
+  "models": {
+    "selectModel": "Select Model",
+    "claude-sonnet": {
+      "name": "Claude Sonnet",
+      "description": "Balanced speed and quality, suitable for most tasks"
+    },
+    "claude-haiku": {
+      "name": "Claude Haiku",
+      "description": "Fast responses, suitable for simple tasks"
+    },
+    "gpt-4o": {
+      "name": "GPT-4o",
+      "description": "OpenAI's latest model with multimodal support"
+    },
+    "gpt-4o-mini": {
+      "name": "GPT-4o Mini",
+      "description": "Lightweight GPT-4o, faster and cheaper"
+    }
+  },
+  "emptyState": {
+    "noTools": {
+      "title": "No tools yet",
+      "description": "Be the first to share a tool here!",
+      "action": "Open Studio"
+    },
+    "noResults": {
+      "title": "No results found",
+      "description": "Try different keywords or browse categories",
+      "action": "Browse Marketplace"
+    },
+    "noReviews": {
+      "title": "No reviews yet",
+      "description": "Be the first to review!"
+    },
+    "noTrending": {
+      "title": "No trending tools yet",
+      "description": "Use more tools to help them get on the list!"
+    }
+  }
+}

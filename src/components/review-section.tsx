@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { ReviewForm } from "./review-form";
 import { ReviewList } from "./review-list";
 import {
@@ -48,6 +49,8 @@ export function ReviewSection({
   existingReview,
   canReview,
 }: ReviewSectionProps) {
+  const t = useTranslations("review");
+  const tCommon = useTranslations("common");
   const [reviews, setReviews] = useState<Review[]>([]);
   const [sort, setSort] = useState("newest");
   const [isLoading, setIsLoading] = useState(true);
@@ -73,14 +76,14 @@ export function ReviewSection({
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-semibold">評論</h2>
+        <h2 className="text-lg font-semibold">{t("title")}</h2>
         <Select value={sort} onValueChange={setSort}>
           <SelectTrigger className="w-32">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="newest">最新</SelectItem>
-            <SelectItem value="rating">評分最高</SelectItem>
+            <SelectItem value="newest">{t("sort.newest")}</SelectItem>
+            <SelectItem value="rating">{t("sort.rating")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -89,7 +92,7 @@ export function ReviewSection({
       {canReview && (
         <div className="mb-8 p-4 border rounded-lg">
           <h3 className="font-medium mb-4">
-            {existingReview ? "更新你的評論" : "撰寫評論"}
+            {existingReview ? t("form.updateTitle") : t("form.createTitle")}
           </h3>
           <ReviewForm
             toolId={toolId}
@@ -102,7 +105,7 @@ export function ReviewSection({
       {/* Review List */}
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground">
-          載入中...
+          {tCommon("loading")}
         </div>
       ) : (
         <ReviewList

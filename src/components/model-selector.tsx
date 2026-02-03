@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +41,7 @@ function getModelIcon(modelId: string) {
 }
 
 export function ModelSelector({ value, onChange }: ModelSelectorProps) {
+  const t = useTranslations("models");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -64,23 +66,21 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
   }
 
   const safeValue = value in modelInfo ? value : defaultModel;
-  const currentModel = modelInfo[safeValue];
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs">
           {getModelIcon(safeValue)}
-          {currentModel.name}
+          {t(`${safeValue}.name`)}
           <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-72">
-        <DropdownMenuLabel>選擇模型</DropdownMenuLabel>
+        <DropdownMenuLabel>{t("selectModel")}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuRadioGroup value={safeValue} onValueChange={handleChange}>
           {(Object.keys(modelInfo) as ModelId[]).map((modelId) => {
-            const info = modelInfo[modelId];
             const provider = getProvider(modelId);
             return (
               <DropdownMenuRadioItem
@@ -90,13 +90,13 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
               >
                 <div className="flex flex-col gap-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">{info.name}</span>
+                    <span className="font-medium text-sm">{t(`${modelId}.name`)}</span>
                     <span className={`text-[10px] ${provider.color} bg-muted px-1.5 py-0.5 rounded-full leading-none`}>
                       {provider.name}
                     </span>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {info.description}
+                    {t(`${modelId}.description`)}
                   </span>
                 </div>
               </DropdownMenuRadioItem>

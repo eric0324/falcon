@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
+import { useTranslations } from "next-intl";
 import {
   Store,
   Wrench,
@@ -16,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/sidebar-provider";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ConversationItem {
   id: string;
@@ -27,36 +27,41 @@ interface ConversationItem {
 
 interface SidebarProps {
   conversations: ConversationItem[];
-  user: {
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-  };
 }
 
 const navItems = [
-  { href: "/studio", label: "對話", icon: Plus },
-  { href: "/", label: "工具", icon: Wrench, exact: true },
-  { href: "/marketplace", label: "探索", icon: Store },
+  { href: "/chat", labelKey: "nav.chat" as const, icon: Plus, neverActive: true },
+  { href: "/", labelKey: "nav.tools" as const, icon: Wrench, exact: true },
+  { href: "/marketplace", labelKey: "nav.explore" as const, icon: Store },
 ];
 
-function SidebarContent({ conversations: initialConversations, user }: SidebarProps) {
+function SidebarContent({ conversations: initialConversations }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { isOpen, isMobile, close, toggle } = useSidebar();
   const [conversations, setConversations] = useState(initialConversations);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const t = useTranslations("sidebar");
 
   const currentConvId = searchParams.get("id");
+  const [hasFetched, setHasFetched] = useState(false);
 
+  // Refresh conversations when a new conversation is selected that's not in the list
   useEffect(() => {
-    if (currentConvId && !conversations.find((c) => c.id === currentConvId)) {
+    if (currentConvId && !hasFetched && !initialConversations.find((c) => c.id === currentConvId)) {
+      setHasFetched(true);
       fetch("/api/conversations?limit=50")
         .then((res) => res.ok ? res.json() : [])
         .then(setConversations)
         .catch(() => {});
     }
-  }, [currentConvId, conversations]);
+  }, [currentConvId, hasFetched, initialConversations]);
+
+  // Reset fetch flag when conversation changes
+  useEffect(() => {
+    setHasFetched(false);
+  }, [currentConvId]);
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
@@ -76,27 +81,32 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
     }
   };
 
-  const handleNavClick = () => {
+  const handleNavClick = (e: React.MouseEvent, href: string) => {
     if (isMobile) close();
+    // Force navigation to /chat when clicking +Chat while already on /chat with an id
+    if (href === "/chat" && pathname === "/chat" && currentConvId) {
+      e.preventDefault();
+      router.push("/chat");
+    }
   };
 
   // Collapsed state
   if (!isOpen) {
     return (
-      <div className="w-16 bg-neutral-900 flex flex-col items-center py-4 shrink-0">
+      <div className="w-16 bg-white border-r border-neutral-200 flex flex-col items-center py-4 shrink-0">
         <Button
           variant="ghost"
           size="icon"
           onClick={toggle}
-          className="h-10 w-10 text-neutral-400 hover:text-white hover:bg-neutral-800"
+          className="h-10 w-10 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
         >
           <PanelLeft className="h-5 w-5" />
         </Button>
-        <Link href="/studio" className="mt-4">
+        <Link href="/chat" className="mt-4">
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 text-neutral-400 hover:text-white hover:bg-neutral-800"
+            className="h-10 w-10 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
           >
             <Plus className="h-5 w-5" />
           </Button>
@@ -106,17 +116,11 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
           href="https://github.com/eric0324"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-neutral-500 hover:text-white transition-colors mb-3"
+          className="text-neutral-500 hover:text-neutral-900 transition-colors"
           aria-label="GitHub"
         >
           <Github className="h-4 w-4" />
         </a>
-        <Avatar className="h-8 w-8">
-          <AvatarImage src={user.image || undefined} />
-          <AvatarFallback className="bg-neutral-700 text-white text-xs">
-            {user.name?.[0] || user.email?.[0] || "U"}
-          </AvatarFallback>
-        </Avatar>
       </div>
     );
   }
@@ -132,7 +136,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
 
       <aside
         className={cn(
-          "w-64 bg-neutral-900 text-white flex flex-col shrink-0 z-50",
+          "w-64 bg-white border-r border-neutral-200 text-neutral-900 flex flex-col shrink-0 z-50",
           isMobile && "fixed inset-y-0 left-0"
         )}
       >
@@ -142,35 +146,38 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
             variant="ghost"
             size="icon"
             onClick={toggle}
-            className="h-9 w-9 text-neutral-400 hover:text-white hover:bg-neutral-800"
+            className="h-9 w-9 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
           >
             <PanelLeft className="h-5 w-5" />
           </Button>
-          <span className="font-semibold text-white">Falcon</span>
+          <span className="font-semibold text-neutral-900">Falcon</span>
+          <span className="text-xs text-neutral-500 bg-neutral-100 px-1.5 py-0.5 rounded-md ml-1.5">v0.1.0</span>
         </div>
 
         {/* Navigation */}
         <nav className="px-3 space-y-0.5">
           {navItems.map((item) => {
-            const isActive = item.exact
-              ? pathname === item.href
-              : pathname.startsWith(item.href) && item.href !== "/";
+            const isActive = item.neverActive
+              ? false
+              : item.exact
+                ? pathname === item.href
+                : pathname.startsWith(item.href) && item.href !== "/";
             const Icon = item.icon;
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={handleNavClick}
+                onClick={(e) => handleNavClick(e, item.href)}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
                   isActive
-                    ? "bg-neutral-800 text-white"
-                    : "text-neutral-400 hover:bg-neutral-800 hover:text-white"
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
                 )}
               >
                 <Icon className="h-4 w-4" />
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             );
           })}
@@ -178,7 +185,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
 
         {/* Divider */}
         <div className="px-3 py-3">
-          <div className="border-t border-neutral-800" />
+          <div className="border-t border-neutral-200" />
         </div>
 
         {/* Conversations */}
@@ -186,27 +193,27 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
           <ScrollArea className="flex-1 px-3">
             {conversations.length === 0 ? (
               <p className="text-neutral-500 text-sm px-3 py-4">
-                開始你的第一個對話
+                {t("conversation.empty")}
               </p>
             ) : (
               <div className="space-y-0.5 pb-4">
                 {conversations.map((conv) => {
-                  const isActive = pathname === "/studio" && currentConvId === conv.id;
+                  const isActive = pathname === "/chat" && currentConvId === conv.id;
 
                   return (
                     <Link
                       key={conv.id}
-                      href={`/studio?id=${conv.id}`}
-                      onClick={handleNavClick}
+                      href={`/chat?id=${conv.id}`}
+                      onClick={(e) => handleNavClick(e, `/chat?id=${conv.id}`)}
                       className={cn(
                         "group relative flex items-center px-3 py-2.5 rounded-lg text-sm transition-colors",
                         isActive
-                          ? "bg-neutral-800 text-white"
-                          : "text-neutral-400 hover:bg-neutral-800 hover:text-white"
+                          ? "bg-neutral-100 text-neutral-900"
+                          : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
                       )}
                     >
                       <span className="truncate pr-6">
-                        {conv.title || "新對話"}
+                        {conv.title || t("conversation.newConversation")}
                       </span>
 
                       <Button
@@ -235,20 +242,16 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
         </div>
 
         {/* Footer */}
-        <div className="p-3 mt-auto">
-          {/* Version & GitHub */}
-          <div className="flex items-center justify-between text-xs text-white">
-            <span>v0.1.0</span>
-            <a
-              href="https://github.com/eric0324"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-white transition-colors"
-              aria-label="GitHub"
-            >
-              <Github className="h-3.5 w-3.5" />
-            </a>
-          </div>
+        <div className="p-3 mt-auto flex justify-center">
+          <a
+            href="https://github.com/eric0324"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-neutral-500 hover:text-neutral-900 transition-colors"
+            aria-label="GitHub"
+          >
+            <Github className="h-4 w-4" />
+          </a>
         </div>
       </aside>
     </>

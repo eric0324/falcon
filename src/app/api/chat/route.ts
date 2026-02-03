@@ -2,47 +2,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { streamText } from "ai";
 import { models, ModelId, defaultModel } from "@/lib/ai/models";
-import { createStudioTools } from "@/lib/ai/tools";
-import { prisma } from "@/lib/prisma";
-import { BASE_SYSTEM_PROMPT, buildSystemPromptText } from "@/lib/ai/system-prompt";
+import { studioTools } from "@/lib/ai/tools";
+import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
 
 interface FileData {
   name: string;
   type: string;
   base64: string;
-}
-
-async function buildSystemPrompt(dataSourceNames: string[]): Promise<string> {
-  if (dataSourceNames.length === 0) {
-    return BASE_SYSTEM_PROMPT;
-  }
-
-  const dataSources = await prisma.dataSource.findMany({
-    where: {
-      name: { in: dataSourceNames },
-      isActive: true,
-    },
-    select: {
-      name: true,
-      displayName: true,
-      type: true,
-      schema: true,
-    },
-  });
-
-  if (dataSources.length === 0) {
-    return BASE_SYSTEM_PROMPT;
-  }
-
-  // Cast Prisma JSON to expected shape and delegate to pure function
-  const mapped = dataSources.map((ds) => ({
-    name: ds.name,
-    displayName: ds.displayName,
-    type: ds.type,
-    schema: ds.schema as { tables?: Array<{ name: string; columns?: Array<{ name: string; type: string }> }> } | null,
-  }));
-
-  return buildSystemPromptText(mapped);
 }
 
 function buildMessageContent(
@@ -98,16 +64,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { messages, model, files, dataSources } = await req.json();
-
-    // Get allowed data sources from request
-    const allowedDataSources: string[] = dataSources || [];
-
-    // Build system prompt with data source info
-    const systemPrompt = await buildSystemPrompt(allowedDataSources);
-
-    // Create tools with data source restrictions
-    const tools = createStudioTools(allowedDataSources);
+    const { messages, model, files } = await req.json();
 
     // Use specified model or default
     const selectedModel = models[(model as ModelId) || defaultModel];
@@ -120,8 +77,6 @@ export async function POST(req: Request) {
         content: isLastUserMessage ? buildMessageContent(m.content, files) : m.content,
       };
     });
-
-    console.log("[Chat API] Allowed data sources:", allowedDataSources);
 
     // Create streaming response with tool loop
     const stream = new ReadableStream({
@@ -137,9 +92,9 @@ export async function POST(req: Request) {
 
           const result = streamText({
             model: selectedModel,
-            system: systemPrompt,
+            system: SYSTEM_PROMPT,
             messages: currentMessages,
-            tools,
+            tools: studioTools,
           });
 
           let hasToolCalls = false;

@@ -45,7 +45,7 @@ export async function AppShell({ children }: AppShellProps) {
   }));
 
   return (
-    <AppShellClient user={session.user} conversations={formattedConversations}>
+    <AppShellClient conversations={formattedConversations}>
       {children}
     </AppShellClient>
   );

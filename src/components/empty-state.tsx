@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Package, Search, Star, TrendingUp } from "lucide-react";
 
@@ -14,34 +15,34 @@ interface EmptyStateProps {
 
 const defaultContent: Record<string, {
   icon: typeof Package;
-  title: string;
-  description: string;
-  actionLabel?: string;
+  titleKey: string;
+  descriptionKey: string;
+  actionLabelKey?: string;
   actionHref?: string;
 }> = {
   "no-tools": {
     icon: Package,
-    title: "還沒有工具",
-    description: "成為第一個在這裡分享工具的人吧！",
-    actionLabel: "Open Studio",
-    actionHref: "/studio",
+    titleKey: "noTools.title",
+    descriptionKey: "noTools.description",
+    actionLabelKey: "noTools.action",
+    actionHref: "/chat",
   },
   "no-results": {
     icon: Search,
-    title: "找不到相關結果",
-    description: "試試其他關鍵字，或瀏覽分類",
-    actionLabel: "瀏覽市集",
+    titleKey: "noResults.title",
+    descriptionKey: "noResults.description",
+    actionLabelKey: "noResults.action",
     actionHref: "/marketplace",
   },
   "no-reviews": {
     icon: Star,
-    title: "還沒有評論",
-    description: "成為第一個評論的人吧！",
+    titleKey: "noReviews.title",
+    descriptionKey: "noReviews.description",
   },
   "no-trending": {
     icon: TrendingUp,
-    title: "還沒有熱門工具",
-    description: "使用更多工具來幫助它們上榜！",
+    titleKey: "noTrending.title",
+    descriptionKey: "noTrending.description",
   },
 };
 
@@ -52,6 +53,7 @@ export function EmptyState({
   actionLabel,
   actionHref,
 }: EmptyStateProps) {
+  const t = useTranslations("emptyState");
   const content = defaultContent[type];
   const Icon = content.icon;
 
@@ -60,14 +62,14 @@ export function EmptyState({
       <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
         <Icon className="h-6 w-6 text-muted-foreground" />
       </div>
-      <h3 className="text-lg font-medium mb-2">{title || content.title}</h3>
+      <h3 className="text-lg font-medium mb-2">{title || t(content.titleKey)}</h3>
       <p className="text-muted-foreground mb-4">
-        {description || content.description}
+        {description || t(content.descriptionKey)}
       </p>
       {(actionHref || content.actionHref) && (
         <Button asChild>
           <Link href={actionHref || content.actionHref!}>
-            {actionLabel || content.actionLabel}
+            {actionLabel || (content.actionLabelKey ? t(content.actionLabelKey) : "")}
           </Link>
         </Button>
       )}

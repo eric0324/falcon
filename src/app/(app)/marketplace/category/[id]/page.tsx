@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Visibility } from "@prisma/client";
@@ -72,6 +73,9 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     },
   });
 
+  const tCategories = await getTranslations("categories");
+  const tCommon = await getTranslations("common");
+
   return (
     <div className="p-6">
         {/* Breadcrumb */}
@@ -79,7 +83,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
           <Button variant="ghost" size="sm" asChild className="-ml-2">
             <Link href="/marketplace">
               <ArrowLeft className="h-4 w-4 mr-1" />
-              返回市集
+              {tCommon("backToMarketplace")}
             </Link>
           </Button>
         </div>
@@ -88,7 +92,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <span className="text-3xl">{category.icon}</span>
-            <h1 className="text-2xl font-bold">{category.name}</h1>
+            <h1 className="text-2xl font-bold">{tCategories(category.id)}</h1>
           </div>
           <p className="text-muted-foreground">
             {tools.length} 個工具
@@ -104,7 +108,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
               className="flex items-center gap-1 px-3 py-1.5 border rounded-full text-sm hover:bg-muted whitespace-nowrap"
             >
               <span>{c.icon}</span>
-              <span>{c.name}</span>
+              <span>{tCategories(c.id)}</span>
             </Link>
           ))}
         </div>

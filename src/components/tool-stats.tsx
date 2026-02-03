@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Eye, Star, MessageSquare, TrendingUp } from "lucide-react";
 
 interface ToolStatsProps {
@@ -17,6 +18,7 @@ export function ToolStats({
   weeklyUsage,
   compact = false,
 }: ToolStatsProps) {
+  const t = useTranslations("tool.stats");
   if (compact) {
     return (
       <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -45,7 +47,7 @@ export function ToolStats({
       <div className="bg-muted/50 rounded-lg p-4">
         <div className="flex items-center gap-2 text-muted-foreground mb-1">
           <Eye className="h-4 w-4" />
-          <span className="text-sm">總使用次數</span>
+          <span className="text-sm">{t("totalUsage")}</span>
         </div>
         <p className="text-2xl font-bold">{totalUsage}</p>
       </div>
@@ -53,7 +55,7 @@ export function ToolStats({
       <div className="bg-muted/50 rounded-lg p-4">
         <div className="flex items-center gap-2 text-muted-foreground mb-1">
           <TrendingUp className="h-4 w-4" />
-          <span className="text-sm">本週使用</span>
+          <span className="text-sm">{t("weeklyUsage")}</span>
         </div>
         <p className="text-2xl font-bold">{weeklyUsage ?? 0}</p>
       </div>
@@ -61,7 +63,7 @@ export function ToolStats({
       <div className="bg-muted/50 rounded-lg p-4">
         <div className="flex items-center gap-2 text-muted-foreground mb-1">
           <Star className="h-4 w-4" />
-          <span className="text-sm">平均評分</span>
+          <span className="text-sm">{t("averageRating")}</span>
         </div>
         <p className="text-2xl font-bold">
           {averageRating > 0 ? averageRating.toFixed(1) : "-"}
@@ -71,7 +73,7 @@ export function ToolStats({
       <div className="bg-muted/50 rounded-lg p-4">
         <div className="flex items-center gap-2 text-muted-foreground mb-1">
           <MessageSquare className="h-4 w-4" />
-          <span className="text-sm">評論數</span>
+          <span className="text-sm">{t("totalReviews")}</span>
         </div>
         <p className="text-2xl font-bold">{totalReviews}</p>
       </div>

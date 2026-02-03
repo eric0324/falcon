@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { formatDistanceToNow } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { StarRating } from "./star-rating";
@@ -44,6 +45,8 @@ export function ReviewList({
   currentUserId,
   onReplySubmit,
 }: ReviewListProps) {
+  const t = useTranslations("review");
+  const tCommon = useTranslations("common");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,7 +79,7 @@ export function ReviewList({
   if (reviews.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        還沒有評論，成為第一個評論的人吧！
+        {t("list.empty")}
       </div>
     );
   }
@@ -94,7 +97,7 @@ export function ReviewList({
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-medium">{review.user.name || "匿名"}</span>
+                <span className="font-medium">{review.user.name || tCommon("anonymous")}</span>
                 <StarRating value={review.rating} readonly size="sm" />
                 <span className="text-sm text-muted-foreground">
                   {formatDistanceToNow(new Date(review.createdAt), {
@@ -124,10 +127,10 @@ export function ReviewList({
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium">
-                            {reply.user.name || "作者"}
+                            {reply.user.name || t("list.author")}
                           </span>
                           <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
-                            作者
+                            {t("list.author")}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {formatDistanceToNow(new Date(reply.createdAt), {
@@ -151,7 +154,7 @@ export function ReviewList({
                       <Textarea
                         value={replyContent}
                         onChange={(e) => setReplyContent(e.target.value)}
-                        placeholder="回覆這則評論..."
+                        placeholder={t("list.replyPlaceholder")}
                         rows={2}
                       />
                       <div className="flex gap-2">
@@ -160,7 +163,7 @@ export function ReviewList({
                           onClick={() => handleSubmitReply(review.id)}
                           disabled={isSubmitting || !replyContent.trim()}
                         >
-                          {isSubmitting ? "送出中..." : "送出"}
+                          {isSubmitting ? tCommon("submitting") : tCommon("submit")}
                         </Button>
                         <Button
                           size="sm"
@@ -170,7 +173,7 @@ export function ReviewList({
                             setReplyContent("");
                           }}
                         >
-                          取消
+                          {tCommon("cancel")}
                         </Button>
                       </div>
                     </div>
@@ -181,7 +184,7 @@ export function ReviewList({
                       onClick={() => setReplyingTo(review.id)}
                     >
                       <MessageSquare className="h-4 w-4 mr-1" />
-                      回覆
+                      {t("list.reply")}
                     </Button>
                   )}
                 </div>

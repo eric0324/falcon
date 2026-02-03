@@ -65,7 +65,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
           </Button>
           {isOwner && (
             <Button variant="outline" size="sm" asChild>
-              <Link href={`/studio?edit=${tool.id}`}>
+              <Link href={`/chat?edit=${tool.id}`}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit
               </Link>

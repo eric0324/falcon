@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Paperclip, X, FileText, Image as ImageIcon, Code } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -59,6 +60,7 @@ function formatFileSize(bytes: number): string {
 }
 
 export function FileUpload({ files, onChange, disabled }: FileUploadProps) {
+  const t = useTranslations("fileUpload");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleClick = () => {
@@ -132,7 +134,7 @@ export function FileUpload({ files, onChange, disabled }: FileUploadProps) {
         className="h-8 gap-1.5 text-xs"
       >
         <Paperclip className="h-3.5 w-3.5" />
-        上傳
+        {t("upload")}
         {files.length > 0 && (
           <span className="ml-1 bg-primary/10 text-primary px-1.5 rounded-full">
             {files.length}

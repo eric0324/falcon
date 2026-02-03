@@ -1,12 +1,13 @@
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCategoryById } from "@/lib/categories";
 import { formatDistanceToNow } from "date-fns";
 import { zhTW } from "date-fns/locale";
-import { ArrowLeft, Pencil, Play, Share2, Database } from "lucide-react";
+import { ArrowLeft, Pencil, Play, Share2 } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import { ToolStats } from "@/components/tool-stats";
@@ -81,6 +82,10 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
     totalReviews: 0,
   };
 
+  const t = await getTranslations("tool");
+  const tCategories = await getTranslations("categories");
+  const tCommon = await getTranslations("common");
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
         {/* Breadcrumb */}
@@ -88,7 +93,7 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
           <Button variant="ghost" size="sm" asChild className="-ml-2">
             <Link href="/marketplace">
               <ArrowLeft className="h-4 w-4 mr-1" />
-              返回市集
+              {tCommon("backToMarketplace")}
             </Link>
           </Button>
         </div>
@@ -101,7 +106,7 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
                 <h1 className="text-2xl font-bold">{tool.name}</h1>
                 {category && (
                   <span className="text-sm bg-muted px-2 py-1 rounded">
-                    {category.icon} {category.name}
+                    {category.icon} {tCategories(category.id)}
                   </span>
                 )}
               </div>
@@ -112,20 +117,20 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
             <div className="flex gap-2 shrink-0">
               <Button variant="outline" size="sm">
                 <Share2 className="h-4 w-4 mr-1" />
-                分享
+                {tCommon("share")}
               </Button>
               {isOwner && (
                 <Button variant="outline" size="sm" asChild>
-                  <Link href={`/studio?edit=${tool.id}`}>
+                  <Link href={`/chat?edit=${tool.id}`}>
                     <Pencil className="h-4 w-4 mr-1" />
-                    編輯
+                    {tCommon("edit")}
                   </Link>
                 </Button>
               )}
               <Button asChild>
                 <Link href={`/tool/${tool.id}`}>
                   <Play className="h-4 w-4 mr-1" />
-                  使用工具
+                  {tCommon("useTool")}
                 </Link>
               </Button>
             </div>
@@ -145,24 +150,6 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
             </div>
           )}
 
-          {/* Data Sources */}
-          {tool.allowedSources.length > 0 && (
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-sm text-muted-foreground">使用資料源:</span>
-              <div className="flex gap-2">
-                {tool.allowedSources.map((source) => (
-                  <span
-                    key={source}
-                    className="inline-flex items-center gap-1 text-sm bg-green-50 text-green-600 px-2 py-0.5 rounded"
-                  >
-                    <Database className="h-3 w-3" />
-                    {source}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Author Info */}
           <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
             <UserAvatar
@@ -171,9 +158,9 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
               size="lg"
             />
             <div>
-              <p className="font-medium">{tool.author.name || "匿名"}</p>
+              <p className="font-medium">{tool.author.name || tCommon("anonymous")}</p>
               <p className="text-sm text-muted-foreground">
-                {tool.author.department || "未設定部門"} · 發布於{" "}
+                {tool.author.department || tCommon("noDepartment")} ·{" "}
                 {formatDistanceToNow(new Date(tool.createdAt), {
                   addSuffix: true,
                   locale: zhTW,
@@ -185,7 +172,7 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
 
         {/* Stats */}
         <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4">統計數據</h2>
+          <h2 className="text-lg font-semibold mb-4">{t("details.statistics")}</h2>
           <ToolStats
             totalUsage={stats.totalUsage}
             weeklyUsage={stats.weeklyUsage}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { formatDistanceToNow } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +38,8 @@ interface ToolCardProps {
 export function ToolCard({ tool }: ToolCardProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const t = useTranslations("tool");
+  const tCommon = useTranslations("common");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -52,15 +55,15 @@ export function ToolCard({ tool }: ToolCardProps) {
       }
 
       toast({
-        title: "Tool deleted",
-        description: "The tool has been deleted successfully.",
+        title: t("card.deleteSuccess"),
+        description: t("card.deleteSuccessDescription"),
       });
 
       router.refresh();
     } catch {
       toast({
-        title: "Error",
-        description: "Failed to delete tool. Please try again.",
+        title: t("card.deleteError"),
+        description: t("card.deleteErrorDescription"),
         variant: "destructive",
       });
     } finally {
@@ -80,7 +83,7 @@ export function ToolCard({ tool }: ToolCardProps) {
             <div className="flex-1 min-w-0">
               <h4 className="font-medium truncate">{tool.name}</h4>
               <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                {tool.description || "No description"}
+                {tool.description || t("card.noDescription")}
               </p>
             </div>
           </div>
@@ -94,13 +97,13 @@ export function ToolCard({ tool }: ToolCardProps) {
               <DropdownMenuItem asChild>
                 <Link href={`/tool/${tool.id}`}>
                   <ExternalLink className="mr-2 h-4 w-4" />
-                  開啟
+                  {tCommon("open")}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href={`/studio?edit=${tool.id}`}>
+                <Link href={`/chat?edit=${tool.id}`}>
                   <Pencil className="mr-2 h-4 w-4" />
-                  編輯
+                  {tCommon("edit")}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -109,7 +112,7 @@ export function ToolCard({ tool }: ToolCardProps) {
                 onClick={() => setShowDeleteDialog(true)}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                刪除
+                {tCommon("delete")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -119,7 +122,7 @@ export function ToolCard({ tool }: ToolCardProps) {
             href={`/tool/${tool.id}`}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            更新於 {formatDistanceToNow(new Date(tool.updatedAt))}
+            {tCommon("updatedAt", { time: formatDistanceToNow(new Date(tool.updatedAt)) })}
           </Link>
         </div>
       </div>
@@ -127,9 +130,9 @@ export function ToolCard({ tool }: ToolCardProps) {
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Tool</DialogTitle>
+            <DialogTitle>{t("card.deleteTitle")}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete &quot;{tool.name}&quot;? This action cannot be undone.
+              {t("card.deleteDescription", { name: tool.name })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -138,14 +141,14 @@ export function ToolCard({ tool }: ToolCardProps) {
               onClick={() => setShowDeleteDialog(false)}
               disabled={isDeleting}
             >
-              Cancel
+              {tCommon("cancel")}
             </Button>
             <Button
               variant="destructive"
               onClick={handleDelete}
               disabled={isDeleting}
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? tCommon("deleting") : tCommon("delete")}
             </Button>
           </DialogFooter>
         </DialogContent>

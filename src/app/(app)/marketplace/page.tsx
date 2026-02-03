@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Visibility } from "@prisma/client";
@@ -82,13 +83,17 @@ export default async function MarketplacePage() {
     },
   });
 
+  const t = await getTranslations("marketplace");
+  const tCategories = await getTranslations("categories");
+  const tCommon = await getTranslations("common");
+
   return (
     <div className="p-6">
       {/* Hero Section */}
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold mb-2">工具市集</h1>
+        <h1 className="text-3xl font-bold mb-2">{t("hero.title")}</h1>
         <p className="text-muted-foreground">
-          探索同事們創建的實用工具，或分享你的作品
+          {t("hero.description")}
         </p>
       </div>
 
@@ -100,11 +105,11 @@ export default async function MarketplacePage() {
       {/* Categories & Leaderboard */}
       <section className="mb-12">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">分類瀏覽</h2>
+          <h2 className="text-lg font-semibold">{t("sections.categories")}</h2>
           <Button variant="outline" size="sm" asChild>
             <Link href="/marketplace/leaderboard" className="gap-1.5">
               <Trophy className="h-4 w-4 text-yellow-500" />
-              排行榜
+              {t("sections.leaderboard")}
             </Link>
           </Button>
         </div>
@@ -116,7 +121,7 @@ export default async function MarketplacePage() {
               className="flex items-center gap-1.5 px-3 py-2 border rounded-lg hover:bg-muted/50 transition-colors whitespace-nowrap"
             >
               <span className="text-lg">{category.icon}</span>
-              <span className="text-sm">{category.name}</span>
+              <span className="text-sm">{tCategories(category.id)}</span>
             </Link>
           ))}
         </div>
@@ -127,13 +132,13 @@ export default async function MarketplacePage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-orange-500" />
-            <h2 className="text-lg font-semibold">本週熱門</h2>
+            <h2 className="text-lg font-semibold">{t("sections.trending")}</h2>
           </div>
           <Link
             href="/marketplace/leaderboard?tab=trending"
             className="text-sm text-muted-foreground hover:text-foreground"
           >
-            查看更多
+            {tCommon("viewMore")}
           </Link>
         </div>
         {trendingTools.length > 0 ? (
@@ -144,7 +149,7 @@ export default async function MarketplacePage() {
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground border rounded-lg">
-            還沒有熱門工具，成為第一個分享工具的人吧！
+            {t("empty.trending")}
           </div>
         )}
       </section>
@@ -154,13 +159,13 @@ export default async function MarketplacePage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-blue-500" />
-            <h2 className="text-lg font-semibold">最新上架</h2>
+            <h2 className="text-lg font-semibold">{t("sections.newest")}</h2>
           </div>
           <Link
             href="/marketplace?section=newest"
             className="text-sm text-muted-foreground hover:text-foreground"
           >
-            查看更多
+            {tCommon("viewMore")}
           </Link>
         </div>
         {newestTools.length > 0 ? (
@@ -171,7 +176,7 @@ export default async function MarketplacePage() {
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground border rounded-lg">
-            還沒有工具，快去建立一個吧！
+            {t("empty.newest")}
           </div>
         )}
       </section>

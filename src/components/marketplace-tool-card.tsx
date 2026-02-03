@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Eye, Star } from "lucide-react";
 import { getCategoryById } from "@/lib/categories";
 import { UserAvatar } from "@/components/user-avatar";
@@ -27,6 +28,8 @@ interface MarketplaceToolCardProps {
 }
 
 export function MarketplaceToolCard({ tool }: MarketplaceToolCardProps) {
+  const tCategories = useTranslations("categories");
+  const tCommon = useTranslations("common");
   const category = tool.category ? getCategoryById(tool.category) : null;
 
   return (
@@ -36,7 +39,7 @@ export function MarketplaceToolCard({ tool }: MarketplaceToolCardProps) {
           <h3 className="font-semibold line-clamp-1">{tool.name}</h3>
           {category && (
             <span className="text-xs bg-muted px-2 py-0.5 rounded shrink-0">
-              {category.icon} {category.name}
+              {category.icon} {tCategories(category.id)}
             </span>
           )}
         </div>
@@ -73,7 +76,7 @@ export function MarketplaceToolCard({ tool }: MarketplaceToolCardProps) {
               size="sm"
             />
             <span className="text-sm text-muted-foreground truncate max-w-[100px]">
-              {tool.author.name || "匿名"}
+              {tool.author.name || tCommon("anonymous")}
             </span>
           </div>
 

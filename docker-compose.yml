@@ -1,24 +1,4 @@
 services:
-  app:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      - DATABASE_URL=postgresql://falcon:falcon@db:5432/falcon?schema=public
-      - NEXTAUTH_URL=http://localhost:3000
-      - NEXTAUTH_SECRET=docker-dev-secret-change-in-production-abc123
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - ALLOWED_EMAIL_DOMAIN=${ALLOWED_EMAIL_DOMAIN:-sat.cool}
-    volumes:
-      - .:/app
-      - /app/node_modules
-    depends_on:
-      db:
-        condition: service_healthy
-    command: sh -c "bunx prisma db push && bun run dev"
-
   db:
     image: postgres:15-alpine
     environment:

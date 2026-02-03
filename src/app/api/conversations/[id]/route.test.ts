@@ -45,7 +45,6 @@ describe("GET /api/conversations/[id]", () => {
       title: "查詢訂單",
       messages: [{ role: "user", content: "hi" }],
       model: "claude-sonnet-4-20250514",
-      dataSources: ["db-main"],
       userId: "user-1",
       tool: null,
       createdAt: new Date(),
@@ -113,7 +112,7 @@ describe("PATCH /api/conversations/[id]", () => {
     );
   });
 
-  it("updates model and dataSources", async () => {
+  it("updates model", async () => {
     mockGetServerSession.mockResolvedValue(mockSession);
     prismaMock.conversation.findUnique.mockResolvedValue({
       id: "conv-1",
@@ -122,14 +121,13 @@ describe("PATCH /api/conversations/[id]", () => {
     prismaMock.conversation.update.mockResolvedValue({ id: "conv-1" });
 
     await PATCH(
-      makeRequest({ model: "claude-3-5-haiku-20241022", dataSources: ["hr-api"] }),
+      makeRequest({ model: "claude-3-5-haiku-20241022" }),
       { params }
     );
     expect(prismaMock.conversation.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           model: "claude-3-5-haiku-20241022",
-          dataSources: ["hr-api"],
         }),
       })
     );

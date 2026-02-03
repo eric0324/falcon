@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Send, Loader2, Save, RotateCcw } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Send, Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,7 +14,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { ToolCallDisplay, ToolCall } from "@/components/tool-call-display";
 import { ModelSelector } from "@/components/model-selector";
 import { FileUpload, FileList, UploadedFile } from "@/components/file-upload";
-import { DataSourceSelector } from "@/components/data-source-selector";
 import { ModelId, defaultModel } from "@/lib/ai/models";
 
 interface Message {
@@ -27,6 +27,8 @@ function StudioContent() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const { toast } = useToast();
+  const t = useTranslations("studio");
+  const tCommon = useTranslations("common");
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -43,7 +45,6 @@ function StudioContent() {
   // Enhancement state
   const [selectedModel, setSelectedModel] = useState<ModelId>(defaultModel);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [selectedDataSources, setSelectedDataSources] = useState<string[]>([]);
 
   // Conversation persistence
   const [convId, setConvId] = useState<string | null>(searchParams.get("id"));
@@ -53,6 +54,28 @@ function StudioContent() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const hasCode = code.length > 0;
+
+  // Reset state when navigating to /chat without id (new conversation)
+  useEffect(() => {
+    const currentId = searchParams.get("id");
+    const currentEditId = searchParams.get("edit");
+
+    if (!currentId && !currentEditId) {
+      // Reset all state for new conversation
+      setMessages([]);
+      setInput("");
+      setCode("");
+      setCurrentToolCalls([]);
+      setToolName("");
+      setToolDescription("");
+      setToolCategory("");
+      setToolTags([]);
+      setToolVisibility("PRIVATE");
+      setConvId(null);
+      setConvTitle(null);
+      setUploadedFiles([]);
+    }
+  }, [searchParams]);
 
   // Load existing tool for editing
   useEffect(() => {
@@ -66,19 +89,19 @@ function StudioContent() {
           setToolCategory(tool.category || "");
           setToolTags(tool.tags || []);
           setToolVisibility(tool.visibility || "PRIVATE");
-          setSelectedDataSources(tool.allowedSources || []);
           if (tool.conversation?.messages) {
             setMessages(tool.conversation.messages);
           }
         })
         .catch(() => {
           toast({
-            title: "錯誤",
-            description: "無法載入工具",
+            title: t("toast.error"),
+            description: t("toast.loadToolError"),
             variant: "destructive",
           });
         });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editId, toast]);
 
   // Load existing conversation from URL
@@ -95,7 +118,6 @@ function StudioContent() {
         setMessages(conv.messages || []);
         if (conv.title) setConvTitle(conv.title);
         if (conv.model) setSelectedModel(conv.model);
-        if (conv.dataSources?.length) setSelectedDataSources(conv.dataSources);
         // Extract code from last assistant message
         const lastAssistant = [...(conv.messages || [])]
           .reverse()
@@ -107,8 +129,8 @@ function StudioContent() {
       })
       .catch(() => {
         toast({
-          title: "錯誤",
-          description: "無法載入對話",
+          title: t("toast.error"),
+          description: t("toast.loadConversationError"),
           variant: "destructive",
         });
       });
@@ -195,7 +217,6 @@ function StudioContent() {
           messages: [...messages, { role: "user", content: userMessage }],
           model: selectedModel,
           files: filesToSend.length > 0 ? filesToSend : undefined,
-          dataSources: selectedDataSources.length > 0 ? selectedDataSources : undefined,
         }),
       });
 
@@ -272,10 +293,13 @@ function StudioContent() {
                   // Handle updateCode tool result
                   if (existing.name === "updateCode" && typeof resultData.result === "object" && resultData.result) {
                     const result = resultData.result as { code?: string };
+                    console.log("[Debug] updateCode result:", result);
                     if (result.code) {
                       // Extract code from markdown if present
                       const extracted = extractCode(result.code);
                       const finalCode = extracted || result.code;
+                      console.log("[Debug] Final code length:", finalCode.length);
+                      console.log("[Debug] Final code preview:", finalCode.substring(0, 200));
                       setCode(finalCode);
                     }
                   }
@@ -331,17 +355,13 @@ function StudioContent() {
               body: JSON.stringify({
                 messages: finalMessages,
                 model: selectedModel,
-                dataSources:
-                  selectedDataSources.length > 0
-                    ? selectedDataSources
-                    : undefined,
               }),
             });
             if (createRes.ok) {
               const conv = await createRes.json();
               setConvId(conv.id);
               if (conv.title) setConvTitle(conv.title);
-              router.replace(`/studio?id=${conv.id}`, { scroll: false });
+              router.push(`/chat?id=${conv.id}`);
             }
           } else if (convId) {
             await fetch(`/api/conversations/${convId}`, {
@@ -350,10 +370,6 @@ function StudioContent() {
               body: JSON.stringify({
                 messages: finalMessages,
                 model: selectedModel,
-                dataSources:
-                  selectedDataSources.length > 0
-                    ? selectedDataSources
-                    : undefined,
               }),
             });
           }
@@ -363,8 +379,8 @@ function StudioContent() {
       }
     } catch {
       toast({
-        title: "錯誤",
-        description: "無法取得回應，請重試。",
+        title: t("toast.error"),
+        description: t("toast.responseError"),
         variant: "destructive",
       });
       setMessages((prev) => prev.slice(0, -1));
@@ -387,7 +403,6 @@ function StudioContent() {
     category: string;
     tags: string[];
     visibility: string;
-    allowedSources: string[];
   }) => {
     try {
       const endpoint = editId ? `/api/tools/${editId}` : "/api/tools";
@@ -402,7 +417,6 @@ function StudioContent() {
           category: data.category,
           tags: data.tags,
           visibility: data.visibility,
-          allowedSources: data.allowedSources,
           code,
           messages,
           conversationId: convId,
@@ -416,33 +430,21 @@ function StudioContent() {
       const tool = await res.json();
 
       toast({
-        title: editId ? "工具已更新" : "工具已發布",
-        description: `「${data.name}」已${editId ? "更新" : "發布"}成功。`,
+        title: editId ? t("toast.toolUpdated") : t("toast.toolPublished"),
+        description: t("toast.toolSaveSuccess", {
+          name: data.name,
+          action: editId ? t("toast.toolUpdated") : t("toast.toolPublished")
+        }),
       });
 
       router.push(`/tool/${tool.id}`);
     } catch {
       toast({
-        title: "錯誤",
-        description: "儲存失敗，請重試。",
+        title: t("toast.error"),
+        description: t("toast.saveError"),
         variant: "destructive",
       });
     }
-  };
-
-  const handleReset = () => {
-    setMessages([]);
-    setCode("");
-    setToolName("");
-    setToolDescription("");
-    setToolCategory("");
-    setToolTags([]);
-    setToolVisibility("PRIVATE");
-    setSelectedDataSources([]);
-    setUploadedFiles([]);
-    setConvId(null);
-    setConvTitle(null);
-    router.replace("/studio", { scroll: false });
   };
 
   const handleRemoveFile = (id: string) => {
@@ -454,20 +456,16 @@ function StudioContent() {
       {/* Header */}
       <header className="border-b px-4 py-2 flex items-center justify-between shrink-0 bg-background">
         <h1 className="font-semibold truncate">
-          {editId ? "編輯工具" : convTitle || "新對話"}
+          {editId ? t("title.edit") : convTitle || t("title.new")}
         </h1>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleReset}>
-            <RotateCcw className="h-4 w-4 mr-2" />
-            重置
-          </Button>
           {hasCode && (
             <Button
               size="sm"
               onClick={() => setShowDeployDialog(true)}
             >
               <Save className="h-4 w-4 mr-2" />
-              {editId ? "儲存" : "發布"}
+              {editId ? tCommon("save") : tCommon("deploy")}
             </Button>
           )}
         </div>
@@ -481,8 +479,8 @@ function StudioContent() {
             <div className="space-y-4">
               {messages.length === 0 && (
                 <div className="text-center text-muted-foreground py-16">
-                  <p className="text-lg font-medium mb-2">有什麼我可以幫你的？</p>
-                  <p className="text-sm">問我任何問題、查詢資料，或描述你想建立的工具。</p>
+                  <p className="text-lg font-medium mb-2">{t("welcome.title")}</p>
+                  <p className="text-sm">{t("welcome.description")}</p>
                 </div>
               )}
               {messages.map((message, index) => (
@@ -512,7 +510,7 @@ function StudioContent() {
               {isLoading && messages[messages.length - 1]?.role !== "assistant" && currentToolCalls.length === 0 && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>思考中...</span>
+                  <span>{t("thinking")}</span>
                 </div>
               )}
             </div>
@@ -533,7 +531,7 @@ function StudioContent() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="問點什麼，或描述你想要的功能..."
+                  placeholder={t("input.placeholder")}
                   className="min-h-[80px] pr-12 resize-none"
                   disabled={isLoading}
                 />
@@ -559,11 +557,6 @@ function StudioContent() {
                   onChange={setUploadedFiles}
                   disabled={isLoading}
                 />
-                <DataSourceSelector
-                  value={selectedDataSources}
-                  onChange={setSelectedDataSources}
-                  disabled={isLoading}
-                />
               </div>
             </form>
           </div>
@@ -586,7 +579,6 @@ function StudioContent() {
         defaultCategory={toolCategory}
         defaultTags={toolTags}
         defaultVisibility={toolVisibility}
-        defaultAllowedSources={selectedDataSources}
         isEditing={!!editId}
       />
     </div>

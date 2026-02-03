@@ -9,7 +9,7 @@ export async function middleware(request: NextRequest) {
   });
 
   const isProtectedRoute =
-    request.nextUrl.pathname.startsWith("/studio") ||
+    request.nextUrl.pathname.startsWith("/chat") ||
     request.nextUrl.pathname.startsWith("/tool") ||
     request.nextUrl.pathname.startsWith("/marketplace") ||
     request.nextUrl.pathname.startsWith("/api/tools") ||
@@ -28,7 +28,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/studio/:path*",
+    "/chat/:path*",
     "/tool/:path*",
     "/marketplace/:path*",
     "/api/tools/:path*",

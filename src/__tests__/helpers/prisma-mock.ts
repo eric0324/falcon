@@ -42,12 +42,5 @@ export function createPrismaMockFields() {
       findUnique: vi.fn(),
       create: vi.fn(),
     },
-    dataSource: {
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-    },
-    apiLog: {
-      create: vi.fn(),
-    },
   };
 }

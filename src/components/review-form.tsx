@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { StarRating } from "./star-rating";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +16,7 @@ interface ReviewFormProps {
 }
 
 export function ReviewForm({ toolId, existingReview, onSuccess }: ReviewFormProps) {
+  const t = useTranslations("review");
   const [rating, setRating] = useState(existingReview?.rating || 0);
   const [content, setContent] = useState(existingReview?.content || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,7 +25,7 @@ export function ReviewForm({ toolId, existingReview, onSuccess }: ReviewFormProp
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (rating === 0) {
-      setError("請選擇評分");
+      setError(t("form.ratingRequired"));
       return;
     }
 
@@ -44,7 +46,7 @@ export function ReviewForm({ toolId, existingReview, onSuccess }: ReviewFormProp
 
       onSuccess?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "發生錯誤");
+      setError(err instanceof Error ? err.message : t("error"));
     } finally {
       setIsSubmitting(false);
     }
@@ -53,18 +55,18 @@ export function ReviewForm({ toolId, existingReview, onSuccess }: ReviewFormProp
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-2">評分</label>
+        <label className="block text-sm font-medium mb-2">{t("form.rating")}</label>
         <StarRating value={rating} onChange={setRating} size="lg" />
       </div>
 
       <div>
         <label className="block text-sm font-medium mb-2">
-          評論 <span className="text-muted-foreground font-normal">(選填)</span>
+          {t("form.content")} <span className="text-muted-foreground font-normal">{t("form.contentOptional")}</span>
         </label>
         <Textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="分享你的使用心得..."
+          placeholder={t("form.contentPlaceholder")}
           rows={3}
         />
       </div>
@@ -72,7 +74,7 @@ export function ReviewForm({ toolId, existingReview, onSuccess }: ReviewFormProp
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       <Button type="submit" disabled={isSubmitting || rating === 0}>
-        {isSubmitting ? "提交中..." : existingReview ? "更新評論" : "送出評論"}
+        {isSubmitting ? t("form.submitting") : existingReview ? t("form.update") : t("form.submit")}
       </Button>
     </form>
   );

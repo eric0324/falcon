@@ -1,0 +1,212 @@
+{
+  "common": {
+    "save": "儲存",
+    "cancel": "取消",
+    "delete": "刪除",
+    "edit": "編輯",
+    "open": "開啟",
+    "share": "分享",
+    "reset": "重置",
+    "deploy": "發布",
+    "loading": "載入中...",
+    "error": "錯誤",
+    "anonymous": "匿名",
+    "submit": "送出",
+    "submitting": "送出中...",
+    "saving": "儲存中...",
+    "deploying": "發布中...",
+    "deleting": "刪除中...",
+    "updatedAt": "更新於 {time}",
+    "noDepartment": "未設定部門",
+    "publishedAt": "發布於 {time}",
+    "useTool": "使用工具",
+    "backToMarketplace": "返回市集",
+    "viewMore": "查看更多"
+  },
+  "myTools": {
+    "title": "我的工具",
+    "description": "管理你建立的工具",
+    "newChat": "新對話",
+    "getStarted": "開始使用",
+    "getStartedDescription": "開始對話來提問、查詢資料或建立工具",
+    "openStudio": "新對話"
+  },
+  "sidebar": {
+    "nav": {
+      "chat": "對話",
+      "tools": "工具",
+      "explore": "探索"
+    },
+    "conversation": {
+      "empty": "沒有對話",
+      "newConversation": "新對話"
+    }
+  },
+  "studio": {
+    "title": {
+      "edit": "編輯工具",
+      "new": "新對話"
+    },
+    "welcome": {
+      "title": "有什麼我可以幫你的？",
+      "description": "問我任何問題、查詢資料，或描述你想建立的工具。"
+    },
+    "input": {
+      "placeholder": "問點什麼，或描述你想要的功能..."
+    },
+    "thinking": "思考中...",
+    "toast": {
+      "error": "錯誤",
+      "loadToolError": "無法載入工具",
+      "loadConversationError": "無法載入對話",
+      "responseError": "無法取得回應，請重試。",
+      "saveError": "儲存失敗，請重試。",
+      "toolUpdated": "工具已更新",
+      "toolPublished": "工具已發布",
+      "toolSaveSuccess": "「{name}」已{action}成功。"
+    }
+  },
+  "marketplace": {
+    "hero": {
+      "title": "工具市集",
+      "description": "探索同事們創建的實用工具，或分享你的作品"
+    },
+    "sections": {
+      "categories": "分類瀏覽",
+      "leaderboard": "排行榜",
+      "trending": "本週熱門",
+      "newest": "最新上架"
+    },
+    "empty": {
+      "trending": "還沒有熱門工具，成為第一個分享工具的人吧！",
+      "newest": "還沒有工具，快去建立一個吧！"
+    }
+  },
+  "deploy": {
+    "title": {
+      "save": "Save Tool",
+      "deploy": "Deploy Tool"
+    },
+    "description": {
+      "save": "Update your tool's name and description.",
+      "deploy": "Give your tool a name and description so you can find it later."
+    },
+    "form": {
+      "name": "名稱",
+      "namePlaceholder": "例如：費用報銷工具",
+      "description": "描述 (選填)",
+      "descriptionPlaceholder": "例如：用於提交和追蹤費用報銷",
+      "category": "分類",
+      "categoryPlaceholder": "選擇分類",
+      "tags": "標籤 (最多 5 個，按 Enter 新增)",
+      "tagsPlaceholder": "輸入標籤...",
+      "visibility": "可見範圍"
+    },
+    "visibility": {
+      "private": "僅自己可見",
+      "department": "部門可見",
+      "company": "全公司可見",
+      "public": "公開"
+    }
+  },
+  "review": {
+    "title": "評論",
+    "sort": {
+      "newest": "最新",
+      "rating": "評分最高"
+    },
+    "form": {
+      "updateTitle": "更新你的評論",
+      "createTitle": "撰寫評論",
+      "rating": "評分",
+      "ratingRequired": "請選擇評分",
+      "content": "評論",
+      "contentOptional": "(選填)",
+      "contentPlaceholder": "分享你的使用心得...",
+      "submit": "送出評論",
+      "update": "更新評論",
+      "submitting": "提交中..."
+    },
+    "list": {
+      "empty": "還沒有評論，成為第一個評論的人吧！",
+      "author": "作者",
+      "replyPlaceholder": "回覆這則評論...",
+      "reply": "回覆"
+    },
+    "error": "發生錯誤"
+  },
+  "search": {
+    "placeholder": "搜尋工具名稱、描述或標籤..."
+  },
+  "categories": {
+    "productivity": "生產力工具",
+    "data": "數據分析",
+    "finance": "財務會計",
+    "hr": "人資管理",
+    "marketing": "行銷業務",
+    "design": "設計創意",
+    "other": "其他"
+  },
+  "tool": {
+    "details": {
+      "statistics": "統計數據"
+    },
+    "stats": {
+      "totalUsage": "總使用次數",
+      "weeklyUsage": "本週使用",
+      "averageRating": "平均評分",
+      "totalReviews": "評論數"
+    },
+    "card": {
+      "noDescription": "No description",
+      "deleteTitle": "Delete Tool",
+      "deleteDescription": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+      "deleteSuccess": "Tool deleted",
+      "deleteSuccessDescription": "The tool has been deleted successfully.",
+      "deleteError": "Error",
+      "deleteErrorDescription": "Failed to delete tool. Please try again."
+    }
+  },
+  "fileUpload": {
+    "upload": "上傳"
+  },
+  "models": {
+    "selectModel": "選擇模型",
+    "claude-sonnet": {
+      "name": "Claude Sonnet",
+      "description": "平衡速度與品質，適合大多數任務"
+    },
+    "claude-haiku": {
+      "name": "Claude Haiku",
+      "description": "快速回應，適合簡單任務"
+    },
+    "gpt-4o": {
+      "name": "GPT-4o",
+      "description": "OpenAI 最新模型，多模態支援"
+    },
+    "gpt-4o-mini": {
+      "name": "GPT-4o Mini",
+      "description": "輕量版 GPT-4o，更快更便宜"
+    }
+  },
+  "emptyState": {
+    "noTools": {
+      "title": "還沒有工具",
+      "description": "成為第一個在這裡分享工具的人吧！",
+      "action": "Open Studio"
+    },
+    "noResults": {
+      "title": "找不到相關結果",
+      "description": "試試其他關鍵字，或瀏覽分類",
+      "action": "瀏覽市集"
+    },
+    "noReviews": {
+      "title": "還沒有評論",
+      "description": "成為第一個評論的人吧！"
+    },
+    "noTrending": {
+      "title": "還沒有熱門工具",
+      "description": "使用更多工具來幫助它們上榜！"
+    }
+  }
+}
