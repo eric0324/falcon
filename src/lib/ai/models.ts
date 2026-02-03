@@ -29,4 +29,4 @@ export const modelInfo: Record<ModelId, { name: string; description: string }> =
   },
 };
 
-export const defaultModel: ModelId = "claude-sonnet";
+export const defaultModel: ModelId = "claude-haiku";

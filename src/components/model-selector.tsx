@@ -5,15 +5,14 @@ import { useTranslations } from "next-intl";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { ModelId, modelInfo, defaultModel } from "@/lib/ai/models";
-import { ChevronDown, Sparkles, Zap } from "lucide-react";
+import { Check, ChevronDown, Sparkles, Zap } from "lucide-react";
 
 interface ModelSelectorProps {
   value: ModelId;
@@ -79,30 +78,32 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
       <DropdownMenuContent align="start" className="w-72">
         <DropdownMenuLabel>{t("selectModel")}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuRadioGroup value={safeValue} onValueChange={handleChange}>
-          {(Object.keys(modelInfo) as ModelId[]).map((modelId) => {
-            const provider = getProvider(modelId);
-            return (
-              <DropdownMenuRadioItem
-                key={modelId}
-                value={modelId}
-                className="flex items-start gap-2.5 py-2.5 cursor-pointer"
-              >
-                <div className="flex flex-col gap-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">{t(`${modelId}.name`)}</span>
-                    <span className={`text-[10px] ${provider.color} bg-muted px-1.5 py-0.5 rounded-full leading-none`}>
-                      {provider.name}
-                    </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {t(`${modelId}.description`)}
+        {(Object.keys(modelInfo) as ModelId[]).map((modelId) => {
+          const provider = getProvider(modelId);
+          const isSelected = safeValue === modelId;
+          return (
+            <DropdownMenuItem
+              key={modelId}
+              onClick={() => handleChange(modelId)}
+              className="flex items-start gap-2.5 py-2.5 cursor-pointer"
+            >
+              <div className="w-4 flex items-center justify-center shrink-0 mt-0.5">
+                {isSelected && <Check className="h-4 w-4" />}
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm">{t(`${modelId}.name`)}</span>
+                  <span className={`text-[10px] ${provider.color} bg-muted px-1.5 py-0.5 rounded-full leading-none`}>
+                    {provider.name}
                   </span>
                 </div>
-              </DropdownMenuRadioItem>
-            );
-          })}
-        </DropdownMenuRadioGroup>
+                <span className="text-xs text-muted-foreground">
+                  {t(`${modelId}.description`)}
+                </span>
+              </div>
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );
