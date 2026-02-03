@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { SandpackProvider, SandpackPreview } from "@codesandbox/sandpack-react";
+import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { generateSandboxApiClient } from "@/lib/sandbox-api-client";
 
 interface ToolRunnerProps {
@@ -9,16 +10,74 @@ interface ToolRunnerProps {
   toolId?: string;
 }
 
-export function ToolRunner({ code, toolId }: ToolRunnerProps) {
-  const [mounted, setMounted] = useState(false);
+function buildToolHtml(code: string, apiClientCode: string): string {
+  const cleanCode = code
+    .replace(/^import\s+.*?from\s+['"][^'"]+['"];?\s*\n?/gm, "")
+    .replace(/export\s+default\s+/, "");
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>html, body, #root { margin: 0; padding: 0; min-height: 100%; }</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>${apiClientCode}</script>
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useMemo, useRef, useReducer, useContext, createContext, Fragment } = React;
+
+    ${cleanCode}
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+  <script>
+    window.onerror = (msg) => {
+      window.parent.postMessage({ type: 'tool-error', message: String(msg) }, '*');
+    };
+  </script>
+</body>
+</html>`;
+}
+
+export function ToolRunner({ code, toolId }: ToolRunnerProps) {
+  const [key, setKey] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  // Generate API client code - use real bridge if toolId provided, otherwise mock
+  const apiClientCode = toolId
+    ? generateSandboxApiClient()
+    : `
+window.companyAPI = {
+  query: async (source, sql, params) => {
+    console.log('[Mock] query:', source, sql, params);
+    return [{ id: 1, name: 'Mock Data', status: 'active' }];
+  },
+  call: async (source, endpoint, data) => {
+    console.log('[Mock] call:', source, endpoint, data);
+    return { success: true };
+  },
+  getSources: async () => {
+    console.log('[Mock] getSources');
+    return [{ name: 'mock_db', displayName: 'Mock Database', type: 'POSTGRES' }];
+  }
+};
+console.log('[Falcon] Mock API ready (no toolId provided)');
+`;
 
   // Handle API bridge messages from the sandbox
   const handleMessage = useCallback(
     async (event: MessageEvent) => {
+      if (event.data?.type === "tool-error") {
+        setError(event.data.message);
+        return;
+      }
+
       if (!event.data || event.data.type !== "api-bridge") return;
       if (!toolId) return;
 
@@ -54,14 +113,14 @@ export function ToolRunner({ code, toolId }: ToolRunnerProps) {
             "*"
           );
         }
-      } catch (error) {
+      } catch (err) {
         const iframe = document.querySelector("iframe");
         if (iframe?.contentWindow) {
           iframe.contentWindow.postMessage(
             {
               type: "api-bridge-response",
               id,
-              error: error instanceof Error ? error.message : "Unknown error",
+              error: err instanceof Error ? err.message : "Unknown error",
             },
             "*"
           );
@@ -73,98 +132,41 @@ export function ToolRunner({ code, toolId }: ToolRunnerProps) {
 
   useEffect(() => {
     window.addEventListener("message", handleMessage);
-    return () => {
-      window.removeEventListener("message", handleMessage);
-    };
+    return () => window.removeEventListener("message", handleMessage);
   }, [handleMessage]);
 
-  // Generate API client code - use real bridge if toolId provided, otherwise mock
-  const apiClientCode = toolId
-    ? generateSandboxApiClient()
-    : `
-window.companyAPI = {
-  query: async (source, sql, params) => {
-    console.log('[Mock] query:', source, sql, params);
-    return [{ id: 1, name: 'Mock Data', status: 'active' }];
-  },
-  call: async (source, endpoint, data) => {
-    console.log('[Mock] call:', source, endpoint, data);
-    return { success: true };
-  },
-  getSources: async () => {
-    console.log('[Mock] getSources');
-    return [{ name: 'mock_db', displayName: 'Mock Database', type: 'POSTGRES' }];
-  }
-};
-console.log('[Falcon] Mock API ready (no toolId provided)');
-`;
+  useEffect(() => {
+    setKey((prev) => prev + 1);
+    setError(null);
+  }, [code]);
 
-  // Remove React imports from user code to avoid duplicates (we provide our own)
-  const cleanCode = code.replace(/^import\s+.*?from\s+['"]react['"];?\s*\n?/gm, '');
-
-  const appCode = `
-${apiClientCode}
-
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { createRoot } from 'react-dom/client';
-
-${cleanCode}
-
-const container = document.getElementById('root');
-const root = createRoot(container);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
-`;
-
-  const files = {
-    "/App.js": {
-      code: appCode,
-      active: true,
-    },
-    "/public/index.html": {
-      code: `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body>
-  <div id="root"></div>
-</body>
-</html>`,
-    },
+  const handleRefresh = () => {
+    setKey((prev) => prev + 1);
+    setError(null);
   };
 
-  if (!mounted) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="h-full">
-      <SandpackProvider
-        key={code}
-        template="react"
-        files={files}
-        options={{
-          externalResources: ["https://cdn.tailwindcss.com"],
-        }}
-        theme="light"
-        style={{ height: "100%", display: "flex", flexDirection: "column" }}
-      >
-        <SandpackPreview
-          showOpenInCodeSandbox={false}
-          showRefreshButton={true}
-          style={{ flex: 1, minHeight: 0 }}
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="border-b px-4 py-2 shrink-0 flex items-center justify-between">
+        <span className="text-sm font-medium">Tool</span>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleRefresh}>
+          <RefreshCw className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <div className="flex-1 relative bg-white">
+        {error && (
+          <div className="absolute inset-x-0 top-0 bg-red-50 border-b border-red-200 px-4 py-2 text-sm text-red-600">
+            {error}
+          </div>
+        )}
+        <iframe
+          key={key}
+          srcDoc={buildToolHtml(code, apiClientCode)}
+          className="w-full h-full border-0"
+          sandbox="allow-scripts"
+          title="Tool Runner"
         />
-      </SandpackProvider>
+      </div>
     </div>
   );
 }

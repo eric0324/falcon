@@ -197,6 +197,14 @@
     "gpt-4o-mini": {
       "name": "GPT-4o Mini",
       "description": "輕量版 GPT-4o，更快更便宜"
+    },
+    "gemini-flash": {
+      "name": "Gemini 2.0 Flash",
+      "description": "Google 快速模型，適合即時任務"
+    },
+    "gemini-pro": {
+      "name": "Gemini 2.5 Pro",
+      "description": "Google 最強模型，複雜推理能力"
     }
   },
   "emptyState": {

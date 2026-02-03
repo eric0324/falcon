@@ -197,6 +197,14 @@
     "gpt-4o-mini": {
       "name": "GPT-4o Mini",
       "description": "Lightweight GPT-4o, faster and cheaper"
+    },
+    "gemini-flash": {
+      "name": "Gemini 2.0 Flash",
+      "description": "Google's fast model for real-time tasks"
+    },
+    "gemini-pro": {
+      "name": "Gemini 2.5 Pro",
+      "description": "Google's most capable model for complex reasoning"
     }
   },
   "emptyState": {

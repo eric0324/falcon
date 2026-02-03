@@ -59,7 +59,7 @@ function buildPreviewHtml(code: string): string {
 
 export function PreviewPanel({ code, onError, onShare }: PreviewPanelProps) {
   const [key, setKey] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
   const displayCode = code || DEFAULT_CODE;
 
   const handleMessage = useCallback((event: MessageEvent) => {

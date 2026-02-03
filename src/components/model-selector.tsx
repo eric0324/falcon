@@ -24,16 +24,18 @@ const STORAGE_KEY = "falcon-preferred-model";
 const providerLabel: Record<string, { name: string; color: string }> = {
   claude: { name: "Anthropic", color: "text-amber-600" },
   gpt: { name: "OpenAI", color: "text-green-600" },
+  gemini: { name: "Google", color: "text-blue-600" },
 };
 
 function getProvider(modelId: string) {
   if (modelId.startsWith("claude")) return providerLabel.claude;
   if (modelId.startsWith("gpt")) return providerLabel.gpt;
+  if (modelId.startsWith("gemini")) return providerLabel.gemini;
   return { name: "AI", color: "text-muted-foreground" };
 }
 
 function getModelIcon(modelId: string) {
-  if (modelId.includes("haiku") || modelId.includes("mini")) {
+  if (modelId.includes("haiku") || modelId.includes("mini") || modelId.includes("flash")) {
     return <Zap className="h-3.5 w-3.5 text-blue-500" />;
   }
   return <Sparkles className="h-3.5 w-3.5 text-amber-500" />;

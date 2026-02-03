@@ -28,7 +28,6 @@ function StudioContent() {
   const editId = searchParams.get("edit");
   const { toast } = useToast();
   const t = useTranslations("studio");
-  const tCommon = useTranslations("common");
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
