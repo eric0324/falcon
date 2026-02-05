@@ -45,10 +45,16 @@
       "title": "設定",
       "profile": "個人設定",
       "language": "語言",
-      "changelog": "更新日誌",
+      "changelog": "開發日記",
       "changelogV010": "初始版本發布 - 支援 AI 對話、工具建立與市集功能",
       "about": "關於",
       "aboutDescription": "Falcon 是一個 AI 驅動的企業助理平台，結合對話、資料查詢與工具建立功能。",
+      "logout": "登出"
+    },
+    "userMenu": {
+      "language": "介面語言",
+      "changelog": "開發日記",
+      "support": "支援中心",
       "logout": "登出"
     }
   },
@@ -206,6 +212,43 @@
       "name": "Gemini 2.5 Pro",
       "description": "Google 最強模型，複雜推理能力"
     }
+  },
+  "dataSource": {
+    "title": "資料來源",
+    "select": "選擇資料來源",
+    "loading": "載入中...",
+    "selectedCount": "已選 {count} 個",
+    "canRead": "可讀取",
+    "canWrite": "可寫入",
+    "clearAll": "清除全部"
+  },
+  "google": {
+    "title": "Google 服務",
+    "description": "連接 Google 服務以使用你的資料",
+    "sheets": {
+      "name": "Google 試算表",
+      "description": "讀取和編輯試算表"
+    },
+    "drive": {
+      "name": "Google 雲端硬碟",
+      "description": "瀏覽和讀取檔案"
+    },
+    "calendar": {
+      "name": "Google 日曆",
+      "description": "管理活動和行程"
+    },
+    "connect": "連接",
+    "disconnect": "中斷連接",
+    "connected": "已連接",
+    "notConnected": "未連接",
+    "connecting": "連接中...",
+    "selectSpreadsheet": "選擇試算表",
+    "selectFolder": "選擇資料夾",
+    "selectCalendar": "選擇日曆",
+    "noSpreadsheets": "找不到試算表",
+    "noFolders": "找不到資料夾",
+    "noCalendars": "找不到日曆",
+    "loadingResources": "載入中..."
   },
   "emptyState": {
     "noTools": {

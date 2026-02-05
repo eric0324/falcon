@@ -46,9 +46,15 @@
       "profile": "Profile",
       "language": "Language",
       "changelog": "Changelog",
-      "changelogV010": "初始版本發布 - 支援 AI 對話、工具建立與市集功能",
+      "changelogV010": "Initial release - AI chat, tool creation, and marketplace features",
       "about": "About",
       "aboutDescription": "Falcon is an AI-powered enterprise assistant platform that combines chat, data queries, and tool creation.",
+      "logout": "Logout"
+    },
+    "userMenu": {
+      "language": "Language",
+      "changelog": "Changelog",
+      "support": "Support",
       "logout": "Logout"
     }
   },
@@ -206,6 +212,43 @@
       "name": "Gemini 2.5 Pro",
       "description": "Google's most capable model for complex reasoning"
     }
+  },
+  "dataSource": {
+    "title": "Data Sources",
+    "select": "Select data source",
+    "loading": "Loading...",
+    "selectedCount": "{count} selected",
+    "canRead": "Read",
+    "canWrite": "Write",
+    "clearAll": "Clear all"
+  },
+  "google": {
+    "title": "Google Services",
+    "description": "Connect to Google services to use your data",
+    "sheets": {
+      "name": "Google Sheets",
+      "description": "Read and write spreadsheets"
+    },
+    "drive": {
+      "name": "Google Drive",
+      "description": "Browse and read files"
+    },
+    "calendar": {
+      "name": "Google Calendar",
+      "description": "Manage events and schedules"
+    },
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "connected": "Connected",
+    "notConnected": "Not connected",
+    "connecting": "Connecting...",
+    "selectSpreadsheet": "Select Spreadsheet",
+    "selectFolder": "Select Folder",
+    "selectCalendar": "Select Calendar",
+    "noSpreadsheets": "No spreadsheets found",
+    "noFolders": "No folders found",
+    "noCalendars": "No calendars found",
+    "loadingResources": "Loading..."
   },
   "emptyState": {
     "noTools": {

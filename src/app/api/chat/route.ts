@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { streamText } from "ai";
 import { models, ModelId, defaultModel } from "@/lib/ai/models";
 import { studioTools } from "@/lib/ai/tools";
+import { createGoogleTools } from "@/lib/ai/google-tools";
 import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
 
 interface FileData {
@@ -59,15 +60,26 @@ type CoreMessage = any;
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.email) {
+  if (!session?.user?.email || !session?.user?.id) {
     return new Response("Unauthorized", { status: 401 });
   }
+
+  const userId = session.user.id;
 
   try {
     const { messages, model, files } = await req.json();
 
     // Use specified model or default
     const selectedModel = models[(model as ModelId) || defaultModel];
+
+    // Create tools with user context
+    const googleTools = createGoogleTools(userId);
+    const allTools = {
+      ...studioTools,
+      ...googleTools,
+    };
+
+    console.log(`[Chat API] Available tools:`, Object.keys(allTools));
 
     // Process messages to include files in the last user message
     const processedMessages: CoreMessage[] = messages.map((m: { role: string; content: string }, index: number) => {
@@ -94,7 +106,7 @@ export async function POST(req: Request) {
             model: selectedModel,
             system: SYSTEM_PROMPT,
             messages: currentMessages,
-            tools: studioTools,
+            tools: allTools,
           });
 
           let hasToolCalls = false;

@@ -2,6 +2,18 @@ import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import { GOOGLE_SCOPES } from "@/lib/google/config";
+import { encryptToken } from "@/lib/google/encryption";
+
+// Combine all Google scopes for login
+const allGoogleScopes = [
+  "openid",
+  "email",
+  "profile",
+  GOOGLE_SCOPES.SHEETS,
+  GOOGLE_SCOPES.DRIVE,
+  GOOGLE_SCOPES.CALENDAR,
+].join(" ");
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
@@ -9,6 +21,13 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: allGoogleScopes,
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
     }),
   ],
   callbacks: {
@@ -71,6 +90,66 @@ export const authOptions: NextAuthOptions = {
                 id_token: account.id_token,
               },
             });
+          }
+
+          // Save Google service tokens for Sheets, Drive, Calendar
+          if (account.provider === "google" && account.access_token) {
+            console.log("[Auth] Google account data:", {
+              hasAccessToken: !!account.access_token,
+              hasRefreshToken: !!account.refresh_token,
+              scope: account.scope,
+              expiresAt: account.expires_at,
+            });
+
+            // Only save if we have refresh token (first login or re-consent)
+            if (account.refresh_token) {
+              const expiresAt = account.expires_at
+                ? new Date(account.expires_at * 1000)
+                : new Date(Date.now() + 3600 * 1000);
+
+              const encryptedAccessToken = encryptToken(account.access_token);
+              const encryptedRefreshToken = encryptToken(account.refresh_token);
+              const scope = account.scope || "";
+
+              // Save token for each service that was authorized
+              const services = [
+                { service: "SHEETS" as const, scope: GOOGLE_SCOPES.SHEETS },
+                { service: "DRIVE" as const, scope: GOOGLE_SCOPES.DRIVE },
+                { service: "CALENDAR" as const, scope: GOOGLE_SCOPES.CALENDAR },
+              ];
+
+              for (const { service, scope: requiredScope } of services) {
+                const hasScope = scope.includes(requiredScope);
+                console.log(`[Auth] Checking ${service}: required=${requiredScope}, hasScope=${hasScope}`);
+
+                if (hasScope) {
+                  await prisma.googleServiceToken.upsert({
+                    where: {
+                      userId_service: { userId: dbUser.id, service },
+                    },
+                    create: {
+                      userId: dbUser.id,
+                      service,
+                      accessToken: encryptedAccessToken,
+                      refreshToken: encryptedRefreshToken,
+                      expiresAt,
+                      scope: requiredScope,
+                      isValid: true,
+                    },
+                    update: {
+                      accessToken: encryptedAccessToken,
+                      refreshToken: encryptedRefreshToken,
+                      expiresAt,
+                      scope: requiredScope,
+                      isValid: true,
+                    },
+                  });
+                  console.log(`[Auth] Saved token for ${service}`);
+                }
+              }
+            } else {
+              console.log("[Auth] No refresh token, skipping token save");
+            }
           }
         }
       } catch (error) {

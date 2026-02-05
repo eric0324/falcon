@@ -13,8 +13,10 @@ import { ChatMessage } from "@/components/chat-message";
 import { useToast } from "@/components/ui/use-toast";
 import { ToolCallDisplay, ToolCall } from "@/components/tool-call-display";
 import { ModelSelector } from "@/components/model-selector";
+import { DataSourceSelector } from "@/components/data-source-selector";
 import { FileUpload, FileList, UploadedFile } from "@/components/file-upload";
 import { ModelId, defaultModel } from "@/lib/ai/models";
+import { ToolDataSource } from "@/types/data-source";
 
 interface Message {
   role: "user" | "assistant";
@@ -44,6 +46,8 @@ function StudioContent() {
   // Enhancement state
   const [selectedModel, setSelectedModel] = useState<ModelId>(defaultModel);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [selectedDataSources, setSelectedDataSources] = useState<string[]>([]);
+  const [usedDataSources, setUsedDataSources] = useState<ToolDataSource[]>([]);
 
   // Conversation persistence
   const [convId, setConvId] = useState<string | null>(searchParams.get("id"));
@@ -79,6 +83,8 @@ function StudioContent() {
       setConvId(null);
       setConvTitle(null);
       setUploadedFiles([]);
+      setSelectedDataSources([]);
+      setUsedDataSources([]);
     }
   }, [searchParams]);
 
@@ -123,6 +129,7 @@ function StudioContent() {
         setMessages(conv.messages || []);
         if (conv.title) setConvTitle(conv.title);
         if (conv.model) setSelectedModel(conv.model);
+        if (conv.dataSources) setSelectedDataSources(conv.dataSources);
 
         // Extract code from messages - check tool calls first, then content
         const messages = conv.messages || [];
@@ -329,6 +336,23 @@ function StudioContent() {
                       setCode(finalCode);
                     }
                   }
+
+                  // Track used data sources from Google tools
+                  if ((existing.name === "googleSearch" || existing.name === "googleWrite") &&
+                      typeof resultData.result === "object" && resultData.result) {
+                    const result = resultData.result as { usedDataSource?: ToolDataSource };
+                    if (result.usedDataSource) {
+                      setUsedDataSources((prev) => {
+                        // Avoid duplicates by checking resourceId
+                        const exists = prev.some(
+                          (ds) => ds.type === result.usedDataSource!.type &&
+                                  ds.resourceId === result.usedDataSource!.resourceId
+                        );
+                        if (exists) return prev;
+                        return [...prev, result.usedDataSource!];
+                      });
+                    }
+                  }
                 }
                 break;
               }
@@ -381,6 +405,7 @@ function StudioContent() {
               body: JSON.stringify({
                 messages: finalMessages,
                 model: selectedModel,
+                dataSources: selectedDataSources,
               }),
             });
             if (createRes.ok) {
@@ -396,6 +421,7 @@ function StudioContent() {
               body: JSON.stringify({
                 messages: finalMessages,
                 model: selectedModel,
+                dataSources: selectedDataSources,
               }),
             });
           }
@@ -588,6 +614,7 @@ function StudioContent() {
           code,
           messages,
           conversationId: convId,
+          dataSources: usedDataSources.length > 0 ? usedDataSources : null,
         }),
       });
 
@@ -709,6 +736,11 @@ function StudioContent() {
               {/* Toolbar */}
               <div className="flex items-center gap-2 mt-2">
                 <ModelSelector value={selectedModel} onChange={setSelectedModel} />
+                <DataSourceSelector
+                  value={selectedDataSources}
+                  onChange={setSelectedDataSources}
+                  disabled={isLoading}
+                />
                 <FileUpload
                   files={uploadedFiles}
                   onChange={setUploadedFiles}

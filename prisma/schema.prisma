@@ -56,14 +56,15 @@ model User {
   emailVerified DateTime?
   createdAt     DateTime  @default(now())
 
-  accounts      Account[]
-  sessions      Session[]
-  tools         Tool[]
-  conversations Conversation[]
-  toolUsages    ToolUsage[]
-  reviews       Review[]
-  reviewReplies ReviewReply[]
-  apiLogs       ApiLog[]
+  accounts            Account[]
+  sessions            Session[]
+  tools               Tool[]
+  conversations       Conversation[]
+  toolUsages          ToolUsage[]
+  reviews             Review[]
+  reviewReplies       ReviewReply[]
+  apiLogs             ApiLog[]
+  googleServiceTokens GoogleServiceToken[]
 }
 
 model VerificationToken {
@@ -75,14 +76,14 @@ model VerificationToken {
 }
 
 model Tool {
-  id             String     @id @default(cuid())
-  name           String
-  description    String?
-  code           String     @db.Text
-  visibility     Visibility @default(PRIVATE)
-  category       String?
-  tags           String[]
-  allowedSources String[]   @default([])
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  code        String     @db.Text
+  visibility  Visibility @default(PRIVATE)
+  category    String?
+  tags        String[]
+  dataSources Json?      // ToolDataSource[] - 工具使用的資料來源
 
   author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
   authorId String
@@ -128,9 +129,30 @@ enum UsageSource {
 }
 
 enum DataSourceType {
+  // Database
   POSTGRES
   MYSQL
+  MONGODB
+
+  // REST
   REST_API
+
+  // Google (future)
+  GOOGLE_SHEETS
+  GOOGLE_DRIVE
+  GOOGLE_CALENDAR
+  GOOGLE_GMAIL
+
+  // SaaS (future)
+  NOTION
+  SLACK
+  GITHUB
+}
+
+enum AuthType {
+  CONNECTION_STRING
+  API_KEY
+  OAUTH
 }
 
 model ToolUsage {
@@ -207,7 +229,12 @@ model DataSource {
   description          String?
   type                 DataSourceType
 
+  // Authentication
+  authType             AuthType       @default(CONNECTION_STRING)
   config               Json
+  oauthAccountId       String?        // Link to OAuth account (for OAuth auth type)
+  tokenExpiresAt       DateTime?      // Token expiration (for OAuth)
+
   globalBlockedColumns String[]       @default([])
   allowedEndpoints     String[]       @default([])
   schema               Json?
@@ -268,4 +295,33 @@ model ApiLog {
   @@index([userId])
   @@index([department])
   @@index([createdAt])
+}
+
+// ===== Google Services Models =====
+
+enum GoogleService {
+  SHEETS
+  DRIVE
+  CALENDAR
+}
+
+model GoogleServiceToken {
+  id           String        @id @default(cuid())
+  userId       String
+  service      GoogleService
+
+  accessToken  String        @db.Text
+  refreshToken String        @db.Text
+  expiresAt    DateTime
+  scope        String
+
+  isValid      Boolean       @default(true)
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, service])
+  @@index([userId])
 }
