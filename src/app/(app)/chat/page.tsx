@@ -250,6 +250,7 @@ function StudioContent() {
           messages: [...messages, { role: "user", content: userMessage }],
           model: selectedModel,
           files: filesToSend.length > 0 ? filesToSend : undefined,
+          conversationId: convId || undefined,
         }),
       });
 
@@ -480,6 +481,7 @@ function StudioContent() {
           body: JSON.stringify({
             messages: [...messages, { role: "user", content: fixMessage }],
             model: selectedModel,
+            conversationId: convId || undefined,
           }),
         });
 

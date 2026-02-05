@@ -5,6 +5,7 @@ import { models, ModelId, defaultModel } from "@/lib/ai/models";
 import { studioTools } from "@/lib/ai/tools";
 import { createGoogleTools } from "@/lib/ai/google-tools";
 import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
+import { prisma } from "@/lib/prisma";
 
 interface FileData {
   name: string;
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
   const userId = session.user.id;
 
   try {
-    const { messages, model, files } = await req.json();
+    const { messages, model, files, conversationId } = await req.json();
 
     // Use specified model or default
     const selectedModel = models[(model as ModelId) || defaultModel];
@@ -89,6 +90,11 @@ export async function POST(req: Request) {
         content: isLastUserMessage ? buildMessageContent(m.content, files) : m.content,
       };
     });
+
+    // Track token usage across all steps
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    const modelName = model || defaultModel;
 
     // Create streaming response with tool loop
     const stream = new ReadableStream({
@@ -152,6 +158,18 @@ export async function POST(req: Request) {
             }
           }
 
+          // Get token usage for this step
+          try {
+            const usage = await result.usage;
+            if (usage) {
+              totalInputTokens += usage.promptTokens || 0;
+              totalOutputTokens += usage.completionTokens || 0;
+              console.log(`[Chat API] Step ${step} usage:`, usage);
+            }
+          } catch (e) {
+            console.error(`[Chat API] Failed to get usage:`, e);
+          }
+
           // If no tool calls, we're done
           if (!hasToolCalls) {
             console.log(`[Chat API] No tool calls, finishing`);
@@ -188,6 +206,25 @@ export async function POST(req: Request) {
 
           console.log(`[Chat API] Tool calls processed, continuing loop`);
           console.log(`[Chat API] Current messages:`, JSON.stringify(currentMessages, null, 2));
+        }
+
+        // Save token usage to database
+        if (totalInputTokens > 0 || totalOutputTokens > 0) {
+          try {
+            await prisma.tokenUsage.create({
+              data: {
+                userId,
+                conversationId: conversationId || null,
+                model: modelName,
+                inputTokens: totalInputTokens,
+                outputTokens: totalOutputTokens,
+                totalTokens: totalInputTokens + totalOutputTokens,
+              },
+            });
+            console.log(`[Chat API] Token usage saved: input=${totalInputTokens}, output=${totalOutputTokens}`);
+          } catch (e) {
+            console.error(`[Chat API] Failed to save token usage:`, e);
+          }
         }
 
         controller.close();
