@@ -33,6 +33,19 @@ interface CalendarEvent {
     email: string;
     displayName?: string;
   };
+  conferenceData?: {
+    conferenceId?: string;
+    conferenceSolution?: {
+      name: string;
+      iconUri: string;
+    };
+    entryPoints?: Array<{
+      entryPointType: string;
+      uri: string;
+      label?: string;
+    }>;
+  };
+  hangoutLink?: string;
 }
 
 interface CalendarListResponse {
@@ -106,7 +119,9 @@ export class GoogleCalendarConnector extends GoogleBaseConnector {
    * Create a new calendar event
    *
    * resource: calendarId (use "primary" for primary calendar)
-   * data: { summary, description?, location?, start, end, attendees? }
+   * data: { summary, description?, location?, start, end, attendees?, createMeet? }
+   *
+   * If createMeet is true, a Google Meet link will be automatically created
    */
   async create(params: MutateParams): Promise<OperationResult> {
     const { resource, data } = params;
@@ -120,22 +135,38 @@ export class GoogleCalendarConnector extends GoogleBaseConnector {
     }
 
     try {
-      const event = await this.googleFetch<CalendarEvent>(
-        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            summary: data.summary,
-            description: data.description,
-            location: data.location,
-            start: this.formatDateTime(data.start as string),
-            end: this.formatDateTime(data.end as string),
-            attendees: data.attendees
-              ? (data.attendees as string[]).map((email) => ({ email }))
-              : undefined,
-          }),
-        }
-      );
+      // Build event body
+      const eventBody: Record<string, unknown> = {
+        summary: data.summary,
+        description: data.description,
+        location: data.location,
+        start: this.formatDateTime(data.start as string),
+        end: this.formatDateTime(data.end as string),
+        attendees: data.attendees
+          ? (data.attendees as string[]).map((email) => ({ email }))
+          : undefined,
+      };
+
+      // Add Google Meet conference if requested
+      if (data.createMeet) {
+        eventBody.conferenceData = {
+          createRequest: {
+            requestId: `meet-${Date.now()}`,
+            conferenceSolutionKey: { type: "hangoutsMeet" },
+          },
+        };
+      }
+
+      // Build URL with conferenceDataVersion if creating Meet
+      let url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`;
+      if (data.createMeet) {
+        url += "?conferenceDataVersion=1";
+      }
+
+      const event = await this.googleFetch<CalendarEvent>(url, {
+        method: "POST",
+        body: JSON.stringify(eventBody),
+      });
 
       return {
         success: true,
@@ -306,6 +337,10 @@ export class GoogleCalendarConnector extends GoogleBaseConnector {
   }
 
   private formatEvent(event: CalendarEvent) {
+    // Extract Meet link if available
+    const meetLink = event.hangoutLink ||
+      event.conferenceData?.entryPoints?.find(e => e.entryPointType === "video")?.uri;
+
     return {
       id: event.id,
       summary: event.summary,
@@ -316,6 +351,7 @@ export class GoogleCalendarConnector extends GoogleBaseConnector {
       isAllDay: !event.start.dateTime,
       status: event.status,
       htmlLink: event.htmlLink,
+      meetLink,
       attendees: event.attendees?.map((a) => ({
         email: a.email,
         name: a.displayName,

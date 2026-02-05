@@ -237,6 +237,10 @@
       "name": "Google 日曆",
       "description": "管理活動和行程"
     },
+    "gmail": {
+      "name": "Gmail",
+      "description": "搜尋和讀取郵件"
+    },
     "connect": "連接",
     "disconnect": "中斷連接",
     "connected": "已連接",

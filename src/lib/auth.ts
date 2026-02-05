@@ -13,6 +13,7 @@ const allGoogleScopes = [
   GOOGLE_SCOPES.SHEETS,
   GOOGLE_SCOPES.DRIVE,
   GOOGLE_SCOPES.CALENDAR,
+  GOOGLE_SCOPES.GMAIL,
 ].join(" ");
 
 export const authOptions: NextAuthOptions = {
@@ -116,6 +117,7 @@ export const authOptions: NextAuthOptions = {
                 { service: "SHEETS" as const, scope: GOOGLE_SCOPES.SHEETS },
                 { service: "DRIVE" as const, scope: GOOGLE_SCOPES.DRIVE },
                 { service: "CALENDAR" as const, scope: GOOGLE_SCOPES.CALENDAR },
+                { service: "GMAIL" as const, scope: GOOGLE_SCOPES.GMAIL },
               ];
 
               for (const { service, scope: requiredScope } of services) {

@@ -135,6 +135,7 @@ export async function getGoogleConnectionStatus(
     SHEETS: connectedServices.has("SHEETS"),
     DRIVE: connectedServices.has("DRIVE"),
     CALENDAR: connectedServices.has("CALENDAR"),
+    GMAIL: connectedServices.has("GMAIL"),
   };
 }
 

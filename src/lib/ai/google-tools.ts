@@ -3,10 +3,11 @@ import { z } from "zod";
 import { GoogleSheetsConnector } from "@/lib/connectors/google/sheets";
 import { GoogleDriveConnector } from "@/lib/connectors/google/drive";
 import { GoogleCalendarConnector } from "@/lib/connectors/google/calendar";
+import { GoogleGmailConnector } from "@/lib/connectors/google/gmail";
 import { getGoogleConnectionStatus } from "@/lib/google/token-manager";
 import { googleServiceToDataSourceType } from "@/types/data-source";
 
-type GoogleService = "sheets" | "drive" | "calendar";
+type GoogleService = "sheets" | "drive" | "calendar" | "gmail";
 
 /**
  * 從資源路徑中提取 resourceId
@@ -53,16 +54,18 @@ export function createGoogleTools(userId: string) {
 - 列出 Google 試算表並讀取內容
 - 搜尋 Google 雲端硬碟中的檔案
 - 查詢 Google 日曆的事件
+- 搜尋 Gmail 郵件
 
 使用者必須先連接對應的 Google 服務才能使用。如果服務未連接，請提示使用者先在「資料來源」選單中連接。`,
       inputSchema: z.object({
-        service: z.enum(["sheets", "drive", "calendar"]).describe("要搜尋的 Google 服務"),
+        service: z.enum(["sheets", "drive", "calendar", "gmail"]).describe("要搜尋的 Google 服務"),
         action: z.enum(["list", "read"]).optional().describe("list: 列出資源清單, read: 讀取特定資源內容。預設為 list"),
-        resource: z.string().optional().describe("資源 ID。對於 Sheets: spreadsheetId 或 spreadsheetId/SheetName!Range；對於 Drive: folderId 或 file:fileId；對於 Calendar: calendarId 或 primary"),
-        search: z.string().optional().describe("搜尋關鍵字"),
+        resource: z.string().optional().describe("資源 ID。Sheets: spreadsheetId；Drive: folderId 或 file:fileId；Calendar: calendarId 或 primary；Gmail: thread:threadId 或 message:messageId"),
+        search: z.string().optional().describe("搜尋關鍵字。Gmail 支援進階搜尋語法如 from:xxx subject:xxx"),
         mimeType: z.string().optional().describe("檔案類型過濾 (僅 Drive)"),
         timeMin: z.string().optional().describe("開始時間 ISO 格式 (僅 Calendar)"),
         timeMax: z.string().optional().describe("結束時間 ISO 格式 (僅 Calendar)"),
+        label: z.string().optional().describe("郵件標籤過濾 (僅 Gmail)，如 INBOX, SENT, UNREAD"),
         limit: z.number().optional().describe("最多返回幾筆結果，預設 20"),
       }),
       execute: async (params) => {
@@ -74,6 +77,7 @@ export function createGoogleTools(userId: string) {
         const mimeType = params.mimeType;
         const timeMin = params.timeMin;
         const timeMax = params.timeMax;
+        const label = (params as { label?: string }).label;
         const limit = params.limit;
 
         console.log(`[googleSearch] Called with params:`, JSON.stringify(params));
@@ -83,7 +87,7 @@ export function createGoogleTools(userId: string) {
           console.log(`[googleSearch] Checking status for userId: ${userId}, service: ${service}`);
           const status = await getGoogleConnectionStatus(userId);
           console.log(`[googleSearch] Status result:`, status);
-          const statusKey = service.toUpperCase() as "SHEETS" | "DRIVE" | "CALENDAR";
+          const statusKey = service.toUpperCase() as "SHEETS" | "DRIVE" | "CALENDAR" | "GMAIL";
 
           if (!status[statusKey]) {
             console.log(`[googleSearch] Service ${service} not connected`);
@@ -108,6 +112,9 @@ export function createGoogleTools(userId: string) {
             case "calendar":
               connector = new GoogleCalendarConnector(userId);
               break;
+            case "gmail":
+              connector = new GoogleGmailConnector(userId);
+              break;
             default:
               return { success: false, error: `Unknown service: ${service}` };
           }
@@ -121,6 +128,7 @@ export function createGoogleTools(userId: string) {
           if (mimeType) filters.mimeType = mimeType;
           if (timeMin) filters.timeMin = timeMin;
           if (timeMax) filters.timeMax = timeMax;
+          if (label) filters.label = label;
 
           // Execute the operation
           const result = await connector.list({
@@ -279,6 +287,7 @@ export function createGoogleTools(userId: string) {
               sheets: status.SHEETS,
               drive: status.DRIVE,
               calendar: status.CALENDAR,
+              gmail: status.GMAIL,
             },
             message: Object.entries(status)
               .filter(([, connected]) => connected)

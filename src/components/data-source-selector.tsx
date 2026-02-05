@@ -22,6 +22,7 @@ import {
   FileSpreadsheet,
   FolderOpen,
   Calendar,
+  Mail,
 } from "lucide-react";
 
 interface DataSource {
@@ -37,7 +38,7 @@ interface DataSource {
   };
 }
 
-type GoogleServiceType = "sheets" | "drive" | "calendar";
+type GoogleServiceType = "sheets" | "drive" | "calendar" | "gmail";
 
 const GOOGLE_SERVICES: {
   id: GoogleServiceType;
@@ -46,6 +47,7 @@ const GOOGLE_SERVICES: {
   { id: "sheets", icon: FileSpreadsheet },
   { id: "drive", icon: FolderOpen },
   { id: "calendar", icon: Calendar },
+  { id: "gmail", icon: Mail },
 ];
 
 interface DataSourceSelectorProps {

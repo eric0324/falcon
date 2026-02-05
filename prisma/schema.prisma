@@ -303,6 +303,7 @@ enum GoogleService {
   SHEETS
   DRIVE
   CALENDAR
+  GMAIL
 }
 
 model GoogleServiceToken {

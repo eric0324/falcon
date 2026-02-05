@@ -237,6 +237,10 @@
       "name": "Google Calendar",
       "description": "Manage events and schedules"
     },
+    "gmail": {
+      "name": "Gmail",
+      "description": "Search and read emails"
+    },
     "connect": "Connect",
     "disconnect": "Disconnect",
     "connected": "Connected",
