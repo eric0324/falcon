@@ -123,6 +123,10 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
       const res = await fetch(`/api/conversations/${id}`, { method: "DELETE" });
       if (res.ok) {
         setConversations((prev) => prev.filter((c) => c.id !== id));
+        // If deleting current conversation, navigate to new chat
+        if (currentConvId === id) {
+          router.push("/chat");
+        }
       }
     } catch {
       // Silently fail

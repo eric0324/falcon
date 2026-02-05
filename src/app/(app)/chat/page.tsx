@@ -251,6 +251,7 @@ function StudioContent() {
           model: selectedModel,
           files: filesToSend.length > 0 ? filesToSend : undefined,
           conversationId: convId || undefined,
+          dataSources: selectedDataSources.length > 0 ? selectedDataSources : undefined,
         }),
       });
 
@@ -664,9 +665,14 @@ function StudioContent() {
           <ScrollArea className="flex-1 p-4" ref={scrollRef}>
             <div className="space-y-4">
               {messages.length === 0 && (
-                <div className="text-center text-muted-foreground py-16">
-                  <p className="text-lg font-medium mb-2">{t("welcome.title")}</p>
-                  <p className="text-sm">{t("welcome.description")}</p>
+                <div className="flex items-center justify-center min-h-[60vh]">
+                  <div className="text-center text-muted-foreground">
+                    <div className="mb-4 text-4xl animate-bounce">
+                      👋
+                    </div>
+                    <p className="text-lg font-medium mb-2">{t("welcome.title")}</p>
+                    <p className="text-sm">{t("welcome.description")}</p>
+                  </div>
                 </div>
               )}
               {messages.map((message, index) => {
