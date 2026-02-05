@@ -55,59 +55,79 @@ const BASE_PROMPT = `你是 Studio 助手，一個能幫助使用者建立工具
 - 不要在對話中用 markdown 程式碼區塊輸出程式碼，而是使用 updateCode 工具
 - 先說明要做什麼，然後使用 updateCode 工具提交程式碼`;
 
-// Google-specific instructions
-const GOOGLE_INSTRUCTIONS = `
+// Google service descriptions
+const GOOGLE_SERVICE_INFO: Record<string, { name: string; keywords: string; example: string }> = {
+  sheets: {
+    name: "Google 試算表",
+    keywords: "「試算表」「表格」「spreadsheet」",
+    example: "googleSearch({ service: \"sheets\", search: \"報告\" })",
+  },
+  drive: {
+    name: "Google 雲端硬碟",
+    keywords: "「檔案」「文件」「雲端硬碟」「drive」",
+    example: "googleSearch({ service: \"drive\", search: \"報告\" })",
+  },
+  calendar: {
+    name: "Google 日曆",
+    keywords: "「行程」「日曆」「活動」「會議」",
+    example: "googleSearch({ service: \"calendar\", resource: \"primary\" })",
+  },
+  gmail: {
+    name: "Gmail",
+    keywords: "「郵件」「email」「信」「Gmail」",
+    example: "googleSearch({ service: \"gmail\", search: \"關鍵字\" })",
+  },
+};
+
+/**
+ * Build Google-specific instructions based on enabled services
+ */
+function buildGoogleInstructions(enabledServices: string[]): string {
+  const serviceList = enabledServices
+    .map(s => GOOGLE_SERVICE_INFO[s]?.name)
+    .filter(Boolean)
+    .join("、");
+
+  const keywordSection = enabledServices
+    .map(s => {
+      const info = GOOGLE_SERVICE_INFO[s];
+      if (!info) return null;
+      return `- ${info.keywords} → googleSearch({ service: "${s}" })`;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  const exampleSection = enabledServices
+    .map(s => {
+      const info = GOOGLE_SERVICE_INFO[s];
+      if (!info) return null;
+      return `- ${info.name}：${info.example}`;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  return `
 
 ## Google 服務使用指南
 
+### 重要限制
+你只能使用以下已啟用的 Google 服務：${serviceList}
+**絕對不要使用未啟用的服務**。如果使用者要求使用未啟用的服務，請告知他們需要先在「資料來源」選單中啟用。
+
 ### 可用的 Google 工具
-- googleStatus: 檢查使用者的 Google 服務連接狀態
-- googleSearch: 搜尋使用者的 Google 資料（試算表、雲端硬碟、日曆、郵件）
-- googleWrite: 寫入資料到 Google 服務（試算表、日曆）
+- googleSearch: 搜尋已啟用的 Google 服務資料
 
-### 最重要：看到關鍵字就立刻呼叫工具
-當使用者提到以下關鍵字時，**必須立刻呼叫 googleSearch 工具**，不要只是用文字回覆：
-- 「找」「搜尋」「查」→ 呼叫 googleSearch
-- 「試算表」「表格」「spreadsheet」→ googleSearch({ service: "sheets" })
-- 「檔案」「文件」「雲端硬碟」「drive」→ googleSearch({ service: "drive" })
-- 「行程」「日曆」「活動」「會議」「Meet」→ googleSearch({ service: "calendar" })
-- 「郵件」「email」「信」「Gmail」→ googleSearch({ service: "gmail" })
+### 關鍵字對應
+當使用者提到以下關鍵字時，使用對應的服務：
+${keywordSection}
 
-### 核心原則：直接搜尋，不要問東問西
-當使用者要找 Google 資料時，**直接呼叫 googleSearch 工具開始搜尋**，不要問「檔案名稱是什麼」「檔案類型是什麼」這種問題。
-使用者通常不記得確切的檔案名稱，這就是為什麼他們需要你幫忙搜尋。
+### 搜尋範例
+${exampleSection}
 
-### 搜尋策略：多嘗試，不放棄
-1. **先用寬鬆條件搜尋** - 不限制檔案類型，用關鍵字搜尋
-2. **找不到就換關鍵字** - 嘗試不同的關鍵字組合
-3. **多搜尋幾個服務** - 可能在 Sheets 也可能在 Drive
-4. **至少嘗試 3 種搜尋方式** 才告訴使用者找不到
-
-### Google 搜尋範例
-- 搜尋檔案：googleSearch({ service: "drive", search: "報告" })
-- 列出所有試算表：googleSearch({ service: "sheets" })
-- 讀取特定試算表：googleSearch({ service: "sheets", action: "read", resource: "spreadsheetId/Sheet1!A1:Z100" })
-- 查詢今日行程：googleSearch({ service: "calendar", resource: "primary", timeMin: "2026-02-05T00:00:00Z", timeMax: "2026-02-05T23:59:59Z" })
-- 搜尋郵件：googleSearch({ service: "gmail", search: "from:boss@company.com" })
-- 查看未讀郵件：googleSearch({ service: "gmail", label: "UNREAD" })
-
-### 關於 Google Meet
-建立 Google Meet 會議連結時，使用 googleWrite 在 Calendar 建立活動，系統會自動產生 Meet 連結。
-範例：googleWrite({ service: "calendar", action: "create", resource: "primary", data: { summary: "團隊會議", start: "2026-02-05T14:00:00", end: "2026-02-05T15:00:00", createMeet: true } })
-
-### 重要：使用 Google 資料建立工具的流程
-當使用者要求建立一個顯示 Google 資料的工具時，必須按照以下步驟：
-
-1. **先用 googleSearch 取得真實資料**
-   - 不要生成假資料或虛構的 API 呼叫
-   - 直接呼叫 googleSearch 工具取得實際資料
-
-2. **將取得的資料嵌入程式碼中**
-   - 把 googleSearch 返回的資料作為初始狀態嵌入 React 元件
-   - 例如：const [events] = useState(/* 這裡放真實資料 */);
-
-絕對不要在生成的程式碼中包含 API 呼叫（如 fetch、axios、googleSearch 等）。
-所有資料都應該是預先取得並嵌入的靜態資料。`;
+### 核心原則
+- 直接呼叫 googleSearch 工具搜尋，不要問「檔案名稱是什麼」
+- 找不到就換關鍵字，至少嘗試 2-3 種搜尋方式`;
+}
 
 // Notion-specific instructions
 const NOTION_INSTRUCTIONS = `
@@ -146,11 +166,15 @@ export function buildSystemPrompt(dataSources?: string[]): string {
     return prompt;
   }
 
-  const hasGoogle = dataSources.some(ds => ds.startsWith("google_"));
+  // Extract enabled Google services
+  const enabledGoogleServices = dataSources
+    .filter(ds => ds.startsWith("google_"))
+    .map(ds => ds.replace("google_", ""));
+
   const hasNotion = dataSources.includes("notion");
 
-  if (hasGoogle) {
-    prompt += GOOGLE_INSTRUCTIONS;
+  if (enabledGoogleServices.length > 0) {
+    prompt += buildGoogleInstructions(enabledGoogleServices);
   }
 
   if (hasNotion) {
