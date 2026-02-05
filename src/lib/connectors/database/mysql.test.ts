@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock mysql2/promise - use vi.hoisted for variables used in vi.mock factory
-const { mockExecute, mockEnd } = vi.hoisted(() => ({
+const { mockExecute, mockEnd, mockQuery } = vi.hoisted(() => ({
   mockExecute: vi.fn(),
   mockEnd: vi.fn(),
+  mockQuery: vi.fn(),
 }));
 
 vi.mock("mysql2/promise", () => ({
@@ -11,6 +12,7 @@ vi.mock("mysql2/promise", () => ({
     createConnection: vi.fn().mockResolvedValue({
       execute: mockExecute,
       end: mockEnd,
+      query: mockQuery,
     }),
   },
 }));
@@ -36,18 +38,31 @@ describe("MySQLConnector", () => {
   describe("connect / disconnect", () => {
     it("sets connection on connect", async () => {
       await connector.connect();
-      // After connect, query should not throw "Not connected"
+      // After connect, query should not return "Not connected" error
       mockExecute.mockResolvedValueOnce([[{ id: 1 }]]);
-      const result = await connector.query("SELECT 1", [], { allowedTables: [] });
-      expect(result.rows).toBeDefined();
+      const result = await connector.query({ sql: "SELECT 1" });
+      expect(result.success).toBe(true);
     });
 
     it("disconnect clears connection", async () => {
       await connector.connect();
       await connector.disconnect();
       expect(mockEnd).toHaveBeenCalledOnce();
-      // After disconnect, query should throw "Not connected"
-      await expect(connector.query("SELECT 1")).rejects.toThrow("Not connected");
+      // After disconnect, query should return error
+      const result = await connector.query({ sql: "SELECT 1" });
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Not connected to database");
+    });
+  });
+
+  describe("getCapabilities", () => {
+    it("returns correct capabilities", () => {
+      const caps = connector.getCapabilities();
+      expect(caps.canQuery).toBe(true);
+      expect(caps.canList).toBe(true);
+      expect(caps.canCreate).toBe(false);
+      expect(caps.canUpdate).toBe(false);
+      expect(caps.canDelete).toBe(false);
     });
   });
 
@@ -78,33 +93,38 @@ describe("MySQLConnector", () => {
   });
 
   describe("query", () => {
-    it("throws if not connected", async () => {
-      await expect(
-        connector.query("SELECT * FROM users")
-      ).rejects.toThrow("Not connected to database");
+    it("returns error if not connected", async () => {
+      const result = await connector.query({ sql: "SELECT * FROM users" });
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Not connected to database");
     });
 
     it("rejects non-SELECT statements", async () => {
       await connector.connect();
-      await expect(
-        connector.query("INSERT INTO users VALUES (1, 'test')")
-      ).rejects.toThrow("Only SELECT queries are allowed");
+      const result = await connector.query({
+        sql: "INSERT INTO users VALUES (1, 'test')",
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Only SELECT queries are allowed");
     });
 
     it("rejects DELETE statements", async () => {
       await connector.connect();
-      await expect(
-        connector.query("DELETE FROM users WHERE id = 1")
-      ).rejects.toThrow("Only SELECT queries are allowed");
+      const result = await connector.query({
+        sql: "DELETE FROM users WHERE id = 1",
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Only SELECT queries are allowed");
     });
 
     it("validates table access when allowedTables is specified", async () => {
       await connector.connect();
-      await expect(
-        connector.query("SELECT * FROM secrets", [], {
-          allowedTables: ["users"],
-        })
-      ).rejects.toThrow("Table not allowed: secrets");
+      const result = await connector.query({
+        sql: "SELECT * FROM secrets",
+        allowedTables: ["users"],
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Table not allowed: secrets");
     });
 
     it("executes valid SELECT query", async () => {
@@ -113,11 +133,13 @@ describe("MySQLConnector", () => {
       ]);
 
       await connector.connect();
-      const result = await connector.query("SELECT * FROM users", [], {
+      const result = await connector.query({
+        sql: "SELECT * FROM users",
         allowedTables: ["users"],
       });
 
-      expect(result.rows).toEqual([{ id: 1, name: "Alice" }]);
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual([{ id: 1, name: "Alice" }]);
       expect(result.rowCount).toBe(1);
     });
 
@@ -127,12 +149,14 @@ describe("MySQLConnector", () => {
       ]);
 
       await connector.connect();
-      const result = await connector.query("SELECT * FROM users", [], {
+      const result = await connector.query({
+        sql: "SELECT * FROM users",
         allowedTables: ["users"],
         blockedColumns: ["salary"],
       });
 
-      expect(result.rows).toEqual([{ id: 1, name: "Alice" }]);
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual([{ id: 1, name: "Alice" }]);
     });
   });
 });

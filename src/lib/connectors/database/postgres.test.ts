@@ -41,8 +41,20 @@ describe("PostgresConnector", () => {
     });
 
     it("calls client.end on disconnect", async () => {
+      await connector.connect();
       await connector.disconnect();
       expect(mockEnd).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe("getCapabilities", () => {
+    it("returns correct capabilities", () => {
+      const caps = connector.getCapabilities();
+      expect(caps.canQuery).toBe(true);
+      expect(caps.canList).toBe(true);
+      expect(caps.canCreate).toBe(false);
+      expect(caps.canUpdate).toBe(false);
+      expect(caps.canDelete).toBe(false);
     });
   });
 
@@ -75,32 +87,39 @@ describe("PostgresConnector", () => {
   describe("query", () => {
     it("rejects non-SELECT statements", async () => {
       await connector.connect();
-      await expect(
-        connector.query("INSERT INTO users VALUES (1, 'test')")
-      ).rejects.toThrow("Only SELECT queries are allowed");
+      const result = await connector.query({
+        sql: "INSERT INTO users VALUES (1, 'test')",
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Only SELECT queries are allowed");
     });
 
     it("rejects DELETE statements", async () => {
       await connector.connect();
-      await expect(
-        connector.query("DELETE FROM users WHERE id = 1")
-      ).rejects.toThrow("Only SELECT queries are allowed");
+      const result = await connector.query({
+        sql: "DELETE FROM users WHERE id = 1",
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Only SELECT queries are allowed");
     });
 
     it("rejects UPDATE statements", async () => {
       await connector.connect();
-      await expect(
-        connector.query("UPDATE users SET name = 'test'")
-      ).rejects.toThrow("Only SELECT queries are allowed");
+      const result = await connector.query({
+        sql: "UPDATE users SET name = 'test'",
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Only SELECT queries are allowed");
     });
 
     it("validates table access when allowedTables is specified", async () => {
       await connector.connect();
-      await expect(
-        connector.query("SELECT * FROM secrets", [], {
-          allowedTables: ["users"],
-        })
-      ).rejects.toThrow("Table not allowed: secrets");
+      const result = await connector.query({
+        sql: "SELECT * FROM secrets",
+        allowedTables: ["users"],
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Table not allowed: secrets");
     });
 
     it("executes valid SELECT query", async () => {
@@ -110,11 +129,13 @@ describe("PostgresConnector", () => {
       });
 
       await connector.connect();
-      const result = await connector.query("SELECT * FROM users", [], {
+      const result = await connector.query({
+        sql: "SELECT * FROM users",
         allowedTables: ["users"],
       });
 
-      expect(result.rows).toEqual([{ id: 1, name: "Alice" }]);
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual([{ id: 1, name: "Alice" }]);
       expect(result.rowCount).toBe(1);
     });
 
@@ -125,12 +146,14 @@ describe("PostgresConnector", () => {
       });
 
       await connector.connect();
-      const result = await connector.query("SELECT * FROM users", [], {
+      const result = await connector.query({
+        sql: "SELECT * FROM users",
         allowedTables: ["users"],
         blockedColumns: ["salary"],
       });
 
-      expect(result.rows).toEqual([{ id: 1, name: "Alice" }]);
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual([{ id: 1, name: "Alice" }]);
     });
   });
 });

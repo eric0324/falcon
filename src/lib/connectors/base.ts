@@ -1,19 +1,33 @@
+import {
+  ConnectorCapabilities,
+  QueryParams,
+  ListParams,
+  MutateParams,
+  OperationResult,
+  SchemaInfo,
+  DatabaseConfig,
+  RestApiConfig,
+  DataSourceConfig,
+} from "./types";
+
+// Re-export types for convenience
+export type {
+  ConnectorCapabilities,
+  QueryParams,
+  ListParams,
+  MutateParams,
+  OperationResult,
+  SchemaInfo,
+  DatabaseConfig,
+  RestApiConfig,
+  DataSourceConfig,
+};
+
+// ===== Legacy Types (for backward compatibility) =====
+
 export interface QueryResult {
   rows: Record<string, unknown>[];
   rowCount: number;
-}
-
-export interface DatabaseConfig {
-  host: string;
-  port: number;
-  database: string;
-  user: string;
-  password: string;
-}
-
-export interface RestApiConfig {
-  baseUrl: string;
-  headers: Record<string, string>;
 }
 
 export interface ConnectorOptions {
@@ -21,6 +35,8 @@ export interface ConnectorOptions {
   allowedTables?: string[];
   blockedColumns?: string[];
 }
+
+// ===== Legacy Interfaces (for backward compatibility) =====
 
 export interface DatabaseConnector {
   connect(): Promise<void>;
@@ -31,6 +47,28 @@ export interface DatabaseConnector {
 
 export interface RestApiConnector {
   call(endpoint: string, data?: unknown): Promise<unknown>;
+}
+
+// ===== Unified BaseConnector Interface =====
+
+export interface BaseConnector {
+  // Connection management
+  connect(): Promise<void>;
+  disconnect(): Promise<void>;
+  testConnection(): Promise<boolean>;
+
+  // Capability query
+  getCapabilities(): ConnectorCapabilities;
+
+  // Data operations (implement based on capabilities)
+  query?(params: QueryParams): Promise<OperationResult>;
+  list?(params: ListParams): Promise<OperationResult>;
+  create?(params: MutateParams): Promise<OperationResult>;
+  update?(params: MutateParams): Promise<OperationResult>;
+  delete?(params: MutateParams): Promise<OperationResult>;
+
+  // Metadata
+  getSchema?(): Promise<SchemaInfo>;
 }
 
 // Extract table names from SQL query (simple parser)
