@@ -50,7 +50,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { messages, model } = body;
+  const { messages, model, dataSources } = body;
 
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return new Response("messages is required", { status: 400 });
@@ -63,6 +63,7 @@ export async function POST(req: Request) {
       title,
       messages,
       model: model || null,
+      dataSources: dataSources || [],
       userId: session.user.id,
     },
   });

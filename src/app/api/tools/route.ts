@@ -57,7 +57,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { name, description, code, category, tags, visibility, conversationId } = await req.json();
+    const { name, description, code, category, tags, visibility, conversationId, dataSources } = await req.json();
 
     if (!name || !code) {
       return NextResponse.json(
@@ -76,6 +76,7 @@ export async function POST(req: Request) {
         visibility: visibility || "PRIVATE",
         authorId: userId,
         conversationId: conversationId || undefined,
+        dataSources: dataSources || null,
       },
     });
 

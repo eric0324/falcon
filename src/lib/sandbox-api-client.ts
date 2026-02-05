@@ -8,21 +8,77 @@ export function generateSandboxApiClient(): string {
 // This code enables tools to communicate with company data sources
 
 window.companyAPI = {
-  // Query a database data source
-  query: function(source, sql, params) {
-    params = params || [];
-    return window.__bridgeCall('query', { source: source, sql: sql, params: params });
+  // Query a database data source with SQL
+  query: function(dataSourceId, sql, params, options) {
+    options = options || {};
+    return window.__bridgeCall('query', {
+      dataSourceId: dataSourceId,
+      sql: sql,
+      params: params || [],
+      timeout: options.timeout
+    });
   },
 
-  // Call a REST API endpoint
-  call: function(source, endpoint, data) {
-    data = data || {};
-    return window.__bridgeCall('call', { source: source, endpoint: endpoint, data: data });
+  // List resources (tables, items, etc.) from a data source
+  list: function(dataSourceId, options) {
+    options = options || {};
+    return window.__bridgeCall('list', {
+      dataSourceId: dataSourceId,
+      resource: options.resource,
+      filters: options.filters,
+      limit: options.limit,
+      offset: options.offset
+    });
+  },
+
+  // Create a new record in a data source
+  create: function(dataSourceId, resource, data) {
+    return window.__bridgeCall('create', {
+      dataSourceId: dataSourceId,
+      resource: resource,
+      data: data
+    });
+  },
+
+  // Update an existing record in a data source
+  update: function(dataSourceId, resource, data, where) {
+    return window.__bridgeCall('update', {
+      dataSourceId: dataSourceId,
+      resource: resource,
+      data: data,
+      where: where
+    });
+  },
+
+  // Delete a record from a data source
+  delete: function(dataSourceId, resource, where) {
+    return window.__bridgeCall('delete', {
+      dataSourceId: dataSourceId,
+      resource: resource,
+      where: where
+    });
   },
 
   // Get list of available data sources for current user
   getSources: function() {
     return window.__bridgeCall('getSources', {});
+  },
+
+  // Legacy: Call a REST API endpoint (deprecated, use list/create/update/delete instead)
+  call: function(dataSourceId, endpoint, data) {
+    console.warn('[companyAPI] call() is deprecated. Use list(), create(), update(), or delete() instead.');
+    if (data) {
+      return window.__bridgeCall('create', {
+        dataSourceId: dataSourceId,
+        resource: endpoint,
+        data: data
+      });
+    } else {
+      return window.__bridgeCall('list', {
+        dataSourceId: dataSourceId,
+        resource: endpoint
+      });
+    }
   }
 };
 
@@ -53,11 +109,16 @@ window.__bridgeCall = function(operation, payload) {
       type: 'api-bridge',
       id: id,
       operation: operation,
-      source: payload.source,
+      dataSourceId: payload.dataSourceId,
       sql: payload.sql,
       params: payload.params,
-      endpoint: payload.endpoint,
-      data: payload.data
+      resource: payload.resource,
+      data: payload.data,
+      where: payload.where,
+      filters: payload.filters,
+      limit: payload.limit,
+      offset: payload.offset,
+      timeout: payload.timeout
     }, '*');
   });
 };
