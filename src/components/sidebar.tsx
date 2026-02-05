@@ -317,39 +317,44 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                   const isActive = pathname === "/chat" && currentConvId === conv.id;
 
                   return (
-                    <Link
+                    <div
                       key={conv.id}
-                      href={`/chat?id=${conv.id}`}
-                      onClick={(e) => handleNavClick(e, `/chat?id=${conv.id}`)}
                       className={cn(
-                        "group relative flex items-center px-3 py-2.5 rounded-lg text-sm transition-colors",
+                        "group flex items-center rounded-lg text-sm transition-colors",
                         isActive
                           ? "bg-neutral-100 text-neutral-900"
                           : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
                       )}
                     >
-                      <span className="truncate pr-6">
-                        {conv.title || t("conversation.newConversation")}
-                      </span>
-
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => handleDelete(e, conv.id)}
-                        disabled={deletingId === conv.id}
-                        className={cn(
-                          "absolute right-1 h-6 w-6",
-                          "opacity-0 group-hover:opacity-100 transition-opacity",
-                          "text-neutral-500 hover:text-red-400 hover:bg-transparent"
-                        )}
+                      <Link
+                        href={`/chat?id=${conv.id}`}
+                        onClick={(e) => handleNavClick(e, `/chat?id=${conv.id}`)}
+                        className="flex-1 flex items-center justify-between px-3 py-2.5"
                       >
-                        {deletingId === conv.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
-                    </Link>
+                        <span>
+                          {(conv.title || t("conversation.newConversation")).slice(0, 12)}
+                          {(conv.title || "").length > 12 && "..."}
+                        </span>
+                        <span
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDelete(e, conv.id);
+                          }}
+                          className={cn(
+                            "shrink-0 p-1 rounded",
+                            "text-neutral-400 hover:text-red-500 hover:bg-neutral-200",
+                            isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                          )}
+                        >
+                          {deletingId === conv.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                        </span>
+                      </Link>
+                    </div>
                   );
                 })}
               </div>

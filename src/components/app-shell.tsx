@@ -24,9 +24,12 @@ export async function AppShell({ children }: AppShellProps) {
     redirect("/api/auth/signout?callbackUrl=/login");
   }
 
-  // Fetch conversations for sidebar
+  // Fetch conversations for sidebar (exclude soft-deleted)
   const conversations = await prisma.conversation.findMany({
-    where: { userId: user.id },
+    where: {
+      userId: user.id,
+      deletedAt: null,
+    },
     orderBy: { updatedAt: "desc" },
     take: 50,
     select: {

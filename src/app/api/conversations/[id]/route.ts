@@ -11,7 +11,7 @@ async function getConversationIfOwned(conversationId: string, userId: string) {
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },
   });
-  if (!conversation) return { error: 404 as const, conversation: null };
+  if (!conversation || conversation.deletedAt) return { error: 404 as const, conversation: null };
   if (conversation.userId !== userId) return { error: 403 as const, conversation: null };
   return { error: null, conversation };
 }
@@ -65,7 +65,11 @@ export async function DELETE(_req: Request, context: RouteContext) {
   const { error } = await getConversationIfOwned(id, session.user.id);
   if (error) return new Response(error === 404 ? "Not found" : "Forbidden", { status: error });
 
-  await prisma.conversation.delete({ where: { id } });
+  // Soft delete - set deletedAt instead of actually deleting
+  await prisma.conversation.update({
+    where: { id },
+    data: { deletedAt: new Date() },
+  });
 
   return NextResponse.json({ success: true });
 }

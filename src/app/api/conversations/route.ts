@@ -13,7 +13,10 @@ export async function GET(req: Request) {
   const limit = parseInt(url.searchParams.get("limit") || "20", 10);
 
   const conversations = await prisma.conversation.findMany({
-    where: { userId: session.user.id },
+    where: {
+      userId: session.user.id,
+      deletedAt: null,
+    },
     orderBy: { updatedAt: "desc" },
     take: limit,
     select: {
