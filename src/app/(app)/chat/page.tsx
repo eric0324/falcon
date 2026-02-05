@@ -129,7 +129,7 @@ function StudioContent() {
         setMessages(conv.messages || []);
         if (conv.title) setConvTitle(conv.title);
         if (conv.model) setSelectedModel(conv.model);
-        if (conv.dataSources) setSelectedDataSources(conv.dataSources);
+        setSelectedDataSources(conv.dataSources || []);
 
         // Extract code from messages - check tool calls first, then content
         const messages = conv.messages || [];
