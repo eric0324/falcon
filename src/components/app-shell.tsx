@@ -44,8 +44,14 @@ export async function AppShell({ children }: AppShellProps) {
     hasTool: !!conv.tool,
   }));
 
+  const userInfo = {
+    name: user.name || session.user.name || "User",
+    email: user.email,
+    image: session.user.image || null,
+  };
+
   return (
-    <AppShellClient conversations={formattedConversations}>
+    <AppShellClient conversations={formattedConversations} user={userInfo}>
       {children}
     </AppShellClient>
   );

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
 import { useTranslations } from "next-intl";
+import { signOut } from "next-auth/react";
 import {
   Store,
   Wrench,
@@ -11,12 +12,47 @@ import {
   Loader2,
   PanelLeft,
   Plus,
+  ChevronUp,
+  Globe,
+  BookOpen,
+  HelpCircle,
+  LogOut,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/sidebar-provider";
 import { SettingsDialog } from "@/components/settings-dialog";
+import { locales, Locale } from "@/i18n/config";
+
+const languageNames: Record<Locale, string> = {
+  en: "English",
+  "zh-TW": "繁體中文",
+};
+
+function getLocaleFromCookie(): Locale {
+  if (typeof document === "undefined") return "en";
+  const match = document.cookie.match(/locale=([^;]+)/);
+  return (match?.[1] as Locale) || "en";
+}
+
+function setLocaleCookie(locale: Locale) {
+  document.cookie = `locale=${locale};path=/;max-age=31536000`;
+}
 
 interface ConversationItem {
   id: string;
@@ -25,8 +61,15 @@ interface ConversationItem {
   hasTool: boolean;
 }
 
+interface UserInfo {
+  name: string;
+  email: string;
+  image: string | null;
+}
+
 interface SidebarProps {
   conversations: ConversationItem[];
+  user: UserInfo;
 }
 
 const navItems = [
@@ -35,14 +78,21 @@ const navItems = [
   { href: "/marketplace", labelKey: "nav.explore" as const, icon: Store },
 ];
 
-function SidebarContent({ conversations: initialConversations }: SidebarProps) {
+function SidebarContent({ conversations: initialConversations, user }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { isOpen, isMobile, close, toggle } = useSidebar();
   const [conversations, setConversations] = useState(initialConversations);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<"changelog" | "about">("changelog");
+  const [currentLocale, setCurrentLocale] = useState<Locale>("en");
   const t = useTranslations("sidebar");
+
+  useEffect(() => {
+    setCurrentLocale(getLocaleFromCookie());
+  }, []);
 
   const currentConvId = searchParams.get("id");
   const [hasFetched, setHasFetched] = useState(false);
@@ -90,6 +140,26 @@ function SidebarContent({ conversations: initialConversations }: SidebarProps) {
     }
   };
 
+  const openSettings = (tab: "changelog" | "about") => {
+    setSettingsTab(tab);
+    setSettingsOpen(true);
+  };
+
+  const handleLocaleChange = (locale: Locale) => {
+    setCurrentLocale(locale);
+    setLocaleCookie(locale);
+    window.location.reload();
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   // Collapsed state
   if (!isOpen) {
     return (
@@ -112,7 +182,61 @@ function SidebarContent({ conversations: initialConversations }: SidebarProps) {
           </Button>
         </Link>
         <div className="flex-1" />
-        <SettingsDialog collapsed />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-10 w-10">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user.image || undefined} alt={user.name} />
+                <AvatarFallback className="bg-neutral-200 text-neutral-700 text-xs">
+                  {getInitials(user.name)}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="end" className="w-56">
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <Globe className="mr-2 h-4 w-4" />
+                {t("userMenu.language")}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                {locales.map((locale) => (
+                  <DropdownMenuItem
+                    key={locale}
+                    onClick={() => handleLocaleChange(locale)}
+                    className="flex items-center justify-between"
+                  >
+                    {languageNames[locale]}
+                    {currentLocale === locale && <Check className="h-4 w-4" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuItem onClick={() => openSettings("changelog")}>
+              <BookOpen className="mr-2 h-4 w-4" />
+              {t("userMenu.changelog")}
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a href="https://github.com/eric0324/falcon/issues" target="_blank" rel="noopener noreferrer">
+                <HelpCircle className="mr-2 h-4 w-4" />
+                {t("userMenu.support")}
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-red-600 focus:text-red-600"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              {t("userMenu.logout")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <SettingsDialog
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          defaultTab={settingsTab}
+        />
       </div>
     );
   }
@@ -134,6 +258,8 @@ function SidebarContent({ conversations: initialConversations }: SidebarProps) {
       >
         {/* Header */}
         <div className="p-3 flex items-center gap-2">
+          <span className="font-semibold text-neutral-900">Falcon</span>
+          <div className="flex-1" />
           <Button
             variant="ghost"
             size="icon"
@@ -142,9 +268,6 @@ function SidebarContent({ conversations: initialConversations }: SidebarProps) {
           >
             <PanelLeft className="h-5 w-5" />
           </Button>
-          <span className="font-semibold text-neutral-900">Falcon</span>
-          <div className="flex-1" />
-          <SettingsDialog />
         </div>
 
         {/* Navigation */}
@@ -234,6 +357,68 @@ function SidebarContent({ conversations: initialConversations }: SidebarProps) {
           </ScrollArea>
         </div>
 
+        {/* User Menu */}
+        <div className="p-3 border-t border-neutral-200">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-neutral-100 transition-colors">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user.image || undefined} alt={user.name} />
+                  <AvatarFallback className="bg-neutral-200 text-neutral-700 text-xs">
+                    {getInitials(user.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="flex-1 text-left text-sm font-medium text-neutral-900 truncate">
+                  {user.name}
+                </span>
+                <ChevronUp className="h-4 w-4 text-neutral-500" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" className="w-56">
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Globe className="mr-2 h-4 w-4" />
+                  {t("userMenu.language")}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  {locales.map((locale) => (
+                    <DropdownMenuItem
+                      key={locale}
+                      onClick={() => handleLocaleChange(locale)}
+                      className="flex items-center justify-between"
+                    >
+                      {languageNames[locale]}
+                      {currentLocale === locale && <Check className="h-4 w-4" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuItem onClick={() => openSettings("changelog")}>
+                <BookOpen className="mr-2 h-4 w-4" />
+                {t("userMenu.changelog")}
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href="https://github.com/eric0324/falcon/issues" target="_blank" rel="noopener noreferrer">
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  {t("userMenu.support")}
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-red-600 focus:text-red-600"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                {t("userMenu.logout")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <SettingsDialog
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          defaultTab={settingsTab}
+        />
       </aside>
     </>
   );
