@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Bot, User, Check, Loader2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 interface ChatMessageProps {
@@ -50,45 +49,40 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
   // Show loading when streaming and has incomplete code block OR streaming without complete code
   const isGeneratingCode = !isUser && isStreaming && !hasCompleteCode;
 
-  return (
-    <div
-      className={cn(
-        "flex gap-3",
-        isUser && "flex-row-reverse"
-      )}
-    >
-      <Avatar className={cn("h-8 w-8 shrink-0", isUser && "bg-primary")}>
-        <AvatarFallback className={isUser ? "bg-primary text-primary-foreground" : "bg-secondary"}>
-          {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-        </AvatarFallback>
-      </Avatar>
-      <div
-        className={cn(
-          "rounded-lg px-3 py-2 max-w-[85%] text-sm",
-          isUser
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted"
-        )}
-      >
-        <div className={cn(
-          "prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0",
-          isUser ? "prose-invert" : "dark:prose-invert"
-        )}>
-          <ReactMarkdown>{displayContent}</ReactMarkdown>
+  // User message - with bubble on right, no avatar
+  if (isUser) {
+    return (
+      <div className="flex justify-end pr-8">
+        <div className="rounded-2xl px-4 py-2 max-w-[85%] text-sm bg-primary text-primary-foreground">
+          <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-invert">
+            <ReactMarkdown>{displayContent}</ReactMarkdown>
+          </div>
         </div>
-        {isGeneratingCode && (
-          <span className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            正在生成程式碼...
-          </span>
-        )}
-        {hasCompleteCode && (
-          <span className="flex items-center gap-1 mt-1 text-xs text-green-600">
-            <Check className="h-3 w-3" />
-            已更新預覽
-          </span>
-        )}
       </div>
+    );
+  }
+
+  // Assistant message - no bubble, no avatar, just text
+  return (
+    <div className="text-sm">
+      <div className={cn(
+        "prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0",
+        "dark:prose-invert"
+      )}>
+        <ReactMarkdown>{displayContent}</ReactMarkdown>
+      </div>
+      {isGeneratingCode && (
+        <span className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          正在生成程式碼...
+        </span>
+      )}
+      {hasCompleteCode && (
+        <span className="flex items-center gap-1 mt-1 text-xs text-green-600">
+          <Check className="h-3 w-3" />
+          已更新預覽
+        </span>
+      )}
     </div>
   );
 }

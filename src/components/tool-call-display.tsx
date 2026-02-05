@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, CheckCircle2, Database, Code, List, Search, ChevronRight } from "lucide-react";
+import { Loader2, CheckCircle2, Database, Code, List, Search, ChevronRight, Cloud, FileEdit, Wifi } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface ToolCall {
@@ -21,20 +21,40 @@ const toolIcons: Record<string, React.ReactNode> = {
   getDataSourceSchema: <Database className="h-4 w-4" />,
   querySampleData: <Search className="h-4 w-4" />,
   updateCode: <Code className="h-4 w-4" />,
+  googleSearch: <Cloud className="h-4 w-4" />,
+  googleWrite: <FileEdit className="h-4 w-4" />,
+  googleStatus: <Wifi className="h-4 w-4" />,
 };
 
-const toolLabels: Record<string, string> = {
-  listDataSources: "列出資料來源",
-  getDataSourceSchema: "取得資料結構",
-  querySampleData: "查詢範例資料",
-  updateCode: "更新程式碼",
+// Labels when tool is being called (in progress)
+const toolCallingLabels: Record<string, string> = {
+  listDataSources: "正在取得資料來源...",
+  getDataSourceSchema: "正在分析資料結構...",
+  querySampleData: "正在查詢資料...",
+  updateCode: "正在思考...",
+  googleSearch: "正在搜尋 Google 資料...",
+  googleWrite: "正在寫入資料...",
+  googleStatus: "正在檢查連接狀態...",
+};
+
+// Labels when tool is completed
+const toolCompletedLabels: Record<string, string> = {
+  listDataSources: "已列出資料來源",
+  getDataSourceSchema: "已取得資料結構",
+  querySampleData: "已查詢範例資料",
+  updateCode: "已生成程式碼",
+  googleSearch: "已搜尋 Google 資料",
+  googleWrite: "已寫入資料",
+  googleStatus: "已檢查連接狀態",
 };
 
 export function ToolCallDisplay({ toolCall }: ToolCallDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const icon = toolIcons[toolCall.name] || <Code className="h-4 w-4" />;
-  const label = toolLabels[toolCall.name] || toolCall.name;
+  const label = toolCall.status === "calling"
+    ? (toolCallingLabels[toolCall.name] || `正在執行 ${toolCall.name}...`)
+    : (toolCompletedLabels[toolCall.name] || `已完成 ${toolCall.name}`);
 
   // Format result based on tool type
   const formatResult = () => {

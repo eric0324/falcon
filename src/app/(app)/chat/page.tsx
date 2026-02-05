@@ -157,7 +157,7 @@ function StudioContent() {
           }
         }
 
-        if (foundCode) setCode(foundCode);
+        setCode(foundCode || "");
         setConvId(loadId);
       })
       .catch(() => {
@@ -667,34 +667,59 @@ function StudioContent() {
                   <p className="text-sm">{t("welcome.description")}</p>
                 </div>
               )}
-              {messages.map((message, index) => (
-                <div key={index} className="space-y-2">
-                  <ChatMessage
-                    message={message}
-                    isStreaming={isLoading && index === messages.length - 1 && message.role === "assistant"}
-                  />
-                  {/* Show tool calls for this message */}
-                  {message.toolCalls && message.toolCalls.length > 0 && (
-                    <div className="ml-10 space-y-2">
-                      {message.toolCalls.map((toolCall) => (
+              {messages.map((message, index) => {
+                const isLastMessage = index === messages.length - 1;
+                const isStreamingMessage = isLoading && isLastMessage && message.role === "assistant";
+                const isAssistant = message.role === "assistant";
+
+                // For streaming message, show tool calls from currentToolCalls instead
+                const toolCallsToShow = isStreamingMessage ? currentToolCalls : (message.toolCalls || []);
+                const hasToolCalls = toolCallsToShow.length > 0;
+
+                // User messages
+                if (!isAssistant) {
+                  return (
+                    <div key={index}>
+                      <ChatMessage message={message} />
+                    </div>
+                  );
+                }
+
+                // Assistant messages - tool calls then content, no avatar
+                return (
+                  <div key={index} className="space-y-3 max-w-[85%] pl-8">
+                    {/* Tool calls (thinking steps) */}
+                    {hasToolCalls && (
+                      <div className="space-y-2">
+                        {toolCallsToShow.map((toolCall) => (
+                          <ToolCallDisplay key={toolCall.id} toolCall={toolCall} />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Message content */}
+                    <ChatMessage
+                      message={message}
+                      isStreaming={isStreamingMessage}
+                    />
+                  </div>
+                );
+              })}
+              {/* Show thinking indicator when waiting for first response */}
+              {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+                <div className="space-y-2 pl-8">
+                  {currentToolCalls.length > 0 ? (
+                    <div className="space-y-2">
+                      {currentToolCalls.map((toolCall) => (
                         <ToolCallDisplay key={toolCall.id} toolCall={toolCall} />
                       ))}
                     </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>{t("thinking")}</span>
+                    </div>
                   )}
-                </div>
-              ))}
-              {/* Show current tool calls while streaming */}
-              {isLoading && currentToolCalls.length > 0 && (
-                <div className="ml-10 space-y-2">
-                  {currentToolCalls.map((toolCall) => (
-                    <ToolCallDisplay key={toolCall.id} toolCall={toolCall} />
-                  ))}
-                </div>
-              )}
-              {isLoading && messages[messages.length - 1]?.role !== "assistant" && currentToolCalls.length === 0 && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>{t("thinking")}</span>
                 </div>
               )}
             </div>
