@@ -223,23 +223,23 @@
     "clearAll": "Clear all"
   },
   "google": {
-    "title": "Google Services",
+    "title": "Google",
     "description": "Connect to Google services to use your data",
     "sheets": {
       "name": "Google Sheets",
-      "description": "Read and write spreadsheets"
+      "description": "Search and browse spreadsheets"
     },
     "drive": {
       "name": "Google Drive",
-      "description": "Browse and read files"
+      "description": "Search and browse files"
     },
     "calendar": {
       "name": "Google Calendar",
-      "description": "Manage events and schedules"
+      "description": "View events and schedules"
     },
     "gmail": {
       "name": "Gmail",
-      "description": "Search and read emails"
+      "description": "Search and browse emails"
     },
     "connect": "Connect",
     "disconnect": "Disconnect",
@@ -273,5 +273,27 @@
       "title": "No trending tools yet",
       "description": "Use more tools to help them get on the list!"
     }
+  },
+  "integrations": {
+    "title": "Integrations",
+    "description": "Manage third-party service connections",
+    "thirdParty": "Third-party Services",
+    "notion": {
+      "name": "Notion",
+      "description": "Search and browse Notion databases and pages",
+      "search": "Search Notion"
+    },
+    "slack": {
+      "name": "Slack",
+      "description": "Send messages and search Slack channels"
+    },
+    "github": {
+      "name": "GitHub",
+      "description": "Access GitHub repositories and issues"
+    },
+    "connected": "Connected",
+    "notConnected": "Not configured",
+    "configure": "Configure",
+    "adminOnly": "Admin only"
   }
 }

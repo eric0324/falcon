@@ -46,8 +46,9 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
   // Check code block status
   const codeBlockCount = (message.content.match(/```/g) || []).length;
   const hasCompleteCode = !isUser && codeBlockCount >= 2;
-  // Show loading when streaming and has incomplete code block OR streaming without complete code
-  const isGeneratingCode = !isUser && isStreaming && !hasCompleteCode;
+  // Only show "generating code" when there's an incomplete code block (odd number of ```)
+  const hasIncompleteCodeBlock = codeBlockCount % 2 === 1;
+  const isGeneratingCode = !isUser && isStreaming && hasIncompleteCodeBlock;
 
   // User message - with bubble on right, no avatar
   if (isUser) {

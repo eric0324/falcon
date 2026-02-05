@@ -223,23 +223,23 @@
     "clearAll": "清除全部"
   },
   "google": {
-    "title": "Google 服務",
+    "title": "Google",
     "description": "連接 Google 服務以使用你的資料",
     "sheets": {
       "name": "Google 試算表",
-      "description": "讀取和編輯試算表"
+      "description": "搜尋和瀏覽試算表"
     },
     "drive": {
       "name": "Google 雲端硬碟",
-      "description": "瀏覽和讀取檔案"
+      "description": "搜尋和瀏覽檔案"
     },
     "calendar": {
       "name": "Google 日曆",
-      "description": "管理活動和行程"
+      "description": "查詢活動和行程"
     },
     "gmail": {
       "name": "Gmail",
-      "description": "搜尋和讀取郵件"
+      "description": "搜尋和瀏覽郵件"
     },
     "connect": "連接",
     "disconnect": "中斷連接",
@@ -273,5 +273,27 @@
       "title": "還沒有熱門工具",
       "description": "使用更多工具來幫助它們上榜！"
     }
+  },
+  "integrations": {
+    "title": "整合服務",
+    "description": "管理第三方服務連接",
+    "thirdParty": "第三方服務",
+    "notion": {
+      "name": "Notion",
+      "description": "搜尋和瀏覽 Notion 資料庫與頁面",
+      "search": "搜尋 Notion"
+    },
+    "slack": {
+      "name": "Slack",
+      "description": "發送訊息和搜尋 Slack 頻道"
+    },
+    "github": {
+      "name": "GitHub",
+      "description": "存取 GitHub 儲存庫和議題"
+    },
+    "connected": "已連接",
+    "notConnected": "未設定",
+    "configure": "設定",
+    "adminOnly": "僅管理員可設定"
   }
 }

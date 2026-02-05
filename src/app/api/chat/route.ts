@@ -4,7 +4,8 @@ import { streamText } from "ai";
 import { models, ModelId, defaultModel } from "@/lib/ai/models";
 import { studioTools } from "@/lib/ai/tools";
 import { createGoogleTools } from "@/lib/ai/google-tools";
-import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
+import { createNotionTools } from "@/lib/ai/notion-tools";
+import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 import { prisma } from "@/lib/prisma";
 
 interface FileData {
@@ -68,19 +69,41 @@ export async function POST(req: Request) {
   const userId = session.user.id;
 
   try {
-    const { messages, model, files, conversationId } = await req.json();
+    const { messages, model, files, conversationId, dataSources } = await req.json();
 
     // Use specified model or default
     const selectedModel = models[(model as ModelId) || defaultModel];
 
     // Create tools with user context
     const googleTools = createGoogleTools(userId);
-    const allTools = {
-      ...studioTools,
-      ...googleTools,
-    };
+    const notionTools = createNotionTools();
 
-    console.log(`[Chat API] Available tools:`, Object.keys(allTools));
+    // Filter tools based on selected data sources
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let filteredTools: Record<string, any> = { ...studioTools };
+
+    // Only add external tools for explicitly selected data sources
+    if (dataSources && dataSources.length > 0) {
+      const selectedSources = new Set(dataSources as string[]);
+
+      // Google services - only if explicitly selected
+      if (selectedSources.has("google_sheets") || selectedSources.has("google_drive") ||
+          selectedSources.has("google_calendar") || selectedSources.has("google_gmail")) {
+        filteredTools = { ...filteredTools, ...googleTools };
+      }
+
+      // Notion - only if explicitly selected
+      if (selectedSources.has("notion")) {
+        filteredTools = { ...filteredTools, ...notionTools };
+      }
+    }
+    // If no data sources selected, only use studioTools (no external data access)
+
+    // Build dynamic system prompt based on selected data sources
+    const systemPrompt = buildSystemPrompt(dataSources);
+
+    console.log(`[Chat API] Selected data sources:`, dataSources);
+    console.log(`[Chat API] Available tools:`, Object.keys(filteredTools));
 
     // Process messages to include files in the last user message
     const processedMessages: CoreMessage[] = messages.map((m: { role: string; content: string }, index: number) => {
@@ -110,9 +133,9 @@ export async function POST(req: Request) {
 
           const result = streamText({
             model: selectedModel,
-            system: SYSTEM_PROMPT,
+            system: systemPrompt,
             messages: currentMessages,
-            tools: allTools,
+            tools: filteredTools,
           });
 
           let hasToolCalls = false;
@@ -162,8 +185,8 @@ export async function POST(req: Request) {
           try {
             const usage = await result.usage;
             if (usage) {
-              totalInputTokens += usage.promptTokens || 0;
-              totalOutputTokens += usage.completionTokens || 0;
+              totalInputTokens += usage.inputTokens || 0;
+              totalOutputTokens += usage.outputTokens || 0;
               console.log(`[Chat API] Step ${step} usage:`, usage);
             }
           } catch (e) {
