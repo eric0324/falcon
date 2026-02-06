@@ -683,7 +683,7 @@ function StudioContent() {
               {messages.length === 0 && (
                 <div className="flex items-center justify-center min-h-[60vh]">
                   <div className="text-center text-muted-foreground">
-                    <div className="mb-4 text-4xl animate-bounce">
+                    <div className="mb-4 text-4xl animate-bounce" style={{ animationIterationCount: 3 }}>
                       👋
                     </div>
                     <p className="text-lg font-medium mb-2">{t("welcome.title")}</p>
