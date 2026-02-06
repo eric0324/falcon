@@ -110,15 +110,15 @@ function transformDatabase(db: NotionDatabase): Record<string, unknown> {
 export function createNotionTools() {
   return {
     notionSearch: tool({
-      description: `存取 Notion 資料。建議使用順序：list → query/read → read。
+      description: `存取 Notion 資料。善用平行呼叫同時查資料庫和瀏覽頁面。
 
 操作：
-- list：列出所有資料庫和頁面（永遠先做這步，根據名稱判斷哪個相關）
-- query：查詢特定資料庫的所有頁面（用 databaseId）
-- read：讀取頁面完整正文和子頁面列表（用 pageId）。頁面內的子頁面會顯示 pageId 供進一步讀取
-- search：全文搜尋（對中文不準確，只在 list+query 找不到時才用）`,
+- list：列出所有資料庫和頁面（永遠先做這步）
+- query：查詢資料庫的頁面（用 databaseId，可加 search 過濾標題）
+- read：讀取頁面完整正文和子頁面（用 pageId）
+- search：全文搜尋（中文不準確，盡量不用）`,
       inputSchema: z.object({
-        action: z.enum(["list", "query", "search", "read"]).optional().describe("list: 列出所有資料庫和頁面, query: 查詢特定資料庫, search: 全文搜尋, read: 讀取頁面完整內容（含正文和子頁面）。預設為 list"),
+        action: z.enum(["list", "query", "search", "read"]).optional().describe("list: 列出所有資料庫和頁面, query: 查詢資料庫（可搭配 search 過濾標題）, search: 全文搜尋, read: 讀取頁面完整內容（含正文和子頁面）。預設為 list"),
         databaseId: z.string().optional().describe("資料庫 ID (用於 query)"),
         pageId: z.string().optional().describe("頁面 ID (用於 read 讀取頁面正文)"),
         search: z.string().optional().describe("搜尋關鍵字"),
@@ -138,10 +138,14 @@ export function createNotionTools() {
             };
           }
 
-          // Read page content (properties + blocks)
-          if (action === "read" && pageId) {
+          // Read page content (lightweight metadata + full text content)
+          if (pageId) {
             const page = await getPage(pageId);
-            const pageData = transformPage(page);
+            const pageData: Record<string, unknown> = {
+              id: page.id,
+              title: extractPageTitle(page),
+              icon: page.icon?.type === "emoji" ? page.icon.emoji : undefined,
+            };
 
             // Fetch page blocks (content)
             try {
@@ -160,25 +164,23 @@ export function createNotionTools() {
             };
           }
 
-          // Legacy: get page properties only (without read action)
-          if (pageId && action !== "read") {
-            const page = await getPage(pageId);
-            return {
-              success: true,
-              service: "notion",
-              data: transformPage(page),
-              rowCount: 1,
-            };
-          }
-
           // Query specific database - return lightweight list (id + title only)
           if (databaseId) {
-            const result = await queryDatabase(databaseId, { page_size: limit });
-            const data = result.results.map((page) => ({
+            // When filtering by search, fetch max 100 to increase hit rate
+            const fetchSize = search ? Math.max(limit, 100) : limit;
+            const result = await queryDatabase(databaseId, { page_size: fetchSize });
+            let data = result.results.map((page) => ({
               id: page.id,
               title: extractPageTitle(page),
               icon: page.icon?.type === "emoji" ? page.icon.emoji : undefined,
             }));
+
+            // Filter by title keyword if search is provided
+            if (search) {
+              const keyword = search.toLowerCase();
+              data = data.filter((item) => item.title.toLowerCase().includes(keyword));
+            }
+
             return {
               success: true,
               service: "notion",
@@ -189,14 +191,26 @@ export function createNotionTools() {
             };
           }
 
-          // Search
+          // Search - return lightweight results (id + title only) to save tokens
           if (search) {
             const result = await notionSearch({ query: search, page_size: limit });
             const data = result.results.map((item) => {
-              if ("title" in item) {
-                return transformDatabase(item as NotionDatabase);
+              if ("title" in item && Array.isArray((item as NotionDatabase).title)) {
+                const db = item as NotionDatabase;
+                return {
+                  id: db.id,
+                  title: extractPlainText(db.title),
+                  icon: db.icon?.type === "emoji" ? db.icon.emoji : undefined,
+                  objectType: "database" as const,
+                };
               }
-              return transformPage(item as NotionPage);
+              const page = item as NotionPage;
+              return {
+                id: page.id,
+                title: extractPageTitle(page),
+                icon: page.icon?.type === "emoji" ? page.icon.emoji : undefined,
+                objectType: "page" as const,
+              };
             });
             return {
               success: true,
@@ -204,6 +218,7 @@ export function createNotionTools() {
               data,
               rowCount: data.length,
               metadata: { has_more: result.has_more },
+              hint: "用 read(pageId) 讀取感興趣的頁面正文。",
             };
           }
 

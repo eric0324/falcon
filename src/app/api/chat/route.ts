@@ -154,7 +154,7 @@ export async function POST(req: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
-        const MAX_STEPS = 10;
+        const MAX_STEPS = 15;
         const currentMessages = [...messagesToSend];
         let step = 0;
 
@@ -265,7 +265,34 @@ export async function POST(req: Request) {
           });
 
           console.log(`[Chat API] Tool calls processed, continuing loop`);
-          console.log(`[Chat API] Current messages:`, JSON.stringify(currentMessages, null, 2));
+        }
+
+        // If we exhausted all steps and the last step had tool calls,
+        // do one final call WITHOUT tools to force a text response
+        if (step >= MAX_STEPS) {
+          console.log(`[Chat API] Max steps reached, forcing final text response`);
+          const finalResult = streamText({
+            model: selectedModel,
+            system: systemPrompt + "\n\n（你已用完所有工具呼叫次數，請根據已取得的資料回答使用者。如果資訊不完整，告知使用者你找到了什麼，以及還需要什麼。）",
+            messages: currentMessages,
+            tools: {}, // no tools = force text response
+          });
+
+          for await (const part of finalResult.fullStream) {
+            if (part.type === "text-delta") {
+              controller.enqueue(encoder.encode(`0:${JSON.stringify(part.text)}\n`));
+            }
+          }
+
+          try {
+            const usage = await finalResult.usage;
+            if (usage) {
+              totalInputTokens += usage.inputTokens || 0;
+              totalOutputTokens += usage.outputTokens || 0;
+            }
+          } catch (e) {
+            console.error(`[Chat API] Failed to get final usage:`, e);
+          }
         }
 
         // Save token usage to database

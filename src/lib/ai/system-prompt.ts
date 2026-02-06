@@ -138,40 +138,32 @@ const NOTION_INSTRUCTIONS = `
 - notionSearch: 搜尋、讀取 Notion 資料
 
 ### 操作方式
-- 列出所有資料庫：notionSearch({ action: "list" })
-- 查詢特定資料庫：notionSearch({ action: "query", databaseId: "xxx" })
-- 搜尋內容：notionSearch({ action: "search", search: "關鍵字" })
+- 列出所有資料庫和頁面：notionSearch({ action: "list" })
+- 查詢資料庫（可過濾標題）：notionSearch({ action: "query", databaseId: "xxx", search: "關鍵字" })
+- 全文搜尋：notionSearch({ action: "search", search: "關鍵字" })
 - 讀取頁面完整正文：notionSearch({ action: "read", pageId: "xxx" })
 
-### 極重要：瀏覽優先策略（務必遵守）
+### 搜尋策略
 
-Notion 的搜尋功能對中文非常不準確，直接搜尋經常回傳大量不相關的結果。因此，**永遠使用瀏覽優先策略**：
+你的工具呼叫次數有限，每次都要有明確目的。善用**平行呼叫**來壓縮步數。
 
-**第一步：列出所有內容**
-- 先用 action: "list" 列出所有資料庫和頁面
-- 結果會標示 objectType 為 "database" 或 "page"
-- 根據名稱判斷哪些可能包含使用者要的資訊
-- 例如：使用者問「怎麼請假」→ 找名稱含「人資」「HR」「規章」「手冊」「制度」「人事」等的項目
+**第一步：了解結構**
+- 用 action: "list" 列出所有資料庫和頁面
 
-**第二步：導航進入**
-- 如果是**資料庫** → 用 action: "query" + databaseId 查詢其中的頁面
-- 如果是**頁面** → 用 action: "read" + pageId 讀取內容
-- read 結果中如果有「[子頁面: xxx] (pageId: yyy)」，表示這個頁面包含子頁面，可以用 yyy 繼續 read
+**第二步：同時從多個方向找**（善用平行呼叫）
+- 對相關的**資料庫**用 query(databaseId, search: "關鍵字") 過濾標題
+- 同時 read 最可能包含資訊的**頁面**，往下找子頁面
+- 這兩件事可以平行做，不用等一個完成再做另一個
+- 例如：問「產品部什麼時候調整了X」→ 同時 query 會議記錄 + read 產品部頁面
 
 **第三步：讀取正文**
-- 對標題看起來相關的頁面，用 action: "read" + pageId 讀取完整正文
-- query/search 結果不含正文，**正文內容必須用 read 才能取得**
+- query 結果不含正文，用 read(pageId) 取得完整內容
+- read 結果中的子頁面可用 pageId 繼續深入
 
-**第四步（補充）：關鍵字搜尋**
-- 只有在瀏覽找不到時，才用 action: "search" 做全文搜尋
-- 搜尋用極短的關鍵字（1-2 個字），例如：「請假」、「規章」
-- 不要反覆搜尋超過 2 次
-
-### 常見錯誤（避免）
-- 不要一開始就用 search，搜尋結果通常很差
-- 不要反覆用不同關鍵字搜尋超過 2 次
-- 不要只看標題就回答，一定要 read 正文
-- 不要忽略 list 回來的頁面，資訊可能在頁面的子頁面裡`;
+### 注意事項
+- **不要用 search**：Notion 搜尋對中文極不準確，結果幾乎都無關。直接用 list + query + read
+- **多用平行呼叫**：同一步可以同時 query 資料庫 + read 頁面
+- 一定要 read 正文，不要只看標題就回答`;
 
 // No data source instructions
 const NO_DATA_SOURCE_INSTRUCTIONS = `
