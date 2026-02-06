@@ -135,19 +135,43 @@ const NOTION_INSTRUCTIONS = `
 ## Notion 使用指南
 
 ### 可用的 Notion 工具
-- notionSearch: 搜尋和讀取 Notion 資料
+- notionSearch: 搜尋、讀取 Notion 資料
 
-### 使用方式
-當使用者提到 Notion、資料庫、筆記等關鍵字時，使用 notionSearch 工具：
+### 操作方式
 - 列出所有資料庫：notionSearch({ action: "list" })
 - 查詢特定資料庫：notionSearch({ action: "query", databaseId: "xxx" })
-- 搜尋內容：notionSearch({ search: "關鍵字" })
-- 讀取特定頁面：notionSearch({ pageId: "xxx" })
+- 搜尋內容：notionSearch({ action: "search", search: "關鍵字" })
+- 讀取頁面完整正文：notionSearch({ action: "read", pageId: "xxx" })
 
-### 搜尋策略
-1. 先列出可用的資料庫了解結構
-2. 根據使用者需求查詢特定資料庫或搜尋內容
-3. 找不到就嘗試不同的關鍵字`;
+### 極重要：瀏覽優先策略（務必遵守）
+
+Notion 的搜尋功能對中文非常不準確，直接搜尋經常回傳大量不相關的結果。因此，**永遠使用瀏覽優先策略**：
+
+**第一步：列出所有內容**
+- 先用 action: "list" 列出所有資料庫和頁面
+- 結果會標示 objectType 為 "database" 或 "page"
+- 根據名稱判斷哪些可能包含使用者要的資訊
+- 例如：使用者問「怎麼請假」→ 找名稱含「人資」「HR」「規章」「手冊」「制度」「人事」等的項目
+
+**第二步：導航進入**
+- 如果是**資料庫** → 用 action: "query" + databaseId 查詢其中的頁面
+- 如果是**頁面** → 用 action: "read" + pageId 讀取內容
+- read 結果中如果有「[子頁面: xxx] (pageId: yyy)」，表示這個頁面包含子頁面，可以用 yyy 繼續 read
+
+**第三步：讀取正文**
+- 對標題看起來相關的頁面，用 action: "read" + pageId 讀取完整正文
+- query/search 結果不含正文，**正文內容必須用 read 才能取得**
+
+**第四步（補充）：關鍵字搜尋**
+- 只有在瀏覽找不到時，才用 action: "search" 做全文搜尋
+- 搜尋用極短的關鍵字（1-2 個字），例如：「請假」、「規章」
+- 不要反覆搜尋超過 2 次
+
+### 常見錯誤（避免）
+- 不要一開始就用 search，搜尋結果通常很差
+- 不要反覆用不同關鍵字搜尋超過 2 次
+- 不要只看標題就回答，一定要 read 正文
+- 不要忽略 list 回來的頁面，資訊可能在頁面的子頁面裡`;
 
 // No data source instructions
 const NO_DATA_SOURCE_INSTRUCTIONS = `
