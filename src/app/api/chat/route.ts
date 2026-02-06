@@ -6,6 +6,8 @@ import { studioTools } from "@/lib/ai/tools";
 import { createGoogleTools } from "@/lib/ai/google-tools";
 import { createNotionTools } from "@/lib/ai/notion-tools";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
+import { shouldCompact } from "@/lib/ai/token-utils";
+import { compactMessages } from "@/lib/ai/compact";
 import { prisma } from "@/lib/prisma";
 
 interface FileData {
@@ -117,15 +119,50 @@ export async function POST(req: Request) {
     // Track token usage across all steps
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
-    const modelName = model || defaultModel;
+    const modelName = (model || defaultModel) as ModelId;
+
+    // Auto compact: check if conversation needs compaction
+    let compactInfo: { compacted: boolean; originalCount: number; keptCount: number; summary?: string } | null = null;
+    let messagesToSend = processedMessages;
+
+    if (shouldCompact(processedMessages, modelName)) {
+      console.log(`[Chat API] Conversation exceeds compact threshold, compacting...`);
+      try {
+        const result = await compactMessages(processedMessages);
+        messagesToSend = result.compactedMessages;
+        compactInfo = {
+          compacted: true,
+          originalCount: result.originalCount,
+          keptCount: result.keptCount,
+          summary: result.summary,
+        };
+        console.log(`[Chat API] Compacted: ${result.originalCount} → ${result.keptCount} messages`);
+
+        // Save summary to conversation
+        if (conversationId) {
+          await prisma.conversation.update({
+            where: { id: conversationId },
+            data: { summary: result.summary },
+          }).catch((e: unknown) => console.error(`[Chat API] Failed to save summary:`, e));
+        }
+      } catch (e) {
+        console.error(`[Chat API] Compact failed, using full messages:`, e);
+      }
+    }
 
     // Create streaming response with tool loop
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
         const MAX_STEPS = 10;
-        const currentMessages = [...processedMessages];
+        const currentMessages = [...messagesToSend];
         let step = 0;
+
+        // Send compact event if compaction occurred
+        if (compactInfo) {
+          const compactLine = `c:${JSON.stringify(compactInfo)}\n`;
+          controller.enqueue(encoder.encode(compactLine));
+        }
 
         while (step < MAX_STEPS) {
           step++;

@@ -111,6 +111,7 @@ model Conversation {
   messages    Json[]
   model       String?
   dataSources String[]  @default([])
+  summary     String?   @db.Text
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
@@ -141,11 +142,12 @@ enum DataSourceType {
   // REST
   REST_API
 
-  // Google (future)
+  // Google
   GOOGLE_SHEETS
   GOOGLE_DRIVE
   GOOGLE_CALENDAR
   GOOGLE_GMAIL
+  GOOGLE_ANALYTICS
 
   // SaaS (future)
   NOTION

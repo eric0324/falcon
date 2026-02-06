@@ -24,6 +24,12 @@ interface Message {
   toolCalls?: ToolCall[];
 }
 
+interface CompactInfo {
+  compacted: boolean;
+  originalCount: number;
+  keptCount: number;
+}
+
 function StudioContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -52,6 +58,9 @@ function StudioContent() {
   // Conversation persistence
   const [convId, setConvId] = useState<string | null>(searchParams.get("id"));
   const [convTitle, setConvTitle] = useState<string | null>(null);
+
+  // Auto compact state
+  const [compactInfo, setCompactInfo] = useState<CompactInfo | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -85,6 +94,7 @@ function StudioContent() {
       setUploadedFiles([]);
       setSelectedDataSources([]);
       setUsedDataSources([]);
+      setCompactInfo(null);
     }
   }, [searchParams]);
 
@@ -356,6 +366,12 @@ function StudioContent() {
                     }
                   }
                 }
+                break;
+              }
+
+              case "c": { // Compact event
+                const compact = data as CompactInfo;
+                setCompactInfo(compact);
                 break;
               }
             }
@@ -673,6 +689,13 @@ function StudioContent() {
                     <p className="text-lg font-medium mb-2">{t("welcome.title")}</p>
                     <p className="text-sm">{t("welcome.description")}</p>
                   </div>
+                </div>
+              )}
+              {compactInfo && (
+                <div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
+                  <div className="flex-1 h-px bg-border" />
+                  <span>對話已自動壓縮 (保留最近 {compactInfo.keptCount} 條訊息)</span>
+                  <div className="flex-1 h-px bg-border" />
                 </div>
               )}
               {messages.map((message, index) => {

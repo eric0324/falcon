@@ -46,6 +46,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   if (body.title) data.title = body.title;
   if (body.model !== undefined) data.model = body.model;
   if (body.dataSources !== undefined) data.dataSources = body.dataSources;
+  if (body.summary !== undefined) data.summary = body.summary;
 
   const updated = await prisma.conversation.update({
     where: { id },
