@@ -285,7 +285,7 @@
     },
     "slack": {
       "name": "Slack",
-      "description": "發送訊息和搜尋 Slack 頻道"
+      "description": "搜尋和瀏覽 Slack 公開頻道"
     },
     "github": {
       "name": "GitHub",

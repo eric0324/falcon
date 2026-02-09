@@ -285,7 +285,7 @@
     },
     "slack": {
       "name": "Slack",
-      "description": "Send messages and search Slack channels"
+      "description": "Search and browse Slack public channels"
     },
     "github": {
       "name": "GitHub",

@@ -165,6 +165,35 @@ const NOTION_INSTRUCTIONS = `
 - **多用平行呼叫**：同一步可以同時 query 資料庫 + read 頁面
 - 一定要 read 正文，不要只看標題就回答`;
 
+// Slack-specific instructions
+const SLACK_INSTRUCTIONS = `
+
+## Slack 使用指南
+
+### 可用的 Slack 工具
+- slackSearch: 讀取公開頻道訊息和搜尋
+
+### 操作方式
+- 列出所有公開頻道：slackSearch({ action: "list" })
+- 讀取頻道最新訊息：slackSearch({ action: "read", channelId: "C01234" })
+- 讀取討論串回覆：slackSearch({ action: "thread", channelId: "C01234", threadTs: "1234567890.123456" })
+- 搜尋訊息：slackSearch({ action: "search", search: "關鍵字" })
+
+### 搜尋策略
+
+**方法一：搜尋（推薦）**
+- 直接用 search 搜尋關鍵字，快速找到相關訊息
+- 搜尋結果包含 permalink，可以告訴使用者原始連結
+
+**方法二：瀏覽**
+- 先 list 列出頻道，找到相關頻道
+- 再 read(channelId) 讀取最新訊息
+- 如果訊息有 replyCount > 0，用 thread 讀取討論串
+
+### 注意事項
+- 只能存取**公開頻道**的訊息，私有頻道和 DM 不可存取
+- 善用平行呼叫：可以同時搜尋 + 讀取特定頻道`;
+
 // No data source instructions
 const NO_DATA_SOURCE_INSTRUCTIONS = `
 
@@ -188,6 +217,7 @@ export function buildSystemPrompt(dataSources?: string[]): string {
     .map(ds => ds.replace("google_", ""));
 
   const hasNotion = dataSources.includes("notion");
+  const hasSlack = dataSources.includes("slack");
 
   if (enabledGoogleServices.length > 0) {
     prompt += buildGoogleInstructions(enabledGoogleServices);
@@ -195,6 +225,10 @@ export function buildSystemPrompt(dataSources?: string[]): string {
 
   if (hasNotion) {
     prompt += NOTION_INSTRUCTIONS;
+  }
+
+  if (hasSlack) {
+    prompt += SLACK_INSTRUCTIONS;
   }
 
   return prompt;
