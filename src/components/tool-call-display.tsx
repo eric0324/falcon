@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, CheckCircle2, Database, Code, List, Search, ChevronRight, Cloud, FileEdit, Wifi } from "lucide-react";
+import { Loader2, CheckCircle2, Database, Code, List, Search, ChevronRight, Cloud, FileEdit, Wifi, AlertCircle, ExternalLink, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export interface ToolCall {
   id: string;
@@ -24,6 +25,7 @@ const toolIcons: Record<string, React.ReactNode> = {
   googleSearch: <Cloud className="h-4 w-4" />,
   googleWrite: <FileEdit className="h-4 w-4" />,
   googleStatus: <Wifi className="h-4 w-4" />,
+  notionSearch: <BookOpen className="h-4 w-4" />,
 };
 
 // Labels when tool is being called (in progress)
@@ -35,6 +37,7 @@ const toolCallingLabels: Record<string, string> = {
   googleSearch: "正在搜尋 Google 資料...",
   googleWrite: "正在寫入資料...",
   googleStatus: "正在檢查連接狀態...",
+  notionSearch: "正在搜尋 Notion 資料...",
 };
 
 // Labels when tool is completed
@@ -46,6 +49,7 @@ const toolCompletedLabels: Record<string, string> = {
   googleSearch: "已搜尋 Google 資料",
   googleWrite: "已寫入資料",
   googleStatus: "已檢查連接狀態",
+  notionSearch: "已搜尋 Notion 資料",
 };
 
 export function ToolCallDisplay({ toolCall }: ToolCallDisplayProps) {
@@ -55,6 +59,18 @@ export function ToolCallDisplay({ toolCall }: ToolCallDisplayProps) {
   const label = toolCall.status === "calling"
     ? (toolCallingLabels[toolCall.name] || `正在執行 ${toolCall.name}...`)
     : (toolCompletedLabels[toolCall.name] || `已完成 ${toolCall.name}`);
+
+  // Check if result indicates needs connection
+  const result = toolCall.result as { needsConnection?: boolean; service?: string; error?: string } | undefined;
+  const needsConnection = result?.needsConnection === true;
+  const serviceToConnect = result?.service;
+
+  // Handle connect button click
+  const handleConnect = () => {
+    if (serviceToConnect) {
+      window.location.href = `/api/google/authorize?service=${serviceToConnect}`;
+    }
+  };
 
   // Format result based on tool type
   const formatResult = () => {
@@ -103,10 +119,32 @@ export function ToolCallDisplay({ toolCall }: ToolCallDisplayProps) {
         <span className="font-medium flex-1">{label}</span>
         {toolCall.status === "calling" ? (
           <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+        ) : needsConnection ? (
+          <AlertCircle className="h-3 w-3 text-amber-500" />
         ) : (
           <CheckCircle2 className="h-3 w-3 text-green-500" />
         )}
       </button>
+
+      {/* Show connect prompt when service needs authorization */}
+      {needsConnection && serviceToConnect && (
+        <div className="px-3 pb-3 border-t bg-amber-50 dark:bg-amber-950/20">
+          <div className="flex items-center gap-3 pt-3">
+            <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+            <p className="text-sm text-amber-700 dark:text-amber-300 flex-1">
+              {result?.error || `需要連接 Google ${serviceToConnect} 才能使用此功能`}
+            </p>
+            <Button
+              size="sm"
+              onClick={handleConnect}
+              className="shrink-0 gap-1.5"
+            >
+              <ExternalLink className="h-3 w-3" />
+              立即連接
+            </Button>
+          </div>
+        </div>
+      )}
 
       {isExpanded && hasDetails && (
         <div className="px-3 pb-3 pt-0 border-t">
