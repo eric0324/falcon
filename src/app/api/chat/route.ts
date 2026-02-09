@@ -107,14 +107,47 @@ export async function POST(req: Request) {
     console.log(`[Chat API] Selected data sources:`, dataSources);
     console.log(`[Chat API] Available tools:`, Object.keys(filteredTools));
 
-    // Process messages to include files in the last user message
-    const processedMessages: CoreMessage[] = messages.map((m: { role: string; content: string }, index: number) => {
-      const isLastUserMessage = index === messages.length - 1 && m.role === "user";
-      return {
-        role: m.role as "user" | "assistant",
-        content: isLastUserMessage ? buildMessageContent(m.content, files) : m.content,
-      };
-    });
+    // Process messages to include files and reconstruct tool call history
+    const processedMessages: CoreMessage[] = [];
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i] as { role: string; content: string; toolCalls?: Array<{ id: string; name: string; args: Record<string, unknown>; result?: unknown }> };
+      const isLastUserMessage = i === messages.length - 1 && m.role === "user";
+
+      if (m.role === "assistant" && m.toolCalls && m.toolCalls.length > 0) {
+        // Reconstruct assistant message with tool calls in AI SDK format
+        const contentParts: Array<{ type: string; text?: string; toolCallId?: string; toolName?: string; input?: unknown }> = [];
+        if (m.content) {
+          contentParts.push({ type: "text", text: m.content });
+        }
+        for (const tc of m.toolCalls) {
+          contentParts.push({
+            type: "tool-call",
+            toolCallId: tc.id,
+            toolName: tc.name,
+            input: tc.args,
+          });
+        }
+        processedMessages.push({ role: "assistant", content: contentParts });
+
+        // Add tool results as a separate tool message
+        const toolResultParts = m.toolCalls
+          .filter((tc) => tc.result !== undefined)
+          .map((tc) => ({
+            type: "tool-result",
+            toolCallId: tc.id,
+            toolName: tc.name,
+            output: { type: "text", value: JSON.stringify(tc.result) },
+          }));
+        if (toolResultParts.length > 0) {
+          processedMessages.push({ role: "tool", content: toolResultParts });
+        }
+      } else {
+        processedMessages.push({
+          role: m.role as "user" | "assistant",
+          content: isLastUserMessage ? buildMessageContent(m.content, files) : m.content,
+        });
+      }
+    }
 
     // Track token usage across all steps
     let totalInputTokens = 0;
