@@ -62,6 +62,7 @@ export interface OperationResult<T = unknown> {
   error?: string;
   rowCount?: number;
   duration?: number;
+  metadata?: Record<string, unknown>;
 }
 
 // ===== Schema Information =====

@@ -32,6 +32,7 @@ export async function GET() {
         sheets: status.SHEETS,
         drive: status.DRIVE,
         calendar: status.CALENDAR,
+        gmail: status.GMAIL,
       },
       tokens: tokens.map((t) => ({
         service: t.service,

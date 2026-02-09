@@ -156,6 +156,7 @@ export function createGoogleTools(userId: string) {
             resource: resource || "(root)",
             data: result.data,
             rowCount: result.rowCount,
+            metadata: result.metadata,
             // 追蹤使用的資料來源（前端會收集這些）
             usedDataSource: resourceId ? {
               type: googleServiceToDataSourceType(service),

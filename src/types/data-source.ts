@@ -6,6 +6,7 @@ export type DataSourceType =
   | "GOOGLE_DRIVE"
   | "GOOGLE_CALENDAR"
   | "GOOGLE_GMAIL"
+  | "GOOGLE_ANALYTICS"
   | "REST_API"
   | "POSTGRES"
   | "MYSQL";
@@ -32,7 +33,7 @@ export interface ToolDataSource {
  * Google 資源資訊（從 API 返回）
  */
 export interface GoogleResourceInfo {
-  type: "GOOGLE_SHEETS" | "GOOGLE_DRIVE" | "GOOGLE_CALENDAR" | "GOOGLE_GMAIL";
+  type: "GOOGLE_SHEETS" | "GOOGLE_DRIVE" | "GOOGLE_CALENDAR" | "GOOGLE_GMAIL" | "GOOGLE_ANALYTICS";
   resourceId: string;
   resourceName: string;
 }
@@ -48,13 +49,14 @@ export function isGoogleDataSource(type: DataSourceType): boolean {
  * 從 Google service 名稱轉換為 DataSourceType
  */
 export function googleServiceToDataSourceType(
-  service: "sheets" | "drive" | "calendar" | "gmail"
+  service: "sheets" | "drive" | "calendar" | "gmail" | "analytics"
 ): DataSourceType {
   const mapping: Record<string, DataSourceType> = {
     sheets: "GOOGLE_SHEETS",
     drive: "GOOGLE_DRIVE",
     calendar: "GOOGLE_CALENDAR",
     gmail: "GOOGLE_GMAIL",
+    analytics: "GOOGLE_ANALYTICS",
   };
   return mapping[service];
 }
