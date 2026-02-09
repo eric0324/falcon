@@ -196,6 +196,38 @@ const SLACK_INSTRUCTIONS = `
 - 只能存取**公開頻道**的訊息，私有頻道和 DM 不可存取
 - 善用平行呼叫：可以同時搜尋 + 讀取特定頻道`;
 
+// Asana-specific instructions
+const ASANA_INSTRUCTIONS = `
+
+## Asana 使用指南
+
+### 可用的 Asana 工具
+- asanaSearch: 讀取專案、任務、留言和搜尋（唯讀）
+
+### 操作方式
+- 列出所有專案：asanaSearch({ action: "list" })
+- 用名稱搜尋專案：asanaSearch({ action: "list", search: "Sprint 256" })
+- 列出專案任務（按 section 分組）：asanaSearch({ action: "tasks", projectId: "12345" })
+- 讀取任務詳情與子任務：asanaSearch({ action: "read", taskId: "12345" })
+- 讀取任務留言：asanaSearch({ action: "comments", taskId: "12345" })
+- 搜尋任務：asanaSearch({ action: "search", search: "關鍵字" })
+
+### 搜尋策略
+
+**方法一：搜尋（推薦）**
+- 找特定專案：list + search 過濾專案名稱（如 list, search: "Sprint 256"）
+- 找特定任務：search 搜尋任務關鍵字
+
+**方法二：瀏覽**
+- 先 list 列出專案
+- 再 tasks(projectId) 看專案內的任務（會按 section 分組）
+- 用 read(taskId) 看任務詳情
+
+### 注意事項
+- tasks 結果按 section 分組（如「待辦」「進行中」「已完成」）
+- read 結果含子任務和自訂欄位
+- 善用平行呼叫：可以同時讀取多個任務或同時 search + tasks`;
+
 // No data source instructions
 const NO_DATA_SOURCE_INSTRUCTIONS = `
 
@@ -220,6 +252,7 @@ export function buildSystemPrompt(dataSources?: string[]): string {
 
   const hasNotion = dataSources.includes("notion");
   const hasSlack = dataSources.includes("slack");
+  const hasAsana = dataSources.includes("asana");
 
   if (enabledGoogleServices.length > 0) {
     prompt += buildGoogleInstructions(enabledGoogleServices);
@@ -231,6 +264,10 @@ export function buildSystemPrompt(dataSources?: string[]): string {
 
   if (hasSlack) {
     prompt += SLACK_INSTRUCTIONS;
+  }
+
+  if (hasAsana) {
+    prompt += ASANA_INSTRUCTIONS;
   }
 
   return prompt;

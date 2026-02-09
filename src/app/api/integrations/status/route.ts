@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { isNotionConfigured } from "@/lib/integrations/notion";
 import { isSlackConfigured } from "@/lib/integrations/slack";
+import { isAsanaConfigured } from "@/lib/integrations/asana";
 
 // GET /api/integrations/status - Check which integrations are configured
 export async function GET() {
@@ -15,5 +16,6 @@ export async function GET() {
   return NextResponse.json({
     notion: isNotionConfigured(),
     slack: isSlackConfigured(),
+    asana: isAsanaConfigured(),
   });
 }

@@ -6,6 +6,7 @@ import { studioTools } from "@/lib/ai/tools";
 import { createGoogleTools } from "@/lib/ai/google-tools";
 import { createNotionTools } from "@/lib/ai/notion-tools";
 import { createSlackTools } from "@/lib/ai/slack-tools";
+import { createAsanaTools } from "@/lib/ai/asana-tools";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 import { shouldCompact } from "@/lib/ai/token-utils";
 import { compactMessages } from "@/lib/ai/compact";
@@ -81,6 +82,7 @@ export async function POST(req: Request) {
     const googleTools = createGoogleTools(userId);
     const notionTools = createNotionTools();
     const slackTools = createSlackTools();
+    const asanaTools = createAsanaTools();
 
     // Filter tools based on selected data sources
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -104,6 +106,11 @@ export async function POST(req: Request) {
       // Slack - only if explicitly selected
       if (selectedSources.has("slack")) {
         filteredTools = { ...filteredTools, ...slackTools };
+      }
+
+      // Asana - only if explicitly selected
+      if (selectedSources.has("asana")) {
+        filteredTools = { ...filteredTools, ...asanaTools };
       }
     }
     // If no data sources selected, only use studioTools (no external data access)

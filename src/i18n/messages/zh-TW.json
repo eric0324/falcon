@@ -287,6 +287,10 @@
       "name": "Slack",
       "description": "搜尋和瀏覽 Slack 公開頻道"
     },
+    "asana": {
+      "name": "Asana",
+      "description": "讀取 Asana 專案、任務和留言"
+    },
     "github": {
       "name": "GitHub",
       "description": "存取 GitHub 儲存庫和議題"

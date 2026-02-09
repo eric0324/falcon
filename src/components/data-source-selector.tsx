@@ -26,6 +26,7 @@ import {
   Link,
   BookOpen,
   MessageSquare,
+  ClipboardList,
 } from "lucide-react";
 
 interface DataSource {
@@ -69,6 +70,7 @@ type GoogleConnectionStatus = {
 type IntegrationStatus = {
   notion: boolean;
   slack: boolean;
+  asana: boolean;
 };
 
 export function DataSourceSelector({
@@ -90,6 +92,7 @@ export function DataSourceSelector({
   const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus>({
     notion: false,
     slack: false,
+    asana: false,
   });
   const [connectingService, setConnectingService] = useState<string | null>(null);
 
@@ -181,6 +184,9 @@ export function DataSourceSelector({
     }
     if (value.includes("slack")) {
       names.push(tIntegrations("slack.name"));
+    }
+    if (value.includes("asana")) {
+      names.push(tIntegrations("asana.name"));
     }
 
     return names;
@@ -320,7 +326,7 @@ export function DataSourceSelector({
         <DropdownMenuSub>
           <DropdownMenuSubTrigger className="flex items-center gap-2.5 py-2.5 cursor-pointer">
             <div className="w-4 flex items-center justify-center shrink-0">
-              {(value.includes("notion") || value.includes("slack")) && <Check className="h-4 w-4" />}
+              {(value.includes("notion") || value.includes("slack") || value.includes("asana")) && <Check className="h-4 w-4" />}
             </div>
             <span className="font-medium text-sm">{tIntegrations("thirdParty")}</span>
           </DropdownMenuSubTrigger>
@@ -377,6 +383,35 @@ export function DataSourceSelector({
               </div>
               <div className="w-14 flex justify-end shrink-0 mt-0.5">
                 {!integrationStatus.slack && (
+                  <span className="text-xs text-muted-foreground">
+                    {tIntegrations("notConnected")}
+                  </span>
+                )}
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.preventDefault();
+                if (integrationStatus.asana) {
+                  handleToggle("asana");
+                }
+              }}
+              className="flex items-start gap-2 py-2.5 cursor-pointer"
+            >
+              <div className="w-4 flex items-center justify-center shrink-0 mt-0.5">
+                {value.includes("asana") && integrationStatus.asana && <Check className="h-4 w-4" />}
+              </div>
+              <ClipboardList className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <span className="font-medium text-sm block">
+                  {tIntegrations("asana.name")}
+                </span>
+                <p className="text-xs text-muted-foreground">
+                  {tIntegrations("asana.description")}
+                </p>
+              </div>
+              <div className="w-14 flex justify-end shrink-0 mt-0.5">
+                {!integrationStatus.asana && (
                   <span className="text-xs text-muted-foreground">
                     {tIntegrations("notConnected")}
                   </span>

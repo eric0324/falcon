@@ -287,6 +287,10 @@
       "name": "Slack",
       "description": "Search and browse Slack public channels"
     },
+    "asana": {
+      "name": "Asana",
+      "description": "Read Asana projects, tasks and comments"
+    },
     "github": {
       "name": "GitHub",
       "description": "Access GitHub repositories and issues"
