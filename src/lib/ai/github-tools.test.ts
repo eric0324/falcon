@@ -36,7 +36,7 @@ describe("createGitHubTools", () => {
   it("returns not configured when GitHub is not set up", async () => {
     mockIsConfigured.mockReturnValue(false);
     const tools = createGitHubTools();
-    const result = await tools.githubQuery.execute(
+    const result = await tools.githubQuery.execute!(
       { action: "listRepos" as const },
       execOpts,
     );
@@ -54,7 +54,7 @@ describe("createGitHubTools", () => {
     ]);
 
     const tools = createGitHubTools();
-    const result = await tools.githubQuery.execute(
+    const result = await tools.githubQuery.execute!(
       { action: "listRepos" as const },
       execOpts,
     );
@@ -70,7 +70,7 @@ describe("createGitHubTools", () => {
     mockListRepos.mockResolvedValue([]);
 
     const tools = createGitHubTools();
-    await tools.githubQuery.execute(
+    await tools.githubQuery.execute!(
       { action: "listRepos" as const, org: "myorg" },
       execOpts,
     );
@@ -85,7 +85,7 @@ describe("createGitHubTools", () => {
     ]);
 
     const tools = createGitHubTools();
-    const result = await tools.githubQuery.execute(
+    const result = await tools.githubQuery.execute!(
       { action: "listPRs" as const, repo: "myorg/falcon" },
       execOpts,
     );
@@ -99,7 +99,7 @@ describe("createGitHubTools", () => {
     mockListPRs.mockResolvedValue([]);
 
     const tools = createGitHubTools();
-    await tools.githubQuery.execute(
+    await tools.githubQuery.execute!(
       { action: "listPRs" as const, repo: "myorg/falcon", state: "closed" },
       execOpts,
     );
@@ -118,7 +118,7 @@ describe("createGitHubTools", () => {
     });
 
     const tools = createGitHubTools();
-    const result = await tools.githubQuery.execute(
+    const result = await tools.githubQuery.execute!(
       { action: "readPR" as const, repo: "myorg/falcon", prNumber: 42 },
       execOpts,
     );
@@ -131,7 +131,7 @@ describe("createGitHubTools", () => {
     mockIsConfigured.mockReturnValue(true);
 
     const tools = createGitHubTools();
-    const result = await tools.githubQuery.execute(
+    const result = await tools.githubQuery.execute!(
       { action: "readPR" as const },
       execOpts,
     );
@@ -147,7 +147,7 @@ describe("createGitHubTools", () => {
     ]);
 
     const tools = createGitHubTools();
-    const result = await tools.githubQuery.execute(
+    const result = await tools.githubQuery.execute!(
       { action: "searchCode" as const, search: "handlePayment" },
       execOpts,
     );
@@ -161,7 +161,7 @@ describe("createGitHubTools", () => {
     mockSearchCode.mockResolvedValue([]);
 
     const tools = createGitHubTools();
-    await tools.githubQuery.execute(
+    await tools.githubQuery.execute!(
       { action: "searchCode" as const, search: "config", repo: "myorg/falcon" },
       execOpts,
     );
@@ -176,7 +176,7 @@ describe("createGitHubTools", () => {
     ]);
 
     const tools = createGitHubTools();
-    const result = await tools.githubQuery.execute(
+    const result = await tools.githubQuery.execute!(
       { action: "commits" as const, repo: "myorg/falcon" },
       execOpts,
     );
@@ -190,7 +190,7 @@ describe("createGitHubTools", () => {
     mockListCommits.mockResolvedValue([]);
 
     const tools = createGitHubTools();
-    await tools.githubQuery.execute(
+    await tools.githubQuery.execute!(
       { action: "commits" as const, repo: "myorg/falcon", branch: "develop" },
       execOpts,
     );
@@ -203,7 +203,7 @@ describe("createGitHubTools", () => {
     mockListRepos.mockRejectedValue(new Error("API failure"));
 
     const tools = createGitHubTools();
-    const result = await tools.githubQuery.execute(
+    const result = await tools.githubQuery.execute!(
       { action: "listRepos" as const },
       execOpts,
     );

@@ -49,10 +49,11 @@ describe("GoogleCalendarConnector", () => {
       });
 
       const result = await connector.list({});
+      const data = result.data as any[];
 
       expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(2);
-      expect(result.data[0]).toEqual({
+      expect(data).toHaveLength(2);
+      expect(data[0]).toEqual({
         id: "primary",
         name: "Main Calendar",
         isPrimary: true,
@@ -77,10 +78,11 @@ describe("GoogleCalendarConnector", () => {
       });
 
       const result = await connector.list({ resource: "primary" });
+      const data = result.data as any[];
 
       expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(1);
-      expect(result.data[0].summary).toBe("Team Meeting");
+      expect(data).toHaveLength(1);
+      expect(data[0].summary).toBe("Team Meeting");
     });
 
     it("should get specific event when resource includes eventId", async () => {
@@ -98,10 +100,11 @@ describe("GoogleCalendarConnector", () => {
       });
 
       const result = await connector.list({ resource: "primary/event1" });
+      const data = result.data as any;
 
       expect(result.success).toBe(true);
-      expect(result.data.summary).toBe("Team Meeting");
-      expect(result.data.description).toBe("Weekly sync");
+      expect(data.summary).toBe("Team Meeting");
+      expect(data.description).toBe("Weekly sync");
     });
   });
 
@@ -132,7 +135,7 @@ describe("GoogleCalendarConnector", () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.data.summary).toBe("New Meeting");
+      expect((result.data as any).summary).toBe("New Meeting");
     });
 
     it("should fail if required fields are missing", async () => {
@@ -173,7 +176,7 @@ describe("GoogleCalendarConnector", () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.data.summary).toBe("Updated Meeting");
+      expect((result.data as any).summary).toBe("Updated Meeting");
     });
 
     it("should fail if resource format is invalid", async () => {

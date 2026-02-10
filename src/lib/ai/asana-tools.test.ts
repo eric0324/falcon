@@ -79,7 +79,7 @@ describe("asanaSearch tool", () => {
       mockGetProjectTasks.mockResolvedValueOnce([
         {
           section: "In Progress",
-          tasks: [{ id: "T001", name: "Task 1", assignee: "Alice", dueOn: null, completed: false, subtaskCount: 0 }],
+          tasks: [{ id: "T001", name: "Task 1", assignee: "Alice", dueOn: null, completed: false, subtaskCount: 0, customFields: [] }],
         },
       ]);
 

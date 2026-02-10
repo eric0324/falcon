@@ -154,18 +154,19 @@ describe("DELETE /api/conversations/[id]", () => {
     expect(res.status).toBe(401);
   });
 
-  it("deletes conversation", async () => {
+  it("soft-deletes conversation", async () => {
     mockGetServerSession.mockResolvedValue(mockSession);
     prismaMock.conversation.findUnique.mockResolvedValue({
       id: "conv-1",
       userId: "user-1",
     });
-    prismaMock.conversation.delete.mockResolvedValue({});
+    prismaMock.conversation.update.mockResolvedValue({});
 
     const res = await DELETE(new Request("http://localhost"), { params });
     expect(res.status).toBe(200);
-    expect(prismaMock.conversation.delete).toHaveBeenCalledWith({
+    expect(prismaMock.conversation.update).toHaveBeenCalledWith({
       where: { id: "conv-1" },
+      data: { deletedAt: expect.any(Date) },
     });
   });
 

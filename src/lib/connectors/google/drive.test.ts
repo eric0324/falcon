@@ -59,15 +59,16 @@ describe("GoogleDriveConnector", () => {
       });
 
       const result = await connector.list({});
+      const data = result.data as any[];
 
       expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(2);
-      expect(result.data[0]).toMatchObject({
+      expect(data).toHaveLength(2);
+      expect(data[0]).toMatchObject({
         id: "file1",
         name: "Document.pdf",
         isFolder: false,
       });
-      expect(result.data[1]).toMatchObject({
+      expect(data[1]).toMatchObject({
         id: "folder1",
         name: "My Folder",
         isFolder: true,
@@ -115,11 +116,12 @@ describe("GoogleDriveConnector", () => {
       });
 
       const result = await connector.list({ resource: "file:file1" });
+      const data = result.data as any;
 
       expect(result.success).toBe(true);
-      expect(result.data.id).toBe("file1");
-      expect(result.data.name).toBe("Document.pdf");
-      expect(result.data.size).toBe(2048);
+      expect(data.id).toBe("file1");
+      expect(data.name).toBe("Document.pdf");
+      expect(data.size).toBe(2048);
     });
 
     it("should filter by mimeType", async () => {

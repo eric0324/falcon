@@ -36,7 +36,7 @@ describe("createMetaAdsTools", () => {
   it("returns not configured when Meta Ads is not set up", async () => {
     mockIsConfigured.mockReturnValue(false);
     const tools = createMetaAdsTools();
-    const result = await tools.metaAdsQuery.execute(
+    const result = await tools.metaAdsQuery.execute!(
       { action: "overview" as const },
       execOpts
     );
@@ -55,7 +55,7 @@ describe("createMetaAdsTools", () => {
     ]);
 
     const tools = createMetaAdsTools();
-    const result = await tools.metaAdsQuery.execute(
+    const result = await tools.metaAdsQuery.execute!(
       { action: "listAccounts" as const },
       execOpts
     );
@@ -76,7 +76,7 @@ describe("createMetaAdsTools", () => {
     });
 
     const tools = createMetaAdsTools();
-    const result = await tools.metaAdsQuery.execute(
+    const result = await tools.metaAdsQuery.execute!(
       { action: "overview" as const, dateRange: "last_7d", accountId: "act_123" },
       execOpts
     );
@@ -94,7 +94,7 @@ describe("createMetaAdsTools", () => {
     });
 
     const tools = createMetaAdsTools();
-    await tools.metaAdsQuery.execute(
+    await tools.metaAdsQuery.execute!(
       { action: "overview" as const },
       execOpts
     );
@@ -109,7 +109,7 @@ describe("createMetaAdsTools", () => {
     ]);
 
     const tools = createMetaAdsTools();
-    const result = await tools.metaAdsQuery.execute(
+    const result = await tools.metaAdsQuery.execute!(
       { action: "campaigns" as const, dateRange: "last_14d", accountId: "act_123", limit: 5 },
       execOpts
     );
@@ -125,7 +125,7 @@ describe("createMetaAdsTools", () => {
     ]);
 
     const tools = createMetaAdsTools();
-    const result = await tools.metaAdsQuery.execute(
+    const result = await tools.metaAdsQuery.execute!(
       { action: "campaigns" as const, dateRange: "this_month", accountId: "act_123", campaignNameFilter: "28" },
       execOpts
     );
@@ -141,7 +141,7 @@ describe("createMetaAdsTools", () => {
     ]);
 
     const tools = createMetaAdsTools();
-    const result = await tools.metaAdsQuery.execute(
+    const result = await tools.metaAdsQuery.execute!(
       { action: "timeseries" as const, dateRange: "last_7d", accountId: "act_123", period: "day" },
       execOpts
     );
@@ -155,7 +155,7 @@ describe("createMetaAdsTools", () => {
     mockTimeseries.mockResolvedValue([]);
 
     const tools = createMetaAdsTools();
-    await tools.metaAdsQuery.execute(
+    await tools.metaAdsQuery.execute!(
       { action: "timeseries" as const, dateRange: "last_7d" },
       execOpts
     );
@@ -170,7 +170,7 @@ describe("createMetaAdsTools", () => {
     ]);
 
     const tools = createMetaAdsTools();
-    const result = await tools.metaAdsQuery.execute(
+    const result = await tools.metaAdsQuery.execute!(
       { action: "breakdown" as const, dimension: "age", dateRange: "last_7d", accountId: "act_123" },
       execOpts
     );
@@ -184,7 +184,7 @@ describe("createMetaAdsTools", () => {
     mockBreakdown.mockResolvedValue([]);
 
     const tools = createMetaAdsTools();
-    await tools.metaAdsQuery.execute(
+    await tools.metaAdsQuery.execute!(
       { action: "breakdown" as const, dateRange: "last_7d" },
       execOpts
     );
@@ -197,7 +197,7 @@ describe("createMetaAdsTools", () => {
     mockOverview.mockRejectedValue(new Error("API failure"));
 
     const tools = createMetaAdsTools();
-    const result = await tools.metaAdsQuery.execute(
+    const result = await tools.metaAdsQuery.execute!(
       { action: "overview" as const },
       execOpts
     );
