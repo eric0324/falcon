@@ -10,6 +10,7 @@ import { createAsanaTools } from "@/lib/ai/asana-tools";
 import { createPlausibleTools } from "@/lib/ai/plausible-tools";
 import { createGA4Tools } from "@/lib/ai/ga4-tools";
 import { createMetaAdsTools } from "@/lib/ai/meta-ads-tools";
+import { createGitHubTools } from "@/lib/ai/github-tools";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 import { shouldCompact } from "@/lib/ai/token-utils";
 import { compactMessages } from "@/lib/ai/compact";
@@ -89,6 +90,7 @@ export async function POST(req: Request) {
     const plausibleTools = createPlausibleTools();
     const ga4Tools = createGA4Tools();
     const metaAdsTools = createMetaAdsTools();
+    const githubTools = createGitHubTools();
 
     // Filter tools based on selected data sources
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -132,6 +134,11 @@ export async function POST(req: Request) {
       // Meta Ads - only if explicitly selected
       if (selectedSources.has("meta_ads")) {
         filteredTools = { ...filteredTools, ...metaAdsTools };
+      }
+
+      // GitHub - only if explicitly selected
+      if (selectedSources.has("github")) {
+        filteredTools = { ...filteredTools, ...githubTools };
       }
     }
     // If no data sources selected, only use studioTools (no external data access)

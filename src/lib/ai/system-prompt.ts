@@ -314,6 +314,29 @@ Multiple ad accounts are configured. **Always use listAccounts first** to show t
 - Use breakdown to analyze audience performance (e.g., which age group has the best CTR)
 - The actions field is an array of conversion types — explain the most relevant ones to the user`;
 
+// GitHub-specific instructions
+const GITHUB_INSTRUCTIONS = `
+
+## GitHub
+
+### Available tool
+- githubQuery: Query repositories, pull requests, commits, and code (read-only)
+
+### Actions
+- List repos: githubQuery({ action: "listRepos" }) or githubQuery({ action: "listRepos", org: "orgname" })
+- List PRs: githubQuery({ action: "listPRs", repo: "owner/repo" })
+- List closed PRs: githubQuery({ action: "listPRs", repo: "owner/repo", state: "closed" })
+- Read PR details + diff + reviews: githubQuery({ action: "readPR", repo: "owner/repo", prNumber: 123 })
+- Search code: githubQuery({ action: "searchCode", search: "keyword" }) or githubQuery({ action: "searchCode", search: "keyword", repo: "owner/repo" })
+- View commits: githubQuery({ action: "commits", repo: "owner/repo" }) or githubQuery({ action: "commits", repo: "owner/repo", branch: "develop" })
+
+### Strategy
+- **Start with listRepos** to discover available repositories, then use other actions with the repo name
+- readPR returns diff (patch) and review comments in one call — no need to call multiple times
+- searchCode has a lower rate limit (30/min) — use it sparingly and prefer specific repo searches
+- Use parallel calls: get listPRs + commits for the same repo simultaneously
+- Patches in readPR are truncated for large PRs — mention total file count to the user`;
+
 // No data source instructions
 const NO_DATA_SOURCE_INSTRUCTIONS = `
 
@@ -342,6 +365,7 @@ export function buildSystemPrompt(dataSources?: string[]): string {
   const hasPlausible = dataSources.includes("plausible");
   const hasGA4 = dataSources.includes("ga4");
   const hasMetaAds = dataSources.includes("meta_ads");
+  const hasGitHub = dataSources.includes("github");
 
   if (enabledGoogleServices.length > 0) {
     prompt += buildGoogleInstructions(enabledGoogleServices);
@@ -369,6 +393,10 @@ export function buildSystemPrompt(dataSources?: string[]): string {
 
   if (hasMetaAds) {
     prompt += META_ADS_INSTRUCTIONS;
+  }
+
+  if (hasGitHub) {
+    prompt += GITHUB_INSTRUCTIONS;
   }
 
   return prompt;

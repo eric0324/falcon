@@ -83,3 +83,21 @@ describe("buildSystemPrompt with Meta Ads", () => {
     expect(prompt).not.toContain("metaAdsQuery");
   });
 });
+
+describe("buildSystemPrompt with GitHub", () => {
+  it("includes GitHub guide when github is selected", () => {
+    const prompt = buildSystemPrompt(["github"]);
+    expect(prompt).toContain("GitHub");
+    expect(prompt).toContain("githubQuery");
+    expect(prompt).toContain("listRepos");
+    expect(prompt).toContain("listPRs");
+    expect(prompt).toContain("readPR");
+    expect(prompt).toContain("searchCode");
+    expect(prompt).toContain("commits");
+  });
+
+  it("does not include GitHub guide when not selected", () => {
+    const prompt = buildSystemPrompt(["notion"]);
+    expect(prompt).not.toContain("githubQuery");
+  });
+});
