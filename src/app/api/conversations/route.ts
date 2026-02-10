@@ -71,5 +71,15 @@ export async function POST(req: Request) {
     },
   });
 
+  // Link orphaned token usage records (from the chat request that preceded this creation)
+  await prisma.tokenUsage.updateMany({
+    where: {
+      userId: session.user.id,
+      conversationId: null,
+      createdAt: { gte: new Date(Date.now() - 2 * 60 * 1000) },
+    },
+    data: { conversationId: conversation.id },
+  });
+
   return NextResponse.json(conversation, { status: 201 });
 }

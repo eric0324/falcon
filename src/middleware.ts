@@ -12,9 +12,11 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/chat") ||
     request.nextUrl.pathname.startsWith("/tool") ||
     request.nextUrl.pathname.startsWith("/marketplace") ||
+    request.nextUrl.pathname.startsWith("/admin") ||
     request.nextUrl.pathname.startsWith("/api/tools") ||
     request.nextUrl.pathname.startsWith("/api/marketplace") ||
-    request.nextUrl.pathname.startsWith("/api/chat");
+    request.nextUrl.pathname.startsWith("/api/chat") ||
+    request.nextUrl.pathname.startsWith("/api/admin");
 
   // Redirect to login if accessing protected route without token
   if (isProtectedRoute && !token) {
@@ -31,8 +33,10 @@ export const config = {
     "/chat/:path*",
     "/tool/:path*",
     "/marketplace/:path*",
+    "/admin/:path*",
     "/api/tools/:path*",
     "/api/marketplace/:path*",
     "/api/chat/:path*",
+    "/api/admin/:path*",
   ],
 };

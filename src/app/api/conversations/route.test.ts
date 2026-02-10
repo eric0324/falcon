@@ -6,6 +6,9 @@ const prismaMock = vi.hoisted(() => ({
     findMany: vi.fn(),
     create: vi.fn(),
   },
+  tokenUsage: {
+    updateMany: vi.fn(),
+  },
 }));
 
 vi.mock("next-auth", () => ({ getServerSession: mockGetServerSession }));

@@ -41,3 +41,24 @@ export const modelInfo: Record<ModelId, { name: string; description: string }> =
 };
 
 export const defaultModel: ModelId = "claude-haiku";
+
+/** Pricing per 1M tokens in USD */
+export const modelPricing: Record<string, { input: number; output: number }> = {
+  "claude-sonnet": { input: 3, output: 15 },
+  "claude-haiku": { input: 0.8, output: 4 },
+  "gpt-4o": { input: 2.5, output: 10 },
+  "gpt-4o-mini": { input: 0.15, output: 0.6 },
+  "gemini-flash": { input: 0.1, output: 0.4 },
+  "gemini-pro": { input: 1.25, output: 10 },
+};
+
+/** Estimate cost in USD from token counts and model name */
+export function estimateCost(
+  model: string,
+  inputTokens: number,
+  outputTokens: number
+): number {
+  const pricing = modelPricing[model];
+  if (!pricing) return 0;
+  return (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000;
+}
