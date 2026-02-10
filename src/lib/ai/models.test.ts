@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 // Mock the AI SDK modules before importing models
 vi.mock("@ai-sdk/anthropic", () => ({
@@ -7,6 +7,10 @@ vi.mock("@ai-sdk/anthropic", () => ({
 
 vi.mock("@ai-sdk/openai", () => ({
   openai: (modelId: string) => ({ provider: "openai", modelId }),
+}));
+
+vi.mock("@ai-sdk/google", () => ({
+  google: (modelId: string) => ({ provider: "google", modelId }),
 }));
 
 import { models, modelInfo, defaultModel, type ModelId } from "./models";
@@ -18,10 +22,12 @@ describe("models", () => {
     expect(keys).toContain("claude-haiku");
     expect(keys).toContain("gpt-4o");
     expect(keys).toContain("gpt-4o-mini");
+    expect(keys).toContain("gemini-flash");
+    expect(keys).toContain("gemini-pro");
   });
 
-  it("has exactly 4 models", () => {
-    expect(Object.keys(models)).toHaveLength(4);
+  it("has exactly 6 models", () => {
+    expect(Object.keys(models)).toHaveLength(6);
   });
 });
 
@@ -47,7 +53,7 @@ describe("defaultModel", () => {
     expect(Object.keys(models)).toContain(defaultModel);
   });
 
-  it("is claude-sonnet", () => {
-    expect(defaultModel).toBe("claude-sonnet");
+  it("is claude-haiku", () => {
+    expect(defaultModel).toBe("claude-haiku");
   });
 });
