@@ -279,7 +279,7 @@
     "description": "Manage third-party service connections",
     "thirdParty": "Third-party Services",
     "teamCollab": "Team Collaboration",
-    "dataAnalytics": "Data Analytics",
+    "dataAnalytics": "Website Analytics",
     "notion": {
       "name": "Notion",
       "description": "Search and browse Notion databases and pages",
@@ -296,6 +296,10 @@
     "plausible": {
       "name": "Plausible Analytics",
       "description": "Query website traffic and analytics data"
+    },
+    "ga4": {
+      "name": "Google Analytics 4",
+      "description": "Query GA4 website traffic and analytics data"
     },
     "github": {
       "name": "GitHub",

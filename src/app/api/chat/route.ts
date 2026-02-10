@@ -8,6 +8,7 @@ import { createNotionTools } from "@/lib/ai/notion-tools";
 import { createSlackTools } from "@/lib/ai/slack-tools";
 import { createAsanaTools } from "@/lib/ai/asana-tools";
 import { createPlausibleTools } from "@/lib/ai/plausible-tools";
+import { createGA4Tools } from "@/lib/ai/ga4-tools";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 import { shouldCompact } from "@/lib/ai/token-utils";
 import { compactMessages } from "@/lib/ai/compact";
@@ -85,6 +86,7 @@ export async function POST(req: Request) {
     const slackTools = createSlackTools();
     const asanaTools = createAsanaTools();
     const plausibleTools = createPlausibleTools();
+    const ga4Tools = createGA4Tools();
 
     // Filter tools based on selected data sources
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -118,6 +120,11 @@ export async function POST(req: Request) {
       // Plausible - only if explicitly selected
       if (selectedSources.has("plausible")) {
         filteredTools = { ...filteredTools, ...plausibleTools };
+      }
+
+      // GA4 - only if explicitly selected
+      if (selectedSources.has("ga4")) {
+        filteredTools = { ...filteredTools, ...ga4Tools };
       }
     }
     // If no data sources selected, only use studioTools (no external data access)

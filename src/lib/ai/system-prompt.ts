@@ -251,6 +251,34 @@ You can combine any action with filters: page, source, country, device, utm_sour
 - Use parallel calls: get aggregate + breakdown by source simultaneously
 - Add filters to narrow results (e.g., breakdown by page filtered to source: "Google")`;
 
+// GA4-specific instructions
+const GA4_INSTRUCTIONS = `
+
+## Google Analytics 4
+
+### Available tool
+- ga4Query: Query GA4 analytics data (read-only)
+
+### Actions
+- Get active users now: ga4Query({ action: "realtime" })
+- Get aggregate metrics: ga4Query({ action: "aggregate", dateRange: "30d" })
+- Get trends over time: ga4Query({ action: "timeseries", dateRange: "30d", period: "day" })
+- Get breakdown by dimension: ga4Query({ action: "breakdown", dimension: "source", dateRange: "7d" })
+
+### Date range options
+today, yesterday, 7d, 30d, 90d, 12mo, custom (with startDate + endDate in YYYY-MM-DD)
+
+### Dimension options (for breakdown)
+source, medium, channel, page, landing_page, country, city, device, browser, os, event
+
+### Filters
+You can combine any action with filters: page, source, country, device, event
+
+### Strategy
+- Start with aggregate to get an overview, then drill down with breakdown or timeseries
+- Use parallel calls: get aggregate + breakdown by source simultaneously
+- Add filters to narrow results (e.g., breakdown by page filtered to source: "google")`;
+
 // No data source instructions
 const NO_DATA_SOURCE_INSTRUCTIONS = `
 
@@ -277,6 +305,7 @@ export function buildSystemPrompt(dataSources?: string[]): string {
   const hasSlack = dataSources.includes("slack");
   const hasAsana = dataSources.includes("asana");
   const hasPlausible = dataSources.includes("plausible");
+  const hasGA4 = dataSources.includes("ga4");
 
   if (enabledGoogleServices.length > 0) {
     prompt += buildGoogleInstructions(enabledGoogleServices);
@@ -296,6 +325,10 @@ export function buildSystemPrompt(dataSources?: string[]): string {
 
   if (hasPlausible) {
     prompt += PLAUSIBLE_INSTRUCTIONS;
+  }
+
+  if (hasGA4) {
+    prompt += GA4_INSTRUCTIONS;
   }
 
   return prompt;

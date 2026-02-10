@@ -45,3 +45,21 @@ describe("buildSystemPrompt with Plausible", () => {
     expect(prompt).not.toContain("plausibleQuery");
   });
 });
+
+describe("buildSystemPrompt with GA4", () => {
+  it("includes GA4 guide when ga4 is selected", () => {
+    const prompt = buildSystemPrompt(["ga4"]);
+    expect(prompt).toContain("Google Analytics 4");
+    expect(prompt).toContain("ga4Query");
+    expect(prompt).toContain("realtime");
+    expect(prompt).toContain("aggregate");
+    expect(prompt).toContain("timeseries");
+    expect(prompt).toContain("breakdown");
+  });
+
+  it("does not include GA4 guide when not selected", () => {
+    const prompt = buildSystemPrompt(["notion"]);
+    expect(prompt).not.toContain("Google Analytics 4");
+    expect(prompt).not.toContain("ga4Query");
+  });
+});

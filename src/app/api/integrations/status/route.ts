@@ -5,6 +5,7 @@ import { isNotionConfigured } from "@/lib/integrations/notion";
 import { isSlackConfigured } from "@/lib/integrations/slack";
 import { isAsanaConfigured } from "@/lib/integrations/asana";
 import { isPlausibleConfigured } from "@/lib/integrations/plausible";
+import { isGA4Configured } from "@/lib/integrations/ga4";
 
 // GET /api/integrations/status - Check which integrations are configured
 export async function GET() {
@@ -19,5 +20,6 @@ export async function GET() {
     slack: isSlackConfigured(),
     asana: isAsanaConfigured(),
     plausible: isPlausibleConfigured(),
+    ga4: isGA4Configured(),
   });
 }

@@ -28,6 +28,7 @@ import {
   MessageSquare,
   ClipboardList,
   BarChart3,
+  LineChart,
 } from "lucide-react";
 
 interface DataSource {
@@ -73,6 +74,7 @@ type IntegrationStatus = {
   slack: boolean;
   asana: boolean;
   plausible: boolean;
+  ga4: boolean;
 };
 
 export function DataSourceSelector({
@@ -96,6 +98,7 @@ export function DataSourceSelector({
     slack: false,
     asana: false,
     plausible: false,
+    ga4: false,
   });
   const [connectingService, setConnectingService] = useState<string | null>(null);
 
@@ -193,6 +196,9 @@ export function DataSourceSelector({
     }
     if (value.includes("plausible")) {
       names.push(tIntegrations("plausible.name"));
+    }
+    if (value.includes("ga4")) {
+      names.push(tIntegrations("ga4.name"));
     }
 
     return names;
@@ -431,7 +437,7 @@ export function DataSourceSelector({
         <DropdownMenuSub>
           <DropdownMenuSubTrigger className="flex items-center gap-2.5 py-2.5 cursor-pointer">
             <div className="w-4 flex items-center justify-center shrink-0">
-              {value.includes("plausible") && <Check className="h-4 w-4" />}
+              {(value.includes("plausible") || value.includes("ga4")) && <Check className="h-4 w-4" />}
             </div>
             <span className="font-medium text-sm">{tIntegrations("dataAnalytics")}</span>
           </DropdownMenuSubTrigger>
@@ -459,6 +465,35 @@ export function DataSourceSelector({
               </div>
               <div className="w-14 flex justify-end shrink-0 mt-0.5">
                 {!integrationStatus.plausible && (
+                  <span className="text-xs text-muted-foreground">
+                    {tIntegrations("notConnected")}
+                  </span>
+                )}
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.preventDefault();
+                if (integrationStatus.ga4) {
+                  handleToggle("ga4");
+                }
+              }}
+              className="flex items-start gap-2 py-2.5 cursor-pointer"
+            >
+              <div className="w-4 flex items-center justify-center shrink-0 mt-0.5">
+                {value.includes("ga4") && integrationStatus.ga4 && <Check className="h-4 w-4" />}
+              </div>
+              <LineChart className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <span className="font-medium text-sm block">
+                  {tIntegrations("ga4.name")}
+                </span>
+                <p className="text-xs text-muted-foreground">
+                  {tIntegrations("ga4.description")}
+                </p>
+              </div>
+              <div className="w-14 flex justify-end shrink-0 mt-0.5">
+                {!integrationStatus.ga4 && (
                   <span className="text-xs text-muted-foreground">
                     {tIntegrations("notConnected")}
                   </span>
