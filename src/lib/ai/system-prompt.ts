@@ -223,6 +223,34 @@ const ASANA_INSTRUCTIONS = `
 - The read action returns subtasks and custom fields for a single task
 - Use parallel calls: read multiple tasks or combine search + tasks simultaneously`;
 
+// Plausible-specific instructions
+const PLAUSIBLE_INSTRUCTIONS = `
+
+## Plausible Analytics
+
+### Available tool
+- plausibleQuery: Query website analytics data (read-only)
+
+### Actions
+- Get current visitors: plausibleQuery({ action: "realtime" })
+- Get aggregate metrics: plausibleQuery({ action: "aggregate", dateRange: "30d" })
+- Get trends over time: plausibleQuery({ action: "timeseries", dateRange: "30d", period: "day" })
+- Get breakdown by dimension: plausibleQuery({ action: "breakdown", dimension: "source", dateRange: "7d" })
+
+### Date range options
+day, 7d, 30d, month, 6mo, 12mo, year, custom (with startDate + endDate in YYYY-MM-DD)
+
+### Dimension options (for breakdown)
+source, page, entry_page, exit_page, country, device, browser, os, utm_source, utm_medium, utm_campaign, utm_content, utm_term
+
+### Filters
+You can combine any action with filters: page, source, country, device, utm_source, utm_medium, utm_campaign
+
+### Strategy
+- Start with aggregate to get an overview, then drill down with breakdown or timeseries
+- Use parallel calls: get aggregate + breakdown by source simultaneously
+- Add filters to narrow results (e.g., breakdown by page filtered to source: "Google")`;
+
 // No data source instructions
 const NO_DATA_SOURCE_INSTRUCTIONS = `
 
@@ -248,6 +276,7 @@ export function buildSystemPrompt(dataSources?: string[]): string {
   const hasNotion = dataSources.includes("notion");
   const hasSlack = dataSources.includes("slack");
   const hasAsana = dataSources.includes("asana");
+  const hasPlausible = dataSources.includes("plausible");
 
   if (enabledGoogleServices.length > 0) {
     prompt += buildGoogleInstructions(enabledGoogleServices);
@@ -263,6 +292,10 @@ export function buildSystemPrompt(dataSources?: string[]): string {
 
   if (hasAsana) {
     prompt += ASANA_INSTRUCTIONS;
+  }
+
+  if (hasPlausible) {
+    prompt += PLAUSIBLE_INSTRUCTIONS;
   }
 
   return prompt;

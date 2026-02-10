@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, CheckCircle2, Database, Code, List, Search, ChevronRight, Cloud, FileEdit, Wifi, AlertCircle, ExternalLink, BookOpen } from "lucide-react";
+import { Loader2, CheckCircle2, Database, Code, List, Search, ChevronRight, Cloud, FileEdit, Wifi, AlertCircle, ExternalLink, BookOpen, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -26,6 +26,9 @@ const toolIcons: Record<string, React.ReactNode> = {
   googleWrite: <FileEdit className="h-4 w-4" />,
   googleStatus: <Wifi className="h-4 w-4" />,
   notionSearch: <BookOpen className="h-4 w-4" />,
+  slackSearch: <Search className="h-4 w-4" />,
+  asanaSearch: <List className="h-4 w-4" />,
+  plausibleQuery: <BarChart3 className="h-4 w-4" />,
 };
 
 // Labels when tool is being called (in progress)
@@ -38,6 +41,9 @@ const toolCallingLabels: Record<string, string> = {
   googleWrite: "正在寫入資料...",
   googleStatus: "正在檢查連接狀態...",
   notionSearch: "正在搜尋 Notion 資料...",
+  slackSearch: "正在搜尋 Slack 資料...",
+  asanaSearch: "正在搜尋 Asana 資料...",
+  plausibleQuery: "正在查詢 Plausible 流量數據...",
 };
 
 // Labels when tool is completed
@@ -50,6 +56,9 @@ const toolCompletedLabels: Record<string, string> = {
   googleWrite: "已寫入資料",
   googleStatus: "已檢查連接狀態",
   notionSearch: "已搜尋 Notion 資料",
+  slackSearch: "已搜尋 Slack 資料",
+  asanaSearch: "已搜尋 Asana 資料",
+  plausibleQuery: "已查詢 Plausible 流量數據",
 };
 
 export function ToolCallDisplay({ toolCall }: ToolCallDisplayProps) {

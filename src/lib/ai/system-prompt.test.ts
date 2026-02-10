@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { SYSTEM_PROMPT } from "./system-prompt";
+import { SYSTEM_PROMPT, buildSystemPrompt } from "./system-prompt";
 
 describe("SYSTEM_PROMPT", () => {
   it("should identify as a Studio assistant, not just a tool generator", () => {
@@ -25,5 +25,23 @@ describe("SYSTEM_PROMPT", () => {
 
   it("should prohibit data fabrication", () => {
     expect(SYSTEM_PROMPT).toContain("Never fabricate data");
+  });
+});
+
+describe("buildSystemPrompt with Plausible", () => {
+  it("includes Plausible guide when plausible is selected", () => {
+    const prompt = buildSystemPrompt(["plausible"]);
+    expect(prompt).toContain("Plausible Analytics");
+    expect(prompt).toContain("plausibleQuery");
+    expect(prompt).toContain("realtime");
+    expect(prompt).toContain("aggregate");
+    expect(prompt).toContain("timeseries");
+    expect(prompt).toContain("breakdown");
+  });
+
+  it("does not include Plausible guide when not selected", () => {
+    const prompt = buildSystemPrompt(["notion"]);
+    expect(prompt).not.toContain("Plausible Analytics");
+    expect(prompt).not.toContain("plausibleQuery");
   });
 });

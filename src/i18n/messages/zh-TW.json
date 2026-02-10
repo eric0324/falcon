@@ -278,6 +278,8 @@
     "title": "整合服務",
     "description": "管理第三方服務連接",
     "thirdParty": "第三方服務",
+    "teamCollab": "團隊協作",
+    "dataAnalytics": "資料分析",
     "notion": {
       "name": "Notion",
       "description": "搜尋和瀏覽 Notion 資料庫與頁面",
@@ -290,6 +292,10 @@
     "asana": {
       "name": "Asana",
       "description": "讀取 Asana 專案、任務和留言"
+    },
+    "plausible": {
+      "name": "Plausible Analytics",
+      "description": "查詢網站流量與分析數據"
     },
     "github": {
       "name": "GitHub",

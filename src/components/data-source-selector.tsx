@@ -27,6 +27,7 @@ import {
   BookOpen,
   MessageSquare,
   ClipboardList,
+  BarChart3,
 } from "lucide-react";
 
 interface DataSource {
@@ -71,6 +72,7 @@ type IntegrationStatus = {
   notion: boolean;
   slack: boolean;
   asana: boolean;
+  plausible: boolean;
 };
 
 export function DataSourceSelector({
@@ -93,6 +95,7 @@ export function DataSourceSelector({
     notion: false,
     slack: false,
     asana: false,
+    plausible: false,
   });
   const [connectingService, setConnectingService] = useState<string | null>(null);
 
@@ -187,6 +190,9 @@ export function DataSourceSelector({
     }
     if (value.includes("asana")) {
       names.push(tIntegrations("asana.name"));
+    }
+    if (value.includes("plausible")) {
+      names.push(tIntegrations("plausible.name"));
     }
 
     return names;
@@ -322,13 +328,13 @@ export function DataSourceSelector({
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
-        {/* Third-party Services - Sub Menu */}
+        {/* Team Collaboration - Sub Menu */}
         <DropdownMenuSub>
           <DropdownMenuSubTrigger className="flex items-center gap-2.5 py-2.5 cursor-pointer">
             <div className="w-4 flex items-center justify-center shrink-0">
               {(value.includes("notion") || value.includes("slack") || value.includes("asana")) && <Check className="h-4 w-4" />}
             </div>
-            <span className="font-medium text-sm">{tIntegrations("thirdParty")}</span>
+            <span className="font-medium text-sm">{tIntegrations("teamCollab")}</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="w-80">
             <DropdownMenuItem
@@ -412,6 +418,47 @@ export function DataSourceSelector({
               </div>
               <div className="w-14 flex justify-end shrink-0 mt-0.5">
                 {!integrationStatus.asana && (
+                  <span className="text-xs text-muted-foreground">
+                    {tIntegrations("notConnected")}
+                  </span>
+                )}
+              </div>
+            </DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        {/* Data Analytics - Sub Menu */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="flex items-center gap-2.5 py-2.5 cursor-pointer">
+            <div className="w-4 flex items-center justify-center shrink-0">
+              {value.includes("plausible") && <Check className="h-4 w-4" />}
+            </div>
+            <span className="font-medium text-sm">{tIntegrations("dataAnalytics")}</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-80">
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.preventDefault();
+                if (integrationStatus.plausible) {
+                  handleToggle("plausible");
+                }
+              }}
+              className="flex items-start gap-2 py-2.5 cursor-pointer"
+            >
+              <div className="w-4 flex items-center justify-center shrink-0 mt-0.5">
+                {value.includes("plausible") && integrationStatus.plausible && <Check className="h-4 w-4" />}
+              </div>
+              <BarChart3 className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <span className="font-medium text-sm block">
+                  {tIntegrations("plausible.name")}
+                </span>
+                <p className="text-xs text-muted-foreground">
+                  {tIntegrations("plausible.description")}
+                </p>
+              </div>
+              <div className="w-14 flex justify-end shrink-0 mt-0.5">
+                {!integrationStatus.plausible && (
                   <span className="text-xs text-muted-foreground">
                     {tIntegrations("notConnected")}
                   </span>
