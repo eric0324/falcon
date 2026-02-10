@@ -6,6 +6,7 @@ import { isSlackConfigured } from "@/lib/integrations/slack";
 import { isAsanaConfigured } from "@/lib/integrations/asana";
 import { isPlausibleConfigured } from "@/lib/integrations/plausible";
 import { isGA4Configured } from "@/lib/integrations/ga4";
+import { isMetaAdsConfigured } from "@/lib/integrations/meta-ads";
 
 // GET /api/integrations/status - Check which integrations are configured
 export async function GET() {
@@ -21,5 +22,6 @@ export async function GET() {
     asana: isAsanaConfigured(),
     plausible: isPlausibleConfigured(),
     ga4: isGA4Configured(),
+    meta_ads: isMetaAdsConfigured(),
   });
 }

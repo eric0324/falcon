@@ -280,6 +280,7 @@
     "thirdParty": "Third-party Services",
     "teamCollab": "Team Collaboration",
     "dataAnalytics": "Website Analytics",
+    "adAnalytics": "Ad Analytics",
     "notion": {
       "name": "Notion",
       "description": "Search and browse Notion databases and pages",
@@ -300,6 +301,10 @@
     "ga4": {
       "name": "Google Analytics 4",
       "description": "Query GA4 website traffic and analytics data"
+    },
+    "meta_ads": {
+      "name": "Meta Ads",
+      "description": "Query Facebook/Instagram ad performance data"
     },
     "github": {
       "name": "GitHub",

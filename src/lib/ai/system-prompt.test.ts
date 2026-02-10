@@ -63,3 +63,23 @@ describe("buildSystemPrompt with GA4", () => {
     expect(prompt).not.toContain("ga4Query");
   });
 });
+
+describe("buildSystemPrompt with Meta Ads", () => {
+  it("includes Meta Ads guide when meta_ads is selected", () => {
+    const prompt = buildSystemPrompt(["meta_ads"]);
+    expect(prompt).toContain("Meta Ads");
+    expect(prompt).toContain("metaAdsQuery");
+    expect(prompt).toContain("listAccounts");
+    expect(prompt).toContain("overview");
+    expect(prompt).toContain("campaigns");
+    expect(prompt).toContain("timeseries");
+    expect(prompt).toContain("breakdown");
+    expect(prompt).toContain("accountId");
+  });
+
+  it("does not include Meta Ads guide when not selected", () => {
+    const prompt = buildSystemPrompt(["notion"]);
+    expect(prompt).not.toContain("Meta Ads");
+    expect(prompt).not.toContain("metaAdsQuery");
+  });
+});

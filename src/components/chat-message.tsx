@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Check, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface ChatMessageProps {
   message: {
@@ -56,7 +57,7 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
       <div className="flex justify-end pr-8">
         <div className="rounded-2xl px-4 py-2 max-w-[85%] text-sm bg-primary text-primary-foreground">
           <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-invert">
-            <ReactMarkdown>{displayContent}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayContent}</ReactMarkdown>
           </div>
         </div>
       </div>
@@ -70,7 +71,7 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
         "prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0",
         "dark:prose-invert"
       )}>
-        <ReactMarkdown>{displayContent}</ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayContent}</ReactMarkdown>
       </div>
       {isGeneratingCode && (
         <span className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">

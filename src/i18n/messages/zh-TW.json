@@ -280,6 +280,7 @@
     "thirdParty": "第三方服務",
     "teamCollab": "團隊協作",
     "dataAnalytics": "網站數據",
+    "adAnalytics": "廣告數據",
     "notion": {
       "name": "Notion",
       "description": "搜尋和瀏覽 Notion 資料庫與頁面",
@@ -300,6 +301,10 @@
     "ga4": {
       "name": "Google Analytics 4",
       "description": "查詢 GA4 網站流量與分析數據"
+    },
+    "meta_ads": {
+      "name": "Meta Ads",
+      "description": "查詢 Facebook/Instagram 廣告成效數據"
     },
     "github": {
       "name": "GitHub",

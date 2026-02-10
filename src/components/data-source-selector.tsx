@@ -29,6 +29,7 @@ import {
   ClipboardList,
   BarChart3,
   LineChart,
+  Megaphone,
 } from "lucide-react";
 
 interface DataSource {
@@ -75,6 +76,7 @@ type IntegrationStatus = {
   asana: boolean;
   plausible: boolean;
   ga4: boolean;
+  meta_ads: boolean;
 };
 
 export function DataSourceSelector({
@@ -99,6 +101,7 @@ export function DataSourceSelector({
     asana: false,
     plausible: false,
     ga4: false,
+    meta_ads: false,
   });
   const [connectingService, setConnectingService] = useState<string | null>(null);
 
@@ -199,6 +202,9 @@ export function DataSourceSelector({
     }
     if (value.includes("ga4")) {
       names.push(tIntegrations("ga4.name"));
+    }
+    if (value.includes("meta_ads")) {
+      names.push(tIntegrations("meta_ads.name"));
     }
 
     return names;
@@ -494,6 +500,47 @@ export function DataSourceSelector({
               </div>
               <div className="w-14 flex justify-end shrink-0 mt-0.5">
                 {!integrationStatus.ga4 && (
+                  <span className="text-xs text-muted-foreground">
+                    {tIntegrations("notConnected")}
+                  </span>
+                )}
+              </div>
+            </DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        {/* Ad Analytics - Sub Menu */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="flex items-center gap-2.5 py-2.5 cursor-pointer">
+            <div className="w-4 flex items-center justify-center shrink-0">
+              {value.includes("meta_ads") && <Check className="h-4 w-4" />}
+            </div>
+            <span className="font-medium text-sm">{tIntegrations("adAnalytics")}</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-80">
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.preventDefault();
+                if (integrationStatus.meta_ads) {
+                  handleToggle("meta_ads");
+                }
+              }}
+              className="flex items-start gap-2 py-2.5 cursor-pointer"
+            >
+              <div className="w-4 flex items-center justify-center shrink-0 mt-0.5">
+                {value.includes("meta_ads") && integrationStatus.meta_ads && <Check className="h-4 w-4" />}
+              </div>
+              <Megaphone className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <span className="font-medium text-sm block">
+                  {tIntegrations("meta_ads.name")}
+                </span>
+                <p className="text-xs text-muted-foreground">
+                  {tIntegrations("meta_ads.description")}
+                </p>
+              </div>
+              <div className="w-14 flex justify-end shrink-0 mt-0.5">
+                {!integrationStatus.meta_ads && (
                   <span className="text-xs text-muted-foreground">
                     {tIntegrations("notConnected")}
                   </span>

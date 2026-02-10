@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, CheckCircle2, Database, Code, List, Search, ChevronRight, Cloud, FileEdit, Wifi, AlertCircle, ExternalLink, BookOpen, BarChart3, LineChart } from "lucide-react";
+import { Loader2, CheckCircle2, Database, Code, List, Search, ChevronRight, Cloud, FileEdit, Wifi, AlertCircle, ExternalLink, BookOpen, BarChart3, LineChart, Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -30,6 +30,7 @@ const toolIcons: Record<string, React.ReactNode> = {
   asanaSearch: <List className="h-4 w-4" />,
   plausibleQuery: <BarChart3 className="h-4 w-4" />,
   ga4Query: <LineChart className="h-4 w-4" />,
+  metaAdsQuery: <Megaphone className="h-4 w-4" />,
 };
 
 // Labels when tool is being called (in progress)
@@ -46,6 +47,7 @@ const toolCallingLabels: Record<string, string> = {
   asanaSearch: "正在搜尋 Asana 資料...",
   plausibleQuery: "正在查詢 Plausible 流量數據...",
   ga4Query: "正在查詢 GA4 流量數據...",
+  metaAdsQuery: "正在查詢 Meta 廣告數據...",
 };
 
 // Labels when tool is completed
@@ -62,6 +64,7 @@ const toolCompletedLabels: Record<string, string> = {
   asanaSearch: "已搜尋 Asana 資料",
   plausibleQuery: "已查詢 Plausible 流量數據",
   ga4Query: "已查詢 GA4 流量數據",
+  metaAdsQuery: "已查詢 Meta 廣告數據",
 };
 
 export function ToolCallDisplay({ toolCall }: ToolCallDisplayProps) {

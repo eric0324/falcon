@@ -279,6 +279,41 @@ You can combine any action with filters: page, source, country, device, event
 - Use parallel calls: get aggregate + breakdown by source simultaneously
 - Add filters to narrow results (e.g., breakdown by page filtered to source: "google")`;
 
+// Meta Ads-specific instructions
+const META_ADS_INSTRUCTIONS = `
+
+## Meta Ads (Facebook/Instagram)
+
+### Available tool
+- metaAdsQuery: Query ad performance data (read-only)
+
+### Actions
+- List ad accounts: metaAdsQuery({ action: "listAccounts" })
+- Get account overview: metaAdsQuery({ action: "overview", accountId: "act_123", dateRange: "last_7d" })
+- Get campaign performance: metaAdsQuery({ action: "campaigns", accountId: "act_123", dateRange: "last_30d" })
+- Get daily trends: metaAdsQuery({ action: "timeseries", accountId: "act_123", dateRange: "last_30d", period: "day" })
+- Get breakdown by dimension: metaAdsQuery({ action: "breakdown", accountId: "act_123", dimension: "age", dateRange: "last_7d" })
+
+### Date range options
+today, yesterday, last_7d, last_14d, last_30d, this_month, last_month, custom (with startDate + endDate in YYYY-MM-DD)
+
+### Dimension options (for breakdown)
+age, gender, country, platform (facebook/instagram), device (mobile/desktop), placement
+
+### Core metrics
+spend, impressions, clicks, ctr, cpc, cpm, reach, frequency, actions (conversions array)
+
+### Multi-account support
+Multiple ad accounts are configured. **Always use listAccounts first** to show the user which accounts are available, then use the accountId parameter for subsequent queries. If the user mentions an account by name, match it to the correct accountId.
+
+### Strategy
+- **Default date range is last_14d.** If the user does not specify a time range, use last_14d. Do NOT ask the user for a date range — just query with last_14d and mention the period in your response.
+- Start with listAccounts to see available accounts
+- Then use overview on the target account, and drill down with campaigns or breakdown
+- Use parallel calls: get overview + campaigns simultaneously for the same account
+- Use breakdown to analyze audience performance (e.g., which age group has the best CTR)
+- The actions field is an array of conversion types — explain the most relevant ones to the user`;
+
 // No data source instructions
 const NO_DATA_SOURCE_INSTRUCTIONS = `
 
@@ -306,6 +341,7 @@ export function buildSystemPrompt(dataSources?: string[]): string {
   const hasAsana = dataSources.includes("asana");
   const hasPlausible = dataSources.includes("plausible");
   const hasGA4 = dataSources.includes("ga4");
+  const hasMetaAds = dataSources.includes("meta_ads");
 
   if (enabledGoogleServices.length > 0) {
     prompt += buildGoogleInstructions(enabledGoogleServices);
@@ -329,6 +365,10 @@ export function buildSystemPrompt(dataSources?: string[]): string {
 
   if (hasGA4) {
     prompt += GA4_INSTRUCTIONS;
+  }
+
+  if (hasMetaAds) {
+    prompt += META_ADS_INSTRUCTIONS;
   }
 
   return prompt;
