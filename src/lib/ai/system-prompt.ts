@@ -291,6 +291,7 @@ const META_ADS_INSTRUCTIONS = `
 - List ad accounts: metaAdsQuery({ action: "listAccounts" })
 - Get account overview: metaAdsQuery({ action: "overview", accountId: "act_123", dateRange: "last_7d" })
 - Get campaign performance: metaAdsQuery({ action: "campaigns", accountId: "act_123", dateRange: "last_30d" })
+- Search campaigns by name: metaAdsQuery({ action: "campaigns", accountId: "act_123", dateRange: "this_month", campaignNameFilter: "28" })
 - Get daily trends: metaAdsQuery({ action: "timeseries", accountId: "act_123", dateRange: "last_30d", period: "day" })
 - Get breakdown by dimension: metaAdsQuery({ action: "breakdown", accountId: "act_123", dimension: "age", dateRange: "last_7d" })
 
@@ -304,15 +305,27 @@ age, gender, country, platform (facebook/instagram), device (mobile/desktop), pl
 spend, impressions, clicks, ctr, cpc, cpm, reach, frequency, actions (conversions array)
 
 ### Multi-account support
-Multiple ad accounts are configured. **Always use listAccounts first** to show the user which accounts are available, then use the accountId parameter for subsequent queries. If the user mentions an account by name, match it to the correct accountId.
+Multiple ad accounts are configured. Use listAccounts to get the list, then query with accountId.
+
+### Campaign name filtering
+Use the campaignNameFilter parameter to search campaigns by keyword at the API level. This is more efficient than fetching all campaigns and filtering manually.
+- Example: campaignNameFilter: "28" matches any campaign whose name contains "28"
+- Campaign names often contain course IDs, product names, or project codes (e.g., "ASC_CV_28_超級數字力")
 
 ### Strategy
 - **Default date range is last_14d.** If the user does not specify a time range, use last_14d. Do NOT ask the user for a date range — just query with last_14d and mention the period in your response.
-- Start with listAccounts to see available accounts
-- Then use overview on the target account, and drill down with campaigns or breakdown
-- Use parallel calls: get overview + campaigns simultaneously for the same account
-- Use breakdown to analyze audience performance (e.g., which age group has the best CTR)
-- The actions field is an array of conversion types — explain the most relevant ones to the user`;
+- **If the user specifies an ad account** (by name or ID): use that account directly. Do NOT search other accounts.
+- **Searching for a specific campaign** (user mentions a campaign name, course ID, or product keyword):
+  - Always use campaignNameFilter — do not fetch all campaigns and filter manually.
+  - Query ALL accounts in parallel with campaignNameFilter. With server-side filtering, each call only returns matching campaigns, so this is lightweight.
+  - Aggregate results from all accounts and present the totals.
+- **General browsing without a specific keyword** (e.g., "show me campaigns" or "what's running"):
+  - Use smart account selection: look at account names from listAccounts to infer which account is most relevant to the user's question.
+  - Query that single account first. If no useful results, expand to others.
+- **General overview** (e.g., "how is ad performance overall"):
+  - Query overview on ALL accounts in parallel and summarize the totals.
+- Use breakdown to analyze audience performance (e.g., which age group has the best CTR).
+- The actions field is an array of conversion types — explain the most relevant ones to the user.`;
 
 // GitHub-specific instructions
 const GITHUB_INSTRUCTIONS = `

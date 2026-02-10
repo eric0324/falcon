@@ -239,18 +239,27 @@ export async function queryCampaigns(
   accountId?: string,
   limit: number = 25,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  campaignNameFilter?: string
 ): Promise<MetaAdsCampaignEntry[]> {
   const id = resolveAccountId(accountId);
   const timeRange = buildTimeRange(dateRange, startDate, endDate);
 
-  const data = await fetchInsights(id, {
+  const params: Record<string, string> = {
     fields: CAMPAIGN_FIELDS.join(","),
     time_range: JSON.stringify(timeRange),
     level: "campaign",
     sort: "spend_descending",
     limit: String(limit),
-  });
+  };
+
+  if (campaignNameFilter) {
+    params.filtering = JSON.stringify([
+      { field: "campaign.name", operator: "CONTAIN", value: campaignNameFilter },
+    ]);
+  }
+
+  const data = await fetchInsights(id, params);
 
   return (data.data || []).map((row: Record<string, unknown>) => ({
     campaignName: (row.campaign_name as string) || "",

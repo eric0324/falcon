@@ -271,6 +271,50 @@ describe("queryCampaigns", () => {
     const calledUrl = mockFetch.mock.calls[0][0] as string;
     expect(calledUrl).toContain("limit=5");
   });
+
+  it("sends filtering parameter when campaignNameFilter is provided", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: [
+          {
+            campaign_name: "ASC_CV_28_超級數字力",
+            campaign_id: "333",
+            spend: "100.00",
+            impressions: "5000",
+            clicks: "200",
+            ctr: "4.0",
+            cpc: "0.50",
+            cpm: "20.00",
+            actions: [],
+            cost_per_action_type: [],
+          },
+        ],
+      }),
+    });
+
+    const { queryCampaigns } = await importClient();
+    await queryCampaigns("last_14d", "act_123", 25, undefined, undefined, "28");
+
+    const calledUrl = mockFetch.mock.calls[0][0] as string;
+    expect(calledUrl).toContain("filtering=");
+    expect(calledUrl).toContain("campaign.name");
+    expect(calledUrl).toContain("CONTAIN");
+    expect(calledUrl).toContain("28");
+  });
+
+  it("does not send filtering when campaignNameFilter is omitted", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: [] }),
+    });
+
+    const { queryCampaigns } = await importClient();
+    await queryCampaigns("last_7d", "act_123");
+
+    const calledUrl = mockFetch.mock.calls[0][0] as string;
+    expect(calledUrl).not.toContain("filtering=");
+  });
 });
 
 describe("queryTimeseries", () => {

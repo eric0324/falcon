@@ -115,7 +115,23 @@ describe("createMetaAdsTools", () => {
     );
 
     expect(result).toMatchObject({ success: true, service: "meta_ads" });
-    expect(mockCampaigns).toHaveBeenCalledWith("last_14d", "act_123", 5, undefined, undefined);
+    expect(mockCampaigns).toHaveBeenCalledWith("last_14d", "act_123", 5, undefined, undefined, undefined);
+  });
+
+  it("passes campaignNameFilter to queryCampaigns", async () => {
+    mockIsConfigured.mockReturnValue(true);
+    mockCampaigns.mockResolvedValue([
+      { campaignName: "ASC_CV_28_超級數字力", campaignId: "333", spend: 100, impressions: 5000, clicks: 200, ctr: 4.0, cpc: 0.5, cpm: 20, actions: [], costPerAction: [] },
+    ]);
+
+    const tools = createMetaAdsTools();
+    const result = await tools.metaAdsQuery.execute(
+      { action: "campaigns" as const, dateRange: "this_month", accountId: "act_123", campaignNameFilter: "28" },
+      execOpts
+    );
+
+    expect(result).toMatchObject({ success: true, service: "meta_ads" });
+    expect(mockCampaigns).toHaveBeenCalledWith("this_month", "act_123", 25, undefined, undefined, "28");
   });
 
   it("returns timeseries data with accountId", async () => {

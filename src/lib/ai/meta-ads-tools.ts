@@ -33,6 +33,7 @@ Use listAccounts first to see available accounts, then pass accountId to other a
         startDate: z.string().optional().describe("Start date for custom range (YYYY-MM-DD)"),
         endDate: z.string().optional().describe("End date for custom range (YYYY-MM-DD)"),
         limit: z.number().optional().describe("Max results for campaigns (default 25)"),
+        campaignNameFilter: z.string().optional().describe("Filter campaigns by name (CONTAIN match). Use this to search for specific campaigns by keyword, course ID, or product name."),
       }),
       execute: async (params) => {
         try {
@@ -77,7 +78,8 @@ Use listAccounts first to see available accounts, then pass accountId to other a
                 params.accountId,
                 params.limit || 25,
                 params.startDate,
-                params.endDate
+                params.endDate,
+                params.campaignNameFilter
               );
               return {
                 success: true,
