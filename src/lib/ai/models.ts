@@ -8,7 +8,7 @@ export const models = {
   "gpt-4o": openai("gpt-4o"),
   "gpt-4o-mini": openai("gpt-4o-mini"),
   "gemini-flash": google("gemini-2.0-flash"),
-  "gemini-pro": google("gemini-2.5-pro-preview-05-06"),
+  "gemini-pro": google("gemini-2.5-pro"),
 } as const;
 
 export type ModelId = keyof typeof models;

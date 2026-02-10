@@ -205,6 +205,8 @@ export async function POST(req: Request) {
         const currentMessages = [...messagesToSend];
         let step = 0;
 
+        try {
+
         // Send compact event if compaction occurred
         if (compactInfo) {
           const compactLine = `c:${JSON.stringify(compactInfo)}\n`;
@@ -361,7 +363,13 @@ export async function POST(req: Request) {
           }
         }
 
-        controller.close();
+        } catch (streamError) {
+          console.error(`[Chat API] Stream error:`, streamError);
+          const errorMsg = streamError instanceof Error ? streamError.message : String(streamError);
+          controller.enqueue(encoder.encode(`e:${JSON.stringify({ error: errorMsg })}\n`));
+        } finally {
+          controller.close();
+        }
       },
     });
 
