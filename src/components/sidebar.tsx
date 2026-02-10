@@ -15,7 +15,7 @@ import {
   ChevronUp,
   Globe,
   BookOpen,
-  HelpCircle,
+  Info,
   LogOut,
   Check,
 } from "lucide-react";
@@ -220,11 +220,9 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
               <BookOpen className="mr-2 h-4 w-4" />
               {t("userMenu.changelog")}
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <a href="https://github.com/eric0324/falcon/issues" target="_blank" rel="noopener noreferrer">
-                <HelpCircle className="mr-2 h-4 w-4" />
-                {t("userMenu.support")}
-              </a>
+            <DropdownMenuItem onClick={() => openSettings("about")}>
+              <Info className="mr-2 h-4 w-4" />
+              {t("userMenu.about")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -406,11 +404,9 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                 <BookOpen className="mr-2 h-4 w-4" />
                 {t("userMenu.changelog")}
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <a href="https://github.com/eric0324/falcon/issues" target="_blank" rel="noopener noreferrer">
-                  <HelpCircle className="mr-2 h-4 w-4" />
-                  {t("userMenu.support")}
-                </a>
+              <DropdownMenuItem onClick={() => openSettings("about")}>
+                <Info className="mr-2 h-4 w-4" />
+                {t("userMenu.about")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem

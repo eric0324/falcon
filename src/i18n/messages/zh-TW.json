@@ -54,7 +54,7 @@
     "userMenu": {
       "language": "介面語言",
       "changelog": "開發日記",
-      "support": "支援中心",
+      "about": "關於 Falcon",
       "logout": "登出"
     }
   },

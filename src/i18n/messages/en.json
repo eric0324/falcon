@@ -54,7 +54,7 @@
     "userMenu": {
       "language": "Language",
       "changelog": "Changelog",
-      "support": "Support",
+      "about": "About Falcon",
       "logout": "Logout"
     }
   },
