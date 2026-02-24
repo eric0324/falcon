@@ -2,6 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { estimateCost } from "@/lib/ai/models";
 import Link from "next/link";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Pagination } from "../pagination";
+
+const PAGE_SIZE = 10;
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -30,10 +33,19 @@ function getInitials(name: string | null): string {
   return name.slice(0, 1).toUpperCase();
 }
 
-export default async function AdminMembersPage() {
-  const [users, tokenAggregation] = await Promise.all([
+export default async function AdminMembersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const params = await searchParams;
+  const currentPage = Math.max(1, parseInt(params.page || "1", 10) || 1);
+
+  const [users, totalCount, tokenAggregation] = await Promise.all([
     prisma.user.findMany({
       orderBy: { createdAt: "desc" },
+      skip: (currentPage - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
       select: {
         id: true,
         name: true,
@@ -44,6 +56,7 @@ export default async function AdminMembersPage() {
         _count: { select: { conversations: true } },
       },
     }),
+    prisma.user.count(),
     prisma.tokenUsage.groupBy({
       by: ["userId", "model"],
       _sum: { inputTokens: true, outputTokens: true, totalTokens: true },
@@ -51,9 +64,14 @@ export default async function AdminMembersPage() {
     }),
   ]);
 
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+  // Build token stats map (only for users on this page)
+  const userIds = new Set(users.map((u) => u.id));
   const userStatsMap = new Map<string, { totalTokens: number; estimatedCost: number; lastActive: Date | null }>();
 
   for (const row of tokenAggregation) {
+    if (!userIds.has(row.userId)) continue;
     const prev = userStatsMap.get(row.userId) || { totalTokens: 0, estimatedCost: 0, lastActive: null };
     const inputTokens = row._sum.inputTokens || 0;
     const outputTokens = row._sum.outputTokens || 0;
@@ -68,25 +86,23 @@ export default async function AdminMembersPage() {
     });
   }
 
-  const members = users
-    .map((user) => {
-      const stats = userStatsMap.get(user.id);
-      return {
-        ...user,
-        totalTokens: stats?.totalTokens ?? 0,
-        estimatedCost: stats?.estimatedCost ?? 0,
-        lastActive: stats?.lastActive ?? null,
-        conversationCount: user._count.conversations,
-      };
-    })
-    .sort((a, b) => b.totalTokens - a.totalTokens);
+  const members = users.map((user) => {
+    const stats = userStatsMap.get(user.id);
+    return {
+      ...user,
+      totalTokens: stats?.totalTokens ?? 0,
+      estimatedCost: stats?.estimatedCost ?? 0,
+      lastActive: stats?.lastActive ?? null,
+      conversationCount: user._count.conversations,
+    };
+  });
 
   return (
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">成員管理</h1>
         <p className="text-muted-foreground mt-1">
-          共 {members.length} 位成員
+          共 {totalCount} 位成員
         </p>
       </div>
 
@@ -142,6 +158,8 @@ export default async function AdminMembersPage() {
           </tbody>
         </table>
       </div>
+
+      <Pagination currentPage={currentPage} totalPages={totalPages} basePath="/admin/members" />
     </div>
   );
 }

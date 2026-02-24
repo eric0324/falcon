@@ -5,13 +5,20 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ConversationList } from "./conversation-list";
+import { Pagination } from "../../pagination";
+
+const PAGE_SIZE = 10;
 
 export default async function AdminMemberDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
+  const currentPage = Math.max(1, parseInt(sp.page || "1", 10) || 1);
 
   const user = await prisma.user.findUnique({
     where: { id },
@@ -20,10 +27,12 @@ export default async function AdminMemberDetailPage({
 
   if (!user) notFound();
 
-  const [conversations, tokenAggregation] = await Promise.all([
+  const [conversations, totalCount] = await Promise.all([
     prisma.conversation.findMany({
       where: { userId: id },
       orderBy: { updatedAt: "desc" },
+      skip: (currentPage - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
       select: {
         id: true,
         title: true,
@@ -31,40 +40,35 @@ export default async function AdminMemberDetailPage({
         updatedAt: true,
         deletedAt: true,
         _count: { select: { conversationMessages: true } },
+        conversationMessages: {
+          where: { role: "assistant" },
+          select: { tokenUsages: true },
+        },
       },
     }),
-    prisma.tokenUsage.groupBy({
-      by: ["conversationId", "model"],
-      where: { userId: id, conversationId: { not: null } },
-      _sum: { inputTokens: true, outputTokens: true, totalTokens: true },
-    }),
+    prisma.conversation.count({ where: { userId: id } }),
   ]);
 
-  const convStatsMap = new Map<string, { totalTokens: number; estimatedCost: number }>();
-
-  for (const row of tokenAggregation) {
-    const convId = row.conversationId!;
-    const prev = convStatsMap.get(convId) || { totalTokens: 0, estimatedCost: 0 };
-    const inputTokens = row._sum.inputTokens || 0;
-    const outputTokens = row._sum.outputTokens || 0;
-    const totalTokens = row._sum.totalTokens || 0;
-    const cost = estimateCost(row.model, inputTokens, outputTokens);
-
-    convStatsMap.set(convId, {
-      totalTokens: prev.totalTokens + totalTokens,
-      estimatedCost: prev.estimatedCost + cost,
-    });
-  }
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const conversationData = conversations.map((conv) => {
-    const stats = convStatsMap.get(conv.id);
+    let totalTokens = 0;
+    let estimatedCost = 0;
+    for (const msg of conv.conversationMessages) {
+      for (const usage of msg.tokenUsages) {
+        const input = usage.inputTokens || 0;
+        const output = usage.outputTokens || 0;
+        totalTokens += input + output;
+        estimatedCost += estimateCost(usage.model, input, output);
+      }
+    }
     return {
       id: conv.id,
       title: conv.title || "Untitled",
       messageCount: conv._count.conversationMessages,
       model: conv.model,
-      totalTokens: stats?.totalTokens ?? 0,
-      estimatedCost: stats?.estimatedCost ?? 0,
+      totalTokens,
+      estimatedCost,
       updatedAt: conv.updatedAt.toISOString(),
       deletedAt: conv.deletedAt?.toISOString() ?? null,
     };
@@ -98,12 +102,12 @@ export default async function AdminMemberDetailPage({
         <h2 className="text-lg font-semibold">
           對話紀錄
           <span className="text-muted-foreground font-normal ml-2">
-            ({conversationData.length})
+            ({totalCount})
           </span>
         </h2>
       </div>
 
-      {conversationData.length === 0 ? (
+      {conversationData.length === 0 && currentPage === 1 ? (
         <p className="text-muted-foreground py-8 text-center">尚無對話紀錄</p>
       ) : (
         <ConversationList
@@ -111,6 +115,12 @@ export default async function AdminMemberDetailPage({
           userId={user.id}
         />
       )}
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        basePath={`/admin/members/${id}`}
+      />
     </div>
   );
 }
