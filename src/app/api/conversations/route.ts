@@ -55,7 +55,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { messages, model } = body;
+  const { messages, model, dataSources } = body;
 
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return new Response("messages is required", { status: 400 });
@@ -68,6 +68,7 @@ export async function POST(req: Request) {
     model: model || null,
     userId: session.user.id,
     messages: messages as Message[],
+    dataSources: dataSources || undefined,
   });
 
   // Link orphaned token usage records to the last assistant message

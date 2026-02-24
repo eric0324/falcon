@@ -75,12 +75,18 @@ export async function createConversationWithMessages(params: {
   model: string | null;
   userId: string;
   messages: Message[];
+  dataSources?: string[];
 }): Promise<{ conversation: Record<string, unknown>; assistantMessageIds: string[] }> {
-  const { title, model, userId, messages } = params;
+  const { title, model, userId, messages, dataSources } = params;
 
   return prisma.$transaction(async (tx) => {
     const conversation = await tx.conversation.create({
-      data: { title, model, userId },
+      data: {
+        title,
+        model,
+        userId,
+        ...(dataSources && dataSources.length > 0 ? { dataSources } : {}),
+      },
     });
 
     if (messages.length > 0) {

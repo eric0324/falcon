@@ -33,19 +33,6 @@ import {
   Github,
 } from "lucide-react";
 
-interface DataSource {
-  id: string;
-  name: string;
-  displayName: string;
-  description: string | null;
-  type: string;
-  capabilities: {
-    canRead: boolean;
-    canWrite: boolean;
-    canDelete: boolean;
-  };
-}
-
 type GoogleServiceType = "sheets" | "drive" | "calendar" | "gmail";
 
 const GOOGLE_SERVICES: {
@@ -89,7 +76,6 @@ export function DataSourceSelector({
   const t = useTranslations("dataSource");
   const tGoogle = useTranslations("google");
   const tIntegrations = useTranslations("integrations");
-  const [dataSources, setDataSources] = useState<DataSource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [googleStatus, setGoogleStatus] = useState<GoogleConnectionStatus>({
     sheets: false,
@@ -136,24 +122,11 @@ export function DataSourceSelector({
     }
   }, []);
 
-  // Fetch data sources
   useEffect(() => {
-    async function fetchDataSources() {
-      try {
-        const res = await fetch("/api/data-sources");
-        if (res.ok) {
-          const data = await res.json();
-          setDataSources(data);
-        }
-      } catch {
-        // Silently fail
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchDataSources();
-    fetchGoogleStatus();
-    fetchIntegrationStatus();
+    setIsLoading(true);
+    Promise.all([fetchGoogleStatus(), fetchIntegrationStatus()]).finally(() =>
+      setIsLoading(false)
+    );
   }, [fetchGoogleStatus, fetchIntegrationStatus]);
 
   // Handle Google service connect
@@ -175,13 +148,6 @@ export function DataSourceSelector({
   const selectedCount = value.length;
   const getSelectedNames = () => {
     const names: string[] = [];
-
-    // Regular data sources
-    dataSources.forEach((ds) => {
-      if (value.includes(ds.id)) {
-        names.push(ds.displayName);
-      }
-    });
 
     // Google services
     GOOGLE_SERVICES.forEach(({ id }) => {
@@ -247,41 +213,6 @@ export function DataSourceSelector({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-80">
         <DropdownMenuLabel>{t("title")}</DropdownMenuLabel>
-
-        {/* Regular Data Sources */}
-        {dataSources.length > 0 && (
-          <>
-            <DropdownMenuSeparator />
-            {dataSources.map((ds) => {
-              const isSelected = value.includes(ds.id);
-
-              return (
-                <DropdownMenuItem
-                  key={ds.id}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleToggle(ds.id);
-                  }}
-                  className="flex items-start gap-2.5 py-2.5 cursor-pointer"
-                >
-                  <div className="w-4 flex items-center justify-center shrink-0 mt-0.5">
-                    {isSelected && <Check className="h-4 w-4" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="font-medium text-sm truncate">
-                      {ds.displayName}
-                    </span>
-                    {ds.description && (
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                        {ds.description}
-                      </p>
-                    )}
-                  </div>
-                </DropdownMenuItem>
-              );
-            })}
-          </>
-        )}
 
         {/* Google Services - Sub Menu */}
         <DropdownMenuSeparator />

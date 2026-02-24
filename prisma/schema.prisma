@@ -89,6 +89,7 @@ model Conversation {
   title       String?
   model       String?
   summary     String?   @db.Text
+  dataSources Json?
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String

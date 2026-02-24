@@ -633,7 +633,6 @@ function StudioContent() {
           code,
           messages,
           conversationId: convId,
-          dataSources: usedDataSources.length > 0 ? usedDataSources : null,
         }),
       });
 

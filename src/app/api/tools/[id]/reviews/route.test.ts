@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 
 const mockGetServerSession = vi.hoisted(() => vi.fn());
 const prismaMock = vi.hoisted(() => ({
-  review: {
+  toolReview: {
     findMany: vi.fn(),
     upsert: vi.fn(),
     deleteMany: vi.fn(),
@@ -34,7 +34,7 @@ describe("GET /api/tools/[id]/reviews", () => {
     const reviews = [
       { id: "r1", rating: 5, content: "Great", user: { id: "u1", name: "Alice", image: null }, replies: [] },
     ];
-    prismaMock.review.findMany.mockResolvedValue(reviews);
+    prismaMock.toolReview.findMany.mockResolvedValue(reviews);
 
     const req = new NextRequest("http://localhost/api/tools/t1/reviews");
     const res = await GET(req, makeParams("t1"));
@@ -45,11 +45,11 @@ describe("GET /api/tools/[id]/reviews", () => {
   });
 
   it("supports sort by rating", async () => {
-    prismaMock.review.findMany.mockResolvedValue([]);
+    prismaMock.toolReview.findMany.mockResolvedValue([]);
     const req = new NextRequest("http://localhost/api/tools/t1/reviews?sort=rating");
     await GET(req, makeParams("t1"));
 
-    expect(prismaMock.review.findMany).toHaveBeenCalledWith(
+    expect(prismaMock.toolReview.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         orderBy: { rating: "desc" },
       })
@@ -109,13 +109,13 @@ describe("POST /api/tools/[id]/reviews", () => {
       id: "t1",
       authorId: "other-user",
     });
-    prismaMock.review.upsert.mockResolvedValue({
+    prismaMock.toolReview.upsert.mockResolvedValue({
       id: "r1",
       rating: 5,
       content: "Great",
       user: { id: "user-1", name: "Test User", image: null },
     });
-    prismaMock.review.aggregate.mockResolvedValue({
+    prismaMock.toolReview.aggregate.mockResolvedValue({
       _avg: { rating: 4.5 },
       _count: 10,
     });
@@ -134,8 +134,8 @@ describe("POST /api/tools/[id]/reviews", () => {
   it("calculates weighted rating using IMDB formula", async () => {
     mockGetServerSession.mockResolvedValue(mockSession);
     prismaMock.tool.findUnique.mockResolvedValue({ id: "t1", authorId: "other" });
-    prismaMock.review.upsert.mockResolvedValue({ id: "r1", rating: 5 });
-    prismaMock.review.aggregate.mockResolvedValue({
+    prismaMock.toolReview.upsert.mockResolvedValue({ id: "r1", rating: 5 });
+    prismaMock.toolReview.aggregate.mockResolvedValue({
       _avg: { rating: 4.0 },
       _count: 20,
     });
@@ -173,7 +173,7 @@ describe("DELETE /api/tools/[id]/reviews", () => {
 
   it("returns 404 when no review to delete", async () => {
     mockGetServerSession.mockResolvedValue(mockSession);
-    prismaMock.review.deleteMany.mockResolvedValue({ count: 0 });
+    prismaMock.toolReview.deleteMany.mockResolvedValue({ count: 0 });
 
     const req = new NextRequest("http://localhost/api/tools/t1/reviews", { method: "DELETE" });
     const res = await DELETE(req, makeParams("t1"));
@@ -182,8 +182,8 @@ describe("DELETE /api/tools/[id]/reviews", () => {
 
   it("deletes own review successfully", async () => {
     mockGetServerSession.mockResolvedValue(mockSession);
-    prismaMock.review.deleteMany.mockResolvedValue({ count: 1 });
-    prismaMock.review.aggregate.mockResolvedValue({
+    prismaMock.toolReview.deleteMany.mockResolvedValue({ count: 1 });
+    prismaMock.toolReview.aggregate.mockResolvedValue({
       _avg: { rating: 4.0 },
       _count: 5,
     });

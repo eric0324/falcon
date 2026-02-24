@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { SYSTEM_PROMPT, buildSystemPrompt } from "./system-prompt";
 
 describe("SYSTEM_PROMPT", () => {
-  it("should identify as a Studio assistant, not just a tool generator", () => {
-    expect(SYSTEM_PROMPT).toContain("Studio Assistant");
+  it("should identify as Falcon, not just a tool generator", () => {
+    expect(SYSTEM_PROMPT).toContain("Falcon");
   });
 
   it("should support general conversation", () => {
