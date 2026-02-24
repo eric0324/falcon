@@ -64,6 +64,122 @@ async function withMysqlConnection<T>(
   }
 }
 
+const MAX_ROWS = 100;
+const QUERY_TIMEOUT_MS = 30_000;
+const MAX_CELL_LENGTH = 500;
+
+const FORBIDDEN_PATTERN = /\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|EXEC|EXECUTE)\b/i;
+
+const SYSTEM_SCHEMAS = [
+  "information_schema",
+  "pg_catalog",
+  "pg_shadow",
+  "pg_authid",
+  "pg_roles",
+  "pg_user",
+  "mysql",
+  "performance_schema",
+  "sys",
+];
+
+export function validateSelectOnly(sql: string): void {
+  const trimmed = sql.trim();
+  if (!/^(SELECT|WITH)\b/i.test(trimmed)) {
+    throw new Error("只允許 SELECT 查詢");
+  }
+  if (FORBIDDEN_PATTERN.test(trimmed)) {
+    throw new Error("只允許 SELECT 查詢");
+  }
+}
+
+/**
+ * Extract table names referenced in SQL (FROM / JOIN clauses).
+ * Handles: `FROM table`, `FROM schema.table`, `JOIN table`, `FROM table alias`
+ * Does not handle all edge cases but covers typical LLM-generated SQL.
+ */
+export function extractTableNames(sql: string): string[] {
+  const names: string[] = [];
+  // Match FROM/JOIN followed by optional schema.table or just table
+  const pattern = /\b(?:FROM|JOIN)\s+([`"']?[\w.*]+[`"']?(?:\s*\.\s*[`"']?[\w*]+[`"']?)?)/gi;
+  let match;
+  while ((match = pattern.exec(sql)) !== null) {
+    const raw = match[1].replace(/[`"']/g, "").trim();
+    names.push(raw.toLowerCase());
+  }
+  return names;
+}
+
+export function validateTableAccess(sql: string, allowedTables: string[]): void {
+  const referenced = extractTableNames(sql);
+  const allowed = new Set(allowedTables.map((t) => t.toLowerCase()));
+
+  for (const ref of referenced) {
+    // Block system schema access (e.g. "mysql.user", "pg_catalog.pg_authid")
+    const schema = ref.includes(".") ? ref.split(".")[0] : null;
+    if (schema && SYSTEM_SCHEMAS.includes(schema)) {
+      throw new Error(`禁止查詢系統資料表: ${ref}`);
+    }
+    // Also block direct references to known system tables
+    if (SYSTEM_SCHEMAS.includes(ref)) {
+      throw new Error(`禁止查詢系統資料表: ${ref}`);
+    }
+
+    // Check the table name part (after schema prefix if any)
+    const tableName = ref.includes(".") ? ref.split(".")[1] : ref;
+    if (!allowed.has(tableName)) {
+      throw new Error(`無權存取資料表: ${tableName}`);
+    }
+  }
+}
+
+export function ensureLimit(sql: string, limit = MAX_ROWS): string {
+  const trimmed = sql.trim().replace(/;+\s*$/, "");
+  if (/\bLIMIT\s+\d+/i.test(trimmed)) {
+    return trimmed;
+  }
+  return `${trimmed} LIMIT ${limit}`;
+}
+
+function truncateCellValues(rows: Record<string, unknown>[]): Record<string, unknown>[] {
+  return rows.map((row) => {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(row)) {
+      if (typeof value === "string" && value.length > MAX_CELL_LENGTH) {
+        result[key] = value.slice(0, MAX_CELL_LENGTH) + "…";
+      } else {
+        result[key] = value;
+      }
+    }
+    return result;
+  });
+}
+
+export async function executeQuery(
+  config: DbConnectionConfig,
+  sql: string
+): Promise<{ rows: Record<string, unknown>[]; rowCount: number }> {
+  validateSelectOnly(sql);
+  const safeSql = ensureLimit(sql);
+
+  if (config.type === "POSTGRESQL") {
+    return withPgClient(config, async (client) => {
+      await client.query(`SET statement_timeout = ${QUERY_TIMEOUT_MS}`);
+      const result = await client.query(safeSql);
+      const rows = truncateCellValues(result.rows.slice(0, MAX_ROWS));
+      return { rows, rowCount: rows.length };
+    });
+  }
+
+  return withMysqlConnection(config, async (conn) => {
+    await conn.query(`SET SESSION MAX_EXECUTION_TIME = ${QUERY_TIMEOUT_MS}`);
+    const [rawRows] = await conn.query<mysql.RowDataPacket[]>(safeSql);
+    const rows = truncateCellValues(
+      (rawRows as Record<string, unknown>[]).slice(0, MAX_ROWS)
+    );
+    return { rows, rowCount: rows.length };
+  });
+}
+
 export async function testConnection(config: DbConnectionConfig): Promise<void> {
   if (config.type === "POSTGRESQL") {
     await withPgClient(config, async (client) => {

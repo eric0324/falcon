@@ -11,6 +11,7 @@ import { createPlausibleTools } from "@/lib/ai/plausible-tools";
 import { createGA4Tools } from "@/lib/ai/ga4-tools";
 import { createMetaAdsTools } from "@/lib/ai/meta-ads-tools";
 import { createGitHubTools } from "@/lib/ai/github-tools";
+import { createExternalDbTools } from "@/lib/ai/external-db-tools";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 import { shouldCompact } from "@/lib/ai/token-utils";
 import { compactMessages } from "@/lib/ai/compact";
@@ -139,6 +140,15 @@ export async function POST(req: Request) {
       // GitHub - only if explicitly selected
       if (selectedSources.has("github")) {
         filteredTools = { ...filteredTools, ...githubTools };
+      }
+
+      // External databases - match extdb_ prefix
+      const extDbIds = Array.from(selectedSources)
+        .filter((s) => s.startsWith("extdb_"))
+        .map((s) => s.replace("extdb_", ""));
+      if (extDbIds.length > 0) {
+        const extDbTools = createExternalDbTools(userId, extDbIds);
+        filteredTools = { ...filteredTools, ...extDbTools };
       }
     }
     // If no data sources selected, only use studioTools (no external data access)

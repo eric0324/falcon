@@ -350,6 +350,24 @@ const GITHUB_INSTRUCTIONS = `
 - Use parallel calls: get listPRs + commits for the same repo simultaneously
 - Patches in readPR are truncated for large PRs — mention total file count to the user`;
 
+// External database instructions
+const EXTERNAL_DB_INSTRUCTIONS = `
+
+## 外部資料庫查詢
+
+你可以查詢使用者授權的外部資料庫。請按以下步驟：
+1. 先用 listTables 查看可用的資料表和說明
+2. 用 getTableSchema 了解需要的資料表欄位結構
+3. 根據欄位資訊組合 SQL（僅 SELECT）
+4. 用 queryDatabase 執行查詢
+5. 分析結果回答使用者的問題
+
+注意：
+- 參考 table 和 column 的備註（note）來理解資料意義
+- 只能用 SELECT 語句
+- 查詢結果最多 100 筆
+- 使用 parallel calls：可以同時查詢多張表的 schema`;
+
 // No data source instructions
 const NO_DATA_SOURCE_INSTRUCTIONS = `
 
@@ -425,6 +443,12 @@ export function buildSystemPrompt(dataSources?: string[]): string {
 
   if (hasGitHub) {
     prompt += GITHUB_INSTRUCTIONS;
+  }
+
+  // External databases
+  const hasExtDb = dataSources.some(ds => ds.startsWith("extdb_"));
+  if (hasExtDb) {
+    prompt += EXTERNAL_DB_INSTRUCTIONS;
   }
 
   return prompt;

@@ -220,7 +220,8 @@
     "selectedCount": "已選 {count} 個",
     "canRead": "可讀取",
     "canWrite": "可寫入",
-    "clearAll": "清除全部"
+    "clearAll": "清除全部",
+    "externalDb": "資料庫"
   },
   "google": {
     "title": "Google",

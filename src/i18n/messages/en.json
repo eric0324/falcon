@@ -220,7 +220,8 @@
     "selectedCount": "{count} selected",
     "canRead": "Read",
     "canWrite": "Write",
-    "clearAll": "Clear all"
+    "clearAll": "Clear all",
+    "externalDb": "Databases"
   },
   "google": {
     "title": "Google",

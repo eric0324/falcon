@@ -51,6 +51,12 @@ interface DataSourceSelectorProps {
   disabled?: boolean;
 }
 
+interface ExternalDb {
+  id: string;
+  name: string;
+  type: string;
+}
+
 type GoogleConnectionStatus = {
   sheets: boolean;
   drive: boolean;
@@ -92,7 +98,21 @@ export function DataSourceSelector({
     meta_ads: false,
     github: false,
   });
+  const [externalDbs, setExternalDbs] = useState<ExternalDb[]>([]);
   const [connectingService, setConnectingService] = useState<string | null>(null);
+
+  // Fetch external databases
+  const fetchExternalDbs = useCallback(async () => {
+    try {
+      const res = await fetch("/api/external-databases");
+      if (res.ok) {
+        const data = await res.json();
+        setExternalDbs(data.databases || []);
+      }
+    } catch {
+      // Silently fail
+    }
+  }, []);
 
   // Fetch Google connection status
   const fetchGoogleStatus = useCallback(async () => {
@@ -124,10 +144,10 @@ export function DataSourceSelector({
 
   useEffect(() => {
     setIsLoading(true);
-    Promise.all([fetchGoogleStatus(), fetchIntegrationStatus()]).finally(() =>
+    Promise.all([fetchGoogleStatus(), fetchIntegrationStatus(), fetchExternalDbs()]).finally(() =>
       setIsLoading(false)
     );
-  }, [fetchGoogleStatus, fetchIntegrationStatus]);
+  }, [fetchGoogleStatus, fetchIntegrationStatus, fetchExternalDbs]);
 
   // Handle Google service connect
   const handleGoogleConnect = (service: GoogleServiceType) => {
@@ -177,6 +197,13 @@ export function DataSourceSelector({
     }
     if (value.includes("github")) {
       names.push(tIntegrations("github.name"));
+    }
+
+    // External databases
+    for (const db of externalDbs) {
+      if (value.includes(`extdb_${db.id}`)) {
+        names.push(db.name);
+      }
     }
 
     return names;
@@ -515,6 +542,45 @@ export function DataSourceSelector({
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+
+        {/* External Databases - Sub Menu */}
+        {externalDbs.length > 0 && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="flex items-center gap-2.5 py-2.5 cursor-pointer">
+              <div className="w-4 flex items-center justify-center shrink-0">
+                {externalDbs.some((db) => value.includes(`extdb_${db.id}`)) && (
+                  <Check className="h-4 w-4" />
+                )}
+              </div>
+              <span className="font-medium text-sm">{t("externalDb")}</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-80">
+              {externalDbs.map((db) => {
+                const dsId = `extdb_${db.id}`;
+                const isSelected = value.includes(dsId);
+                return (
+                  <DropdownMenuItem
+                    key={db.id}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleToggle(dsId);
+                    }}
+                    className="flex items-start gap-2 py-2.5 cursor-pointer"
+                  >
+                    <div className="w-4 flex items-center justify-center shrink-0 mt-0.5">
+                      {isSelected && <Check className="h-4 w-4" />}
+                    </div>
+                    <Database className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium text-sm block">{db.name}</span>
+                      <p className="text-xs text-muted-foreground">{db.type}</p>
+                    </div>
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
 
         {/* Clear All */}
         {selectedCount > 0 && (

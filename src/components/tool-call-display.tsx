@@ -32,6 +32,9 @@ const toolIcons: Record<string, React.ReactNode> = {
   ga4Query: <LineChart className="h-4 w-4" />,
   metaAdsQuery: <Megaphone className="h-4 w-4" />,
   githubQuery: <Github className="h-4 w-4" />,
+  listTables: <Database className="h-4 w-4" />,
+  getTableSchema: <Database className="h-4 w-4" />,
+  queryDatabase: <Search className="h-4 w-4" />,
 };
 
 // Labels when tool is being called (in progress)
@@ -50,6 +53,9 @@ const toolCallingLabels: Record<string, string> = {
   ga4Query: "正在查詢 GA4 流量數據...",
   metaAdsQuery: "正在查詢 Meta 廣告數據...",
   githubQuery: "正在查詢 GitHub 資料...",
+  listTables: "正在查看可用的資料表...",
+  getTableSchema: "正在分析資料表結構...",
+  queryDatabase: "正在查詢資料庫...",
 };
 
 // Labels when tool is completed
@@ -68,6 +74,9 @@ const toolCompletedLabels: Record<string, string> = {
   ga4Query: "已查詢 GA4 流量數據",
   metaAdsQuery: "已查詢 Meta 廣告數據",
   githubQuery: "已查詢 GitHub 資料",
+  listTables: "已列出可用資料表",
+  getTableSchema: "已取得資料表結構",
+  queryDatabase: "已查詢資料庫",
 };
 
 export function ToolCallDisplay({ toolCall }: ToolCallDisplayProps) {
@@ -109,10 +118,12 @@ export function ToolCallDisplay({ toolCall }: ToolCallDisplayProps) {
     return JSON.stringify(toolCall.result, null, 2);
   };
 
-  // Don't show args for updateCode (too long)
+  // Hide internal details for certain tools
+  const hiddenTools = new Set(["updateCode", "listTables", "getTableSchema", "queryDatabase"]);
   const args = toolCall.args || {};
-  const shouldShowArgs = toolCall.name !== "updateCode" && Object.keys(args).length > 0;
-  const hasDetails = shouldShowArgs || (toolCall.status === "completed" && toolCall.result != null);
+  const shouldShowArgs = !hiddenTools.has(toolCall.name) && Object.keys(args).length > 0;
+  const shouldShowResult = !hiddenTools.has(toolCall.name);
+  const hasDetails = shouldShowArgs || (shouldShowResult && toolCall.status === "completed" && toolCall.result != null);
 
   return (
     <div className="bg-muted/50 rounded-lg border text-sm overflow-hidden">
@@ -175,7 +186,7 @@ export function ToolCallDisplay({ toolCall }: ToolCallDisplayProps) {
               ))}
             </div>
           )}
-          {toolCall.status === "completed" && toolCall.result != null && (
+          {shouldShowResult && toolCall.status === "completed" && toolCall.result != null && (
             <div className="text-xs text-muted-foreground mt-2 p-2 bg-background rounded border max-h-48 overflow-auto">
               <pre className="whitespace-pre-wrap">{formatResult()}</pre>
             </div>
