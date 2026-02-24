@@ -51,6 +51,7 @@ export function ConversationList({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [loading, setLoading] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   async function toggleConversation(conversationId: string) {
     if (expandedId === conversationId) {
@@ -63,6 +64,7 @@ export function ConversationList({
     if (messages[conversationId]) return;
 
     setLoading(conversationId);
+    setErrors((prev) => ({ ...prev, [conversationId]: "" }));
     try {
       const res = await fetch(
         `/api/admin/members/${userId}/conversations/${conversationId}`
@@ -73,7 +75,11 @@ export function ConversationList({
           ...prev,
           [conversationId]: data.messages || [],
         }));
+      } else {
+        setErrors((prev) => ({ ...prev, [conversationId]: `載入失敗 (${res.status})` }));
       }
+    } catch {
+      setErrors((prev) => ({ ...prev, [conversationId]: "載入失敗（網路錯誤）" }));
     } finally {
       setLoading(null);
     }
@@ -118,6 +124,8 @@ export function ConversationList({
             <div className="px-4 pb-4 pl-11">
               {loading === conv.id ? (
                 <p className="text-sm text-muted-foreground py-4">載入中...</p>
+              ) : errors[conv.id] ? (
+                <p className="text-sm text-red-500 py-4">{errors[conv.id]}</p>
               ) : messages[conv.id] ? (
                 <div className="space-y-3 max-h-[600px] overflow-y-auto">
                   {messages[conv.id].map((msg, i) => (
