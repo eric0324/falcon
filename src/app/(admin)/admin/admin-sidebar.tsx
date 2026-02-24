@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Wrench, ArrowLeft } from "lucide-react";
+import { Users, Wrench, Database, Shield, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/admin/members", label: "使用者管理", icon: Users },
-  { href: "/admin/tools", label: "工具管理", icon: Wrench, disabled: true },
+  { href: "/admin/tools", label: "工具管理", icon: Wrench },
+  { href: "/admin/databases", label: "資料庫管理", icon: Database },
+  { href: "/admin/roles", label: "角色管理", icon: Shield },
 ];
 
 export function AdminSidebar() {
@@ -25,18 +27,6 @@ export function AdminSidebar() {
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           const Icon = item.icon;
-
-          if (item.disabled) {
-            return (
-              <div
-                key={item.href}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-neutral-400 cursor-not-allowed"
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </div>
-            );
-          }
 
           return (
             <Link

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ConversationList } from "./conversation-list";
+import { UserRoleAssignment } from "./user-role-assignment";
 import { Pagination } from "../../pagination";
 
 const PAGE_SIZE = 10;
@@ -20,10 +21,19 @@ export default async function AdminMemberDetailPage({
   const sp = await searchParams;
   const currentPage = Math.max(1, parseInt(sp.page || "1", 10) || 1);
 
-  const user = await prisma.user.findUnique({
-    where: { id },
-    select: { id: true, name: true, email: true, image: true, department: true },
-  });
+  const [user, allRoles] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true, name: true, email: true, image: true, department: true,
+        companyRoles: { select: { id: true, name: true } },
+      },
+    }),
+    prisma.companyRole.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
 
   if (!user) notFound();
 
@@ -97,6 +107,13 @@ export default async function AdminMemberDetailPage({
           </p>
         </div>
       </div>
+
+      {/* Role assignment */}
+      <UserRoleAssignment
+        userId={user.id}
+        allRoles={allRoles}
+        assignedRoleIds={user.companyRoles.map((r) => r.id)}
+      />
 
       <div className="mb-4">
         <h2 className="text-lg font-semibold">

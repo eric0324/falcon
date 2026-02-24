@@ -56,6 +56,7 @@ model User {
   toolReviewReplies   ToolReviewReply[]
   tokenUsages              TokenUsage[]
   userGoogleServiceTokens  UserGoogleServiceToken[]
+  companyRoles             CompanyRole[]
 }
 
 model Tool {
@@ -243,5 +244,75 @@ model UserGoogleServiceToken {
 
   @@unique([userId, service])
   @@index([userId])
+}
+
+// ===== External Database Models =====
+
+enum DatabaseType {
+  POSTGRESQL
+  MYSQL
+}
+
+model ExternalDatabase {
+  id         String       @id @default(cuid())
+  name       String
+  type       DatabaseType
+  host       String
+  port       Int
+  database   String
+  username   String
+  password   String       @db.Text
+  sslEnabled Boolean      @default(false)
+
+  lastSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tables ExternalDatabaseTable[]
+
+  @@index([createdAt])
+}
+
+model ExternalDatabaseTable {
+  id         String  @id @default(cuid())
+  databaseId String
+  tableName  String
+  note       String? @db.Text
+  hidden     Boolean @default(false)
+
+  database     ExternalDatabase       @relation(fields: [databaseId], references: [id], onDelete: Cascade)
+  columns      ExternalDatabaseColumn[]
+  allowedRoles CompanyRole[]
+
+  @@unique([databaseId, tableName])
+  @@index([databaseId])
+}
+
+model ExternalDatabaseColumn {
+  id           String  @id @default(cuid())
+  tableId      String
+  columnName   String
+  dataType     String
+  isNullable   Boolean @default(true)
+  isPrimaryKey Boolean @default(false)
+  note         String? @db.Text
+
+  table        ExternalDatabaseTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  allowedRoles CompanyRole[]
+
+  @@unique([tableId, columnName])
+  @@index([tableId])
+}
+
+// ===== Company Role Model =====
+
+model CompanyRole {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  users   User[]
+  tables  ExternalDatabaseTable[]
+  columns ExternalDatabaseColumn[]
 }
 
