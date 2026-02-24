@@ -1,19 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockGetServerSession = vi.hoisted(() => vi.fn());
+const mockCreateConversationWithMessages = vi.hoisted(() => vi.fn());
+const mockLinkOrphanTokenUsage = vi.hoisted(() => vi.fn());
 const prismaMock = vi.hoisted(() => ({
   conversation: {
     findMany: vi.fn(),
-    create: vi.fn(),
-  },
-  tokenUsage: {
-    updateMany: vi.fn(),
   },
 }));
 
 vi.mock("next-auth", () => ({ getServerSession: mockGetServerSession }));
 vi.mock("@/lib/auth", () => ({ authOptions: {} }));
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
+vi.mock("@/lib/conversation-messages", () => ({
+  createConversationWithMessages: mockCreateConversationWithMessages,
+  linkOrphanTokenUsage: mockLinkOrphanTokenUsage,
+}));
 
 import { GET, POST } from "./route";
 
@@ -86,20 +88,22 @@ describe("POST /api/conversations", () => {
     expect(res.status).toBe(401);
   });
 
-  it("creates a conversation with messages", async () => {
+  it("creates a conversation with messages via createConversationWithMessages", async () => {
     mockGetServerSession.mockResolvedValue(mockSession);
     const messages = [
       { role: "user", content: "幫我查訂單" },
       { role: "assistant", content: "好的，讓我查看..." },
     ];
-    prismaMock.conversation.create.mockResolvedValue({
-      id: "conv-new",
-      title: "幫我查訂單",
-      messages,
-      model: "claude-sonnet-4-20250514",
-      userId: "user-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    mockCreateConversationWithMessages.mockResolvedValue({
+      conversation: {
+        id: "conv-new",
+        title: "幫我查訂單",
+        model: "claude-sonnet-4-20250514",
+        userId: "user-1",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      assistantMessageIds: ["msg-2"],
     });
 
     const res = await POST(
@@ -112,13 +116,25 @@ describe("POST /api/conversations", () => {
     const body = await res.json();
     expect(body.id).toBe("conv-new");
     expect(body.title).toBe("幫我查訂單");
+    expect(mockCreateConversationWithMessages).toHaveBeenCalledWith({
+      title: "幫我查訂單",
+      model: "claude-sonnet-4-20250514",
+      userId: "user-1",
+      messages,
+    });
+
+    // Orphan linking should delegate to linkOrphanTokenUsage with last assistant message
+    expect(mockLinkOrphanTokenUsage).toHaveBeenCalledWith("user-1", "msg-2");
   });
 
-  it("auto-generates title from first user message", async () => {
+  it("auto-generates title from first user message (max 50 chars)", async () => {
     mockGetServerSession.mockResolvedValue(mockSession);
-    prismaMock.conversation.create.mockResolvedValue({
-      id: "conv-new",
-      title: "這是一個很長的訊息應該要被截斷到五十個字以內才對不然標題就太",
+    mockCreateConversationWithMessages.mockResolvedValue({
+      conversation: {
+        id: "conv-new",
+        title: "這是一個很長的訊息應該要被截斷到五十個字以內才對不然標題就太",
+      },
+      assistantMessageIds: [],
     });
 
     await POST(
@@ -133,16 +149,8 @@ describe("POST /api/conversations", () => {
       })
     );
 
-    expect(prismaMock.conversation.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          title: expect.any(String),
-        }),
-      })
-    );
-    // Title should be max 50 chars
-    const callArgs = prismaMock.conversation.create.mock.calls[0][0];
-    expect(callArgs.data.title.length).toBeLessThanOrEqual(50);
+    const callArgs = mockCreateConversationWithMessages.mock.calls[0][0];
+    expect(callArgs.title.length).toBeLessThanOrEqual(50);
   });
 
   it("returns 400 when messages are missing", async () => {

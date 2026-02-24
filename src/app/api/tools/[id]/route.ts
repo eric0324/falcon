@@ -36,8 +36,11 @@ export async function GET(
           },
         },
         conversation: {
-          select: {
-            messages: true,
+          include: {
+            conversationMessages: {
+              orderBy: { orderIndex: "asc" as const },
+              select: { role: true, content: true, toolCalls: true },
+            },
           },
         },
       },
@@ -52,7 +55,22 @@ export async function GET(
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    return NextResponse.json(tool);
+    // Transform conversationMessages back to messages for API compatibility
+    const { conversation, ...rest } = tool;
+    const transformed = {
+      ...rest,
+      conversation: conversation
+        ? {
+            messages: conversation.conversationMessages.map((m) => ({
+              role: m.role,
+              content: m.content,
+              ...(m.toolCalls ? { toolCalls: m.toolCalls } : {}),
+            })),
+          }
+        : null,
+    };
+
+    return NextResponse.json(transformed);
   } catch (error) {
     console.error("GET /api/tools/[id] error:", error);
     return NextResponse.json(
@@ -75,7 +93,7 @@ export async function PATCH(
 
   try {
     const { id } = await params;
-    const { name, description, code, category, tags, visibility, conversationId, dataSources } = await req.json();
+    const { name, description, code, category, tags, visibility, conversationId } = await req.json();
 
     // Check ownership
     const existingTool = await prisma.tool.findUnique({
@@ -100,7 +118,6 @@ export async function PATCH(
         ...(tags !== undefined && { tags }),
         ...(visibility && { visibility }),
         ...(conversationId && !existingTool.conversationId && { conversationId }),
-        ...(dataSources !== undefined && { dataSources }),
       },
     });
 

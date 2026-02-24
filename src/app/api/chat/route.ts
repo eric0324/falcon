@@ -146,9 +146,6 @@ export async function POST(req: Request) {
     // Build dynamic system prompt based on selected data sources
     const systemPrompt = buildSystemPrompt(dataSources);
 
-    console.log(`[Chat API] Selected data sources:`, dataSources);
-    console.log(`[Chat API] Available tools:`, Object.keys(filteredTools));
-
     // Process messages to include files and reconstruct tool call history
     const processedMessages: CoreMessage[] = [];
     for (let i = 0; i < messages.length; i++) {
@@ -243,7 +240,6 @@ export async function POST(req: Request) {
 
         while (step < MAX_STEPS) {
           step++;
-          console.log(`[Chat API] Step ${step}`);
 
           const result = streamText({
             model: selectedModel,
@@ -301,7 +297,6 @@ export async function POST(req: Request) {
             if (usage) {
               totalInputTokens += usage.inputTokens || 0;
               totalOutputTokens += usage.outputTokens || 0;
-              console.log(`[Chat API] Step ${step} usage:`, usage);
             }
           } catch (e) {
             console.error(`[Chat API] Failed to get usage:`, e);
@@ -309,7 +304,6 @@ export async function POST(req: Request) {
 
           // If no tool calls, we're done
           if (!hasToolCalls) {
-            console.log(`[Chat API] No tool calls, finishing`);
             break;
           }
 
@@ -341,13 +335,11 @@ export async function POST(req: Request) {
             }),
           });
 
-          console.log(`[Chat API] Tool calls processed, continuing loop`);
         }
 
         // If we exhausted all steps and the last step had tool calls,
         // do one final call WITHOUT tools to force a text response
         if (step >= MAX_STEPS) {
-          console.log(`[Chat API] Max steps reached, forcing final text response`);
           const finalResult = streamText({
             model: selectedModel,
             system: systemPrompt + "\n\n（你已用完所有工具呼叫次數，請根據已取得的資料回答使用者。如果資訊不完整，告知使用者你找到了什麼，以及還需要什麼。）",
@@ -378,14 +370,12 @@ export async function POST(req: Request) {
             await prisma.tokenUsage.create({
               data: {
                 userId,
-                conversationId: conversationId || null,
                 model: modelName,
                 inputTokens: totalInputTokens,
                 outputTokens: totalOutputTokens,
                 totalTokens: totalInputTokens + totalOutputTokens,
               },
             });
-            console.log(`[Chat API] Token usage saved: input=${totalInputTokens}, output=${totalOutputTokens}`);
           } catch (e) {
             console.error(`[Chat API] Failed to save token usage:`, e);
           }

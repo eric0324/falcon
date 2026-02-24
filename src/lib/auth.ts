@@ -1,6 +1,5 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { GOOGLE_SCOPES } from "@/lib/google/config";
 import { encryptToken } from "@/lib/google/encryption";
@@ -17,7 +16,6 @@ const allGoogleScopes = [
 ].join(" ");
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -67,7 +65,7 @@ export const authOptions: NextAuthOptions = {
 
         // Create account link if not exists
         if (account) {
-          const existingAccount = await prisma.account.findUnique({
+          const existingAccount = await prisma.userAccount.findUnique({
             where: {
               provider_providerAccountId: {
                 provider: account.provider,
@@ -77,7 +75,7 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (!existingAccount) {
-            await prisma.account.create({
+            await prisma.userAccount.create({
               data: {
                 userId: dbUser.id,
                 type: account.type,
@@ -125,7 +123,7 @@ export const authOptions: NextAuthOptions = {
                 console.log(`[Auth] Checking ${service}: required=${requiredScope}, hasScope=${hasScope}`);
 
                 if (hasScope) {
-                  await prisma.googleServiceToken.upsert({
+                  await prisma.userGoogleServiceToken.upsert({
                     where: {
                       userId_service: { userId: dbUser.id, service },
                     },

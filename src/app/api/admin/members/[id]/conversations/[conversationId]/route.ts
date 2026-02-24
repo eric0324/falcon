@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
+import { getMessages } from "@/lib/conversation-messages";
 
 export async function GET(
   _req: Request,
@@ -15,12 +16,10 @@ export async function GET(
     where: {
       id: conversationId,
       userId: id,
-      deletedAt: null,
     },
     select: {
       id: true,
       title: true,
-      messages: true,
       model: true,
       dataSources: true,
       summary: true,
@@ -33,5 +32,6 @@ export async function GET(
     return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
   }
 
-  return NextResponse.json(conversation);
+  const messages = await getMessages(conversationId);
+  return NextResponse.json({ ...conversation, messages });
 }

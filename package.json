@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -44,7 +44,7 @@
     "mysql2": "^3.16.1",
     "next": "14.2.21",
     "next-auth": "^4.24.11",
-    "next-intl": "^4.8.1",
+    "next-intl": "^4.8.3",
     "pg": "^8.17.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

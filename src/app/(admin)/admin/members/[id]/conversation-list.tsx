@@ -12,6 +12,7 @@ interface ConversationSummary {
   totalTokens: number;
   estimatedCost: number;
   updatedAt: string;
+  deletedAt: string | null;
 }
 
 interface Message {
@@ -92,9 +93,14 @@ export function ConversationList({
                 expandedId === conv.id && "rotate-90"
               )}
             />
-            <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
+            <MessageSquare className={cn("h-4 w-4 shrink-0", conv.deletedAt ? "text-red-400" : "text-muted-foreground")} />
             <div className="flex-1 min-w-0">
-              <div className="font-medium truncate">{conv.title}</div>
+              <div className={cn("font-medium truncate", conv.deletedAt && "line-through text-muted-foreground")}>
+                {conv.title}
+                {conv.deletedAt && (
+                  <span className="ml-2 no-underline inline-block text-xs font-normal text-red-500">已刪除</span>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground mt-0.5">
                 {conv.messageCount} 則訊息
                 {conv.model && ` / ${conv.model}`}

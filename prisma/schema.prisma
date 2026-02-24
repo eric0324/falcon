@@ -19,7 +19,7 @@ enum Visibility {
   PUBLIC
 }
 
-model Account {
+model UserAccount {
   id                String  @id @default(cuid())
   userId            String
   type              String
@@ -38,14 +38,6 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -56,24 +48,14 @@ model User {
   emailVerified DateTime?
   createdAt     DateTime  @default(now())
 
-  accounts            Account[]
-  sessions            Session[]
+  accounts            UserAccount[]
   tools               Tool[]
   conversations       Conversation[]
   toolUsages          ToolUsage[]
-  reviews             Review[]
-  reviewReplies       ReviewReply[]
-  apiLogs             ApiLog[]
-  googleServiceTokens GoogleServiceToken[]
-  tokenUsages         TokenUsage[]
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
+  toolReviews         ToolReview[]
+  toolReviewReplies   ToolReviewReply[]
+  tokenUsages              TokenUsage[]
+  userGoogleServiceTokens  UserGoogleServiceToken[]
 }
 
 model Tool {
@@ -84,8 +66,6 @@ model Tool {
   visibility  Visibility @default(PRIVATE)
   category    String?
   tags        String[]
-  dataSources Json?      // ToolDataSource[] - 工具使用的資料來源
-
   author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
   authorId String
 
@@ -96,9 +76,8 @@ model Tool {
   updatedAt DateTime @updatedAt
 
   usages  ToolUsage[]
-  reviews Review[]
+  reviews ToolReview[]
   stats   ToolStats?
-  apiLogs ApiLog[]
 
   @@index([category])
   @@index([visibility])
@@ -108,16 +87,14 @@ model Tool {
 model Conversation {
   id          String    @id @default(cuid())
   title       String?
-  messages    Json[]
   model       String?
-  dataSources String[]  @default([])
   summary     String?   @db.Text
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
-  tool        Tool?
-  tokenUsages TokenUsage[]
+  tool                 Tool?
+  conversationMessages ConversationMessage[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -127,38 +104,26 @@ model Conversation {
   @@index([deletedAt])
 }
 
+model ConversationMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  orderIndex     Int
+  role           String
+  content        String   @db.Text
+  toolCalls      Json?
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  tokenUsages    TokenUsage[]
+  createdAt      DateTime @default(now())
+
+  @@unique([conversationId, orderIndex])
+  @@index([conversationId])
+}
+
 enum UsageSource {
   MARKETPLACE
   DIRECT
   SHARE
-}
-
-enum DataSourceType {
-  // Database
-  POSTGRES
-  MYSQL
-  MONGODB
-
-  // REST
-  REST_API
-
-  // Google
-  GOOGLE_SHEETS
-  GOOGLE_DRIVE
-  GOOGLE_CALENDAR
-  GOOGLE_GMAIL
-  GOOGLE_ANALYTICS
-
-  // SaaS (future)
-  NOTION
-  SLACK
-  GITHUB
-}
-
-enum AuthType {
-  CONNECTION_STRING
-  API_KEY
-  OAUTH
 }
 
 model ToolUsage {
@@ -177,7 +142,7 @@ model ToolUsage {
   @@index([createdAt])
 }
 
-model Review {
+model ToolReview {
   id        String   @id @default(cuid())
   toolId    String
   userId    String
@@ -186,24 +151,24 @@ model Review {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tool    Tool          @relation(fields: [toolId], references: [id], onDelete: Cascade)
-  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  replies ReviewReply[]
+  tool    Tool             @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies ToolReviewReply[]
 
   @@unique([toolId, userId]) // one review per user per tool
   @@index([toolId])
   @@index([userId])
 }
 
-model ReviewReply {
+model ToolReviewReply {
   id        String   @id @default(cuid())
   reviewId  String
   userId    String   // author of the tool
   content   String   @db.Text
   createdAt DateTime @default(now())
 
-  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  review ToolReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([reviewId])
 }
@@ -226,89 +191,12 @@ model ToolStats {
   @@index([trendingScore])
 }
 
-// ===== API Bridge Models =====
-
-model DataSource {
-  id                   String         @id @default(cuid())
-  name                 String         @unique
-  displayName          String
-  description          String?
-  type                 DataSourceType
-
-  // Authentication
-  authType             AuthType       @default(CONNECTION_STRING)
-  config               Json
-  oauthAccountId       String?        // Link to OAuth account (for OAuth auth type)
-  tokenExpiresAt       DateTime?      // Token expiration (for OAuth)
-
-  globalBlockedColumns String[]       @default([])
-  allowedEndpoints     String[]       @default([])
-  schema               Json?
-
-  isActive             Boolean        @default(true)
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-
-  permissions          DataSourcePermission[]
-  apiLogs              ApiLog[]
-}
-
-model DataSourcePermission {
-  id                  String   @id @default(cuid())
-  dataSourceId        String
-  department          String
-
-  readTables          String[] @default([])
-  readBlockedColumns  String[] @default([])
-  writeTables         String[] @default([])
-  writeBlockedColumns String[] @default([])
-  deleteTables        String[] @default([])
-
-  dataSource          DataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  @@unique([dataSourceId, department])
-  @@index([department])
-}
-
-model ApiLog {
-  id           String   @id @default(cuid())
-  dataSourceId String
-  toolId       String?
-  userId       String
-  department   String
-
-  operation    String
-  method       String?
-  query        String?  @db.Text
-  params       Json?
-
-  success      Boolean
-  errorMessage String?
-  rowCount     Int?
-  duration     Int
-
-  createdAt    DateTime @default(now())
-
-  dataSource   DataSource @relation(fields: [dataSourceId], references: [id])
-  tool         Tool?      @relation(fields: [toolId], references: [id], onDelete: SetNull)
-  user         User       @relation(fields: [userId], references: [id])
-
-  @@index([dataSourceId])
-  @@index([toolId])
-  @@index([userId])
-  @@index([department])
-  @@index([createdAt])
-}
-
 // ===== Token Usage Models =====
 
 model TokenUsage {
-  id              String   @id @default(cuid())
-  userId          String
-  conversationId  String?
+  id                     String   @id @default(cuid())
+  userId                 String
+  conversationMessageId  String?
 
   model           String
   inputTokens     Int
@@ -317,11 +205,11 @@ model TokenUsage {
 
   createdAt       DateTime @default(now())
 
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  conversation    Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  user                   User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationMessage    ConversationMessage?  @relation(fields: [conversationMessageId], references: [id], onDelete: SetNull)
 
   @@index([userId])
-  @@index([conversationId])
+  @@index([conversationMessageId])
   @@index([createdAt])
   @@index([model])
 }
@@ -335,7 +223,7 @@ enum GoogleService {
   GMAIL
 }
 
-model GoogleServiceToken {
+model UserGoogleServiceToken {
   id           String        @id @default(cuid())
   userId       String
   service      GoogleService
@@ -355,3 +243,4 @@ model GoogleServiceToken {
   @@unique([userId, service])
   @@index([userId])
 }
+

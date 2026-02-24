@@ -15,7 +15,7 @@ export async function GET() {
     const status = await getGoogleConnectionStatus(session.user.id);
 
     // Debug: fetch actual token records
-    const tokens = await prisma.googleServiceToken.findMany({
+    const tokens = await prisma.userGoogleServiceToken.findMany({
       where: { userId: session.user.id },
       select: {
         service: true,

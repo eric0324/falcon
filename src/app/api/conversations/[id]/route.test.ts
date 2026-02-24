@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockGetServerSession = vi.hoisted(() => vi.fn());
+const mockGetMessages = vi.hoisted(() => vi.fn());
+const mockReplaceMessages = vi.hoisted(() => vi.fn());
+const mockLinkOrphanTokenUsage = vi.hoisted(() => vi.fn());
 const prismaMock = vi.hoisted(() => ({
   conversation: {
     findUnique: vi.fn(),
@@ -12,6 +15,11 @@ const prismaMock = vi.hoisted(() => ({
 vi.mock("next-auth", () => ({ getServerSession: mockGetServerSession }));
 vi.mock("@/lib/auth", () => ({ authOptions: {} }));
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
+vi.mock("@/lib/conversation-messages", () => ({
+  getMessages: mockGetMessages,
+  replaceMessages: mockReplaceMessages,
+  linkOrphanTokenUsage: mockLinkOrphanTokenUsage,
+}));
 
 import { GET, PATCH, DELETE } from "./route";
 
@@ -38,24 +46,27 @@ describe("GET /api/conversations/[id]", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns conversation with messages", async () => {
+  it("returns conversation with messages from ConversationMessage table", async () => {
     mockGetServerSession.mockResolvedValue(mockSession);
     prismaMock.conversation.findUnique.mockResolvedValue({
       id: "conv-1",
       title: "查詢訂單",
-      messages: [{ role: "user", content: "hi" }],
       model: "claude-sonnet-4-20250514",
       userId: "user-1",
-      tool: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+    mockGetMessages.mockResolvedValue([
+      { role: "user", content: "hi" },
+    ]);
 
     const res = await GET(new Request("http://localhost"), { params });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.id).toBe("conv-1");
     expect(body.messages).toHaveLength(1);
+    expect(body.messages[0].content).toBe("hi");
+    expect(mockGetMessages).toHaveBeenCalledWith("conv-1");
   });
 
   it("returns 404 when conversation not found", async () => {
@@ -87,7 +98,7 @@ describe("PATCH /api/conversations/[id]", () => {
     expect(res.status).toBe(401);
   });
 
-  it("updates conversation messages", async () => {
+  it("updates conversation messages via replaceMessages", async () => {
     mockGetServerSession.mockResolvedValue(mockSession);
     prismaMock.conversation.findUnique.mockResolvedValue({
       id: "conv-1",
@@ -97,22 +108,20 @@ describe("PATCH /api/conversations/[id]", () => {
       { role: "user", content: "hi" },
       { role: "assistant", content: "hello" },
     ];
+    mockReplaceMessages.mockResolvedValue(["msg-new-2"]);
     prismaMock.conversation.update.mockResolvedValue({
       id: "conv-1",
-      messages: newMessages,
     });
 
     const res = await PATCH(makeRequest({ messages: newMessages }), { params });
     expect(res.status).toBe(200);
-    expect(prismaMock.conversation.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: "conv-1" },
-        data: expect.objectContaining({ messages: newMessages }),
-      })
-    );
+    expect(mockReplaceMessages).toHaveBeenCalledWith("conv-1", newMessages);
+
+    // Orphan linking should delegate to linkOrphanTokenUsage with last assistant message
+    expect(mockLinkOrphanTokenUsage).toHaveBeenCalledWith("user-1", "msg-new-2");
   });
 
-  it("updates model", async () => {
+  it("does not link orphan TokenUsage when messages not updated", async () => {
     mockGetServerSession.mockResolvedValue(mockSession);
     prismaMock.conversation.findUnique.mockResolvedValue({
       id: "conv-1",
@@ -124,6 +133,22 @@ describe("PATCH /api/conversations/[id]", () => {
       makeRequest({ model: "claude-3-5-haiku-20241022" }),
       { params }
     );
+    expect(mockLinkOrphanTokenUsage).not.toHaveBeenCalled();
+  });
+
+  it("updates model without touching messages", async () => {
+    mockGetServerSession.mockResolvedValue(mockSession);
+    prismaMock.conversation.findUnique.mockResolvedValue({
+      id: "conv-1",
+      userId: "user-1",
+    });
+    prismaMock.conversation.update.mockResolvedValue({ id: "conv-1" });
+
+    await PATCH(
+      makeRequest({ model: "claude-3-5-haiku-20241022" }),
+      { params }
+    );
+    expect(mockReplaceMessages).not.toHaveBeenCalled();
     expect(prismaMock.conversation.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({

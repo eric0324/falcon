@@ -21,54 +21,45 @@ export async function GET(
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const [conversations, tokenAggregation] = await Promise.all([
-    prisma.conversation.findMany({
-      where: { userId: id, deletedAt: null },
-      orderBy: { updatedAt: "desc" },
-      select: {
-        id: true,
-        title: true,
-        messages: true,
-        model: true,
-        updatedAt: true,
-        createdAt: true,
+  const conversations = await prisma.conversation.findMany({
+    where: { userId: id },
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      title: true,
+      model: true,
+      updatedAt: true,
+      createdAt: true,
+      deletedAt: true,
+      _count: { select: { conversationMessages: true } },
+      conversationMessages: {
+        where: { role: "assistant" },
+        select: { tokenUsages: true },
       },
-    }),
-    prisma.tokenUsage.groupBy({
-      by: ["conversationId", "model"],
-      where: { userId: id, conversationId: { not: null } },
-      _sum: { inputTokens: true, outputTokens: true, totalTokens: true },
-    }),
-  ]);
-
-  // Aggregate per conversation: total tokens + estimated cost
-  const convStatsMap = new Map<string, { totalTokens: number; estimatedCost: number }>();
-
-  for (const row of tokenAggregation) {
-    const convId = row.conversationId!;
-    const prev = convStatsMap.get(convId) || { totalTokens: 0, estimatedCost: 0 };
-    const inputTokens = row._sum.inputTokens || 0;
-    const outputTokens = row._sum.outputTokens || 0;
-    const totalTokens = row._sum.totalTokens || 0;
-    const cost = estimateCost(row.model, inputTokens, outputTokens);
-
-    convStatsMap.set(convId, {
-      totalTokens: prev.totalTokens + totalTokens,
-      estimatedCost: prev.estimatedCost + cost,
-    });
-  }
+    },
+  });
 
   const result = conversations.map((conv) => {
-    const stats = convStatsMap.get(conv.id);
+    let totalTokens = 0;
+    let estimatedCost = 0;
+    for (const msg of conv.conversationMessages) {
+      for (const usage of msg.tokenUsages) {
+        const input = usage.inputTokens || 0;
+        const output = usage.outputTokens || 0;
+        totalTokens += input + output;
+        estimatedCost += estimateCost(usage.model, input, output);
+      }
+    }
     return {
       id: conv.id,
       title: conv.title,
-      messageCount: Array.isArray(conv.messages) ? conv.messages.length : 0,
+      messageCount: conv._count.conversationMessages,
       model: conv.model,
-      totalTokens: stats?.totalTokens ?? 0,
-      estimatedCost: stats?.estimatedCost ?? 0,
+      totalTokens,
+      estimatedCost,
       updatedAt: conv.updatedAt,
       createdAt: conv.createdAt,
+      deletedAt: conv.deletedAt,
     };
   });
 

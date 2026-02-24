@@ -9,9 +9,6 @@ vi.mock("@/lib/prisma", () => ({
     conversation: {
       findMany: vi.fn(),
     },
-    tokenUsage: {
-      groupBy: vi.fn(),
-    },
     user: {
       findUnique: vi.fn(),
     },
@@ -25,7 +22,6 @@ import { GET } from "./route";
 
 const mockRequireAdmin = requireAdmin as ReturnType<typeof vi.fn>;
 const mockFindMany = prisma.conversation.findMany as ReturnType<typeof vi.fn>;
-const mockGroupBy = prisma.tokenUsage.groupBy as ReturnType<typeof vi.fn>;
 const mockFindUnique = prisma.user.findUnique as ReturnType<typeof vi.fn>;
 
 function makeRequest(id: string) {
@@ -68,18 +64,18 @@ describe("GET /api/admin/members/[id]/conversations", () => {
       {
         id: "conv-1",
         title: "Test Conversation",
-        messages: [{ role: "user", content: "Hi" }, { role: "assistant", content: "Hello" }],
+        _count: { conversationMessages: 2 },
         model: "claude-sonnet",
         updatedAt: new Date("2026-02-09"),
         createdAt: new Date("2026-02-09"),
-      },
-    ]);
-
-    mockGroupBy.mockResolvedValue([
-      {
-        conversationId: "conv-1",
-        model: "claude-sonnet",
-        _sum: { inputTokens: 3000, outputTokens: 2000, totalTokens: 5000 },
+        deletedAt: null,
+        conversationMessages: [
+          {
+            tokenUsages: [
+              { model: "claude-sonnet", inputTokens: 3000, outputTokens: 2000 },
+            ],
+          },
+        ],
       },
     ]);
 
@@ -93,25 +89,50 @@ describe("GET /api/admin/members/[id]/conversations", () => {
     expect(data.conversations[0].messageCount).toBe(2);
     expect(data.conversations[0].totalTokens).toBe(5000);
     expect(data.conversations[0].estimatedCost).toBeGreaterThan(0);
+
+    // Should use nested include instead of groupBy
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          conversationMessages: {
+            where: { role: "assistant" },
+            select: { tokenUsages: true },
+          },
+        }),
+      })
+    );
   });
 
-  it("excludes soft-deleted conversations", async () => {
+  it("includes soft-deleted conversations with deletedAt field", async () => {
     mockRequireAdmin.mockResolvedValue({ user: { id: "admin-1" } });
     mockFindUnique.mockResolvedValue({
       id: "user-1",
       name: "Alice",
       email: "alice@company.com",
     });
-    mockFindMany.mockResolvedValue([]);
-    mockGroupBy.mockResolvedValue([]);
+    const deletedDate = new Date("2026-02-08");
+    mockFindMany.mockResolvedValue([
+      {
+        id: "conv-deleted",
+        title: "Deleted Conversation",
+        _count: { conversationMessages: 1 },
+        model: "claude-sonnet",
+        updatedAt: new Date("2026-02-08"),
+        createdAt: new Date("2026-02-08"),
+        deletedAt: deletedDate,
+        conversationMessages: [],
+      },
+    ]);
 
-    await GET(makeRequest("user-1"), { params: Promise.resolve({ id: "user-1" }) });
+    const response = await GET(makeRequest("user-1"), { params: Promise.resolve({ id: "user-1" }) });
+    const data = await response.json();
 
+    expect(data.conversations).toHaveLength(1);
+    expect(data.conversations[0].deletedAt).toBe(deletedDate.toISOString());
+    // Should NOT filter by deletedAt
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          deletedAt: null,
-        }),
+        where: { userId: "user-1" },
       })
     );
   });

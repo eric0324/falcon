@@ -2,6 +2,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { createConversationWithMessages, linkOrphanTokenUsage } from "@/lib/conversation-messages";
+import type { Message } from "@/types/message";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -53,7 +55,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { messages, model, dataSources } = body;
+  const { messages, model } = body;
 
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return new Response("messages is required", { status: 400 });
@@ -61,25 +63,18 @@ export async function POST(req: Request) {
 
   const title = generateTitle(messages);
 
-  const conversation = await prisma.conversation.create({
-    data: {
-      title,
-      messages,
-      model: model || null,
-      dataSources: dataSources || [],
-      userId: session.user.id,
-    },
+  const { conversation, assistantMessageIds } = await createConversationWithMessages({
+    title,
+    model: model || null,
+    userId: session.user.id,
+    messages: messages as Message[],
   });
 
-  // Link orphaned token usage records (from the chat request that preceded this creation)
-  await prisma.tokenUsage.updateMany({
-    where: {
-      userId: session.user.id,
-      conversationId: null,
-      createdAt: { gte: new Date(Date.now() - 2 * 60 * 1000) },
-    },
-    data: { conversationId: conversation.id },
-  });
+  // Link orphaned token usage records to the last assistant message
+  const lastAssistantId = assistantMessageIds.at(-1);
+  if (lastAssistantId) {
+    await linkOrphanTokenUsage(session.user.id, lastAssistantId);
+  }
 
   return NextResponse.json(conversation, { status: 201 });
 }

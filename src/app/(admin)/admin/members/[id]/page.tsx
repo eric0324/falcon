@@ -22,14 +22,15 @@ export default async function AdminMemberDetailPage({
 
   const [conversations, tokenAggregation] = await Promise.all([
     prisma.conversation.findMany({
-      where: { userId: id, deletedAt: null },
+      where: { userId: id },
       orderBy: { updatedAt: "desc" },
       select: {
         id: true,
         title: true,
-        messages: true,
         model: true,
         updatedAt: true,
+        deletedAt: true,
+        _count: { select: { conversationMessages: true } },
       },
     }),
     prisma.tokenUsage.groupBy({
@@ -60,11 +61,12 @@ export default async function AdminMemberDetailPage({
     return {
       id: conv.id,
       title: conv.title || "Untitled",
-      messageCount: Array.isArray(conv.messages) ? conv.messages.length : 0,
+      messageCount: conv._count.conversationMessages,
       model: conv.model,
       totalTokens: stats?.totalTokens ?? 0,
       estimatedCost: stats?.estimatedCost ?? 0,
       updatedAt: conv.updatedAt.toISOString(),
+      deletedAt: conv.deletedAt?.toISOString() ?? null,
     };
   });
 

@@ -27,7 +27,7 @@ export async function POST(
     }
 
     // Check review exists and user is the tool author
-    const review = await prisma.review.findUnique({
+    const review = await prisma.toolReview.findUnique({
       where: { id: reviewId },
       include: {
         tool: {
@@ -48,7 +48,7 @@ export async function POST(
     }
 
     // Create reply
-    const reply = await prisma.reviewReply.create({
+    const reply = await prisma.toolReviewReply.create({
       data: {
         reviewId,
         userId: session.user.id,
@@ -94,7 +94,7 @@ export async function DELETE(
   }
 
   try {
-    const deleted = await prisma.reviewReply.deleteMany({
+    const deleted = await prisma.toolReviewReply.deleteMany({
       where: {
         id: replyId,
         reviewId,

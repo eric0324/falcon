@@ -13,7 +13,7 @@ export async function GET(
   const sort = searchParams.get("sort") || "newest";
 
   try {
-    const reviews = await prisma.review.findMany({
+    const reviews = await prisma.toolReview.findMany({
       where: { toolId },
       include: {
         user: {
@@ -95,7 +95,7 @@ export async function POST(
     // }
 
     // Upsert review (one per user per tool)
-    const review = await prisma.review.upsert({
+    const review = await prisma.toolReview.upsert({
       where: {
         toolId_userId: {
           toolId,
@@ -124,7 +124,7 @@ export async function POST(
     });
 
     // Update tool stats
-    const stats = await prisma.review.aggregate({
+    const stats = await prisma.toolReview.aggregate({
       where: { toolId },
       _avg: { rating: true },
       _count: true,
@@ -179,7 +179,7 @@ export async function DELETE(
   const { id: toolId } = await params;
 
   try {
-    const deleted = await prisma.review.deleteMany({
+    const deleted = await prisma.toolReview.deleteMany({
       where: {
         toolId,
         userId: session.user.id,
@@ -191,7 +191,7 @@ export async function DELETE(
     }
 
     // Update tool stats
-    const stats = await prisma.review.aggregate({
+    const stats = await prisma.toolReview.aggregate({
       where: { toolId },
       _avg: { rating: true },
       _count: true,

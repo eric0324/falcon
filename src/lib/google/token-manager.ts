@@ -24,7 +24,7 @@ export async function saveGoogleToken(
   const encryptedAccessToken = encryptToken(tokenData.accessToken);
   const encryptedRefreshToken = encryptToken(tokenData.refreshToken);
 
-  await prisma.googleServiceToken.upsert({
+  await prisma.userGoogleServiceToken.upsert({
     where: {
       userId_service: { userId, service },
     },
@@ -55,7 +55,7 @@ export async function getValidAccessToken(
   userId: string,
   service: GoogleService
 ): Promise<string | null> {
-  const token = await prisma.googleServiceToken.findUnique({
+  const token = await prisma.userGoogleServiceToken.findUnique({
     where: {
       userId_service: { userId, service },
     },
@@ -87,7 +87,7 @@ export async function getValidAccessToken(
       console.error("Failed to refresh Google token:", error);
 
       // Mark token as invalid
-      await prisma.googleServiceToken.update({
+      await prisma.userGoogleServiceToken.update({
         where: {
           userId_service: { userId, service },
         },
@@ -108,7 +108,7 @@ export async function hasValidToken(
   userId: string,
   service: GoogleService
 ): Promise<boolean> {
-  const token = await prisma.googleServiceToken.findUnique({
+  const token = await prisma.userGoogleServiceToken.findUnique({
     where: {
       userId_service: { userId, service },
     },
@@ -124,7 +124,7 @@ export async function hasValidToken(
 export async function getGoogleConnectionStatus(
   userId: string
 ): Promise<Record<GoogleService, boolean>> {
-  const tokens = await prisma.googleServiceToken.findMany({
+  const tokens = await prisma.userGoogleServiceToken.findMany({
     where: { userId, isValid: true },
     select: { service: true },
   });
@@ -146,7 +146,7 @@ export async function revokeGoogleToken(
   userId: string,
   service: GoogleService
 ): Promise<void> {
-  const token = await prisma.googleServiceToken.findUnique({
+  const token = await prisma.userGoogleServiceToken.findUnique({
     where: {
       userId_service: { userId, service },
     },
@@ -164,7 +164,7 @@ export async function revokeGoogleToken(
     }
 
     // Delete from database regardless of revocation result
-    await prisma.googleServiceToken.delete({
+    await prisma.userGoogleServiceToken.delete({
       where: {
         userId_service: { userId, service },
       },

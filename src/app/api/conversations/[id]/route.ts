@@ -2,6 +2,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { getMessages, replaceMessages, linkOrphanTokenUsage } from "@/lib/conversation-messages";
+import type { Message } from "@/types/message";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -26,7 +28,8 @@ export async function GET(_req: Request, context: RouteContext) {
   const { error, conversation } = await getConversationIfOwned(id, session.user.id);
   if (error) return new Response(error === 404 ? "Not found" : "Forbidden", { status: error });
 
-  return NextResponse.json(conversation);
+  const messages = await getMessages(id);
+  return NextResponse.json({ ...conversation, messages });
 }
 
 export async function PATCH(req: Request, context: RouteContext) {
@@ -42,11 +45,18 @@ export async function PATCH(req: Request, context: RouteContext) {
   const body = await req.json();
   const data: Record<string, unknown> = {};
 
-  if (body.messages) data.messages = body.messages;
   if (body.title) data.title = body.title;
   if (body.model !== undefined) data.model = body.model;
-  if (body.dataSources !== undefined) data.dataSources = body.dataSources;
   if (body.summary !== undefined) data.summary = body.summary;
+
+  // Update messages in the new table if provided
+  if (body.messages) {
+    const assistantMessageIds = await replaceMessages(id, body.messages as Message[]);
+    const lastAssistantId = assistantMessageIds.at(-1);
+    if (lastAssistantId) {
+      await linkOrphanTokenUsage(session.user.id, lastAssistantId);
+    }
+  }
 
   const updated = await prisma.conversation.update({
     where: { id },
