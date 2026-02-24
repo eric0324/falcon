@@ -360,7 +360,22 @@ No external data sources are currently enabled. If the user needs to search Goog
  * Build system prompt based on selected data sources
  */
 export function buildSystemPrompt(dataSources?: string[]): string {
-  let prompt = BASE_PROMPT;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("zh-TW", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "long",
+    timeZone: "Asia/Taipei",
+  });
+  const timeStr = now.toLocaleTimeString("zh-TW", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Taipei",
+  });
+
+  let prompt = BASE_PROMPT + `\n\n## Current Time\n現在是 ${dateStr} ${timeStr}（台北時間）。請根據此時間判斷「今天」「這週」「這個月」等相對時間。`;
 
   if (!dataSources || dataSources.length === 0) {
     prompt += NO_DATA_SOURCE_INSTRUCTIONS;

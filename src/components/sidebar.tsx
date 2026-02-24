@@ -137,10 +137,13 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
 
   const handleNavClick = (e: React.MouseEvent, href: string) => {
     if (isMobile) close();
-    // Force navigation to /chat when clicking +Chat while already on /chat with an id
-    if (href === "/chat" && pathname === "/chat" && currentConvId) {
+    if (href === "/chat" && pathname === "/chat") {
       e.preventDefault();
-      router.push("/chat");
+      // Always dispatch reset event, then navigate
+      window.dispatchEvent(new Event("new-chat"));
+      if (currentConvId) {
+        router.push("/chat");
+      }
     }
   };
 
@@ -176,7 +179,17 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
         >
           <PanelLeft className="h-5 w-5" />
         </Button>
-        <Link href="/chat" className="mt-4">
+        <Link
+          href="/chat"
+          className="mt-4"
+          onClick={(e) => {
+            if (pathname === "/chat") {
+              e.preventDefault();
+              window.dispatchEvent(new Event("new-chat"));
+              if (searchParams.get("id")) router.push("/chat");
+            }
+          }}
+        >
           <Button
             variant="ghost"
             size="icon"

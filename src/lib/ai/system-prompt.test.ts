@@ -28,6 +28,16 @@ describe("SYSTEM_PROMPT", () => {
   });
 });
 
+describe("buildSystemPrompt", () => {
+  it("includes current date and time in Taipei timezone", () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toContain("Current Time");
+    expect(prompt).toContain("台北時間");
+    // Should contain the current year
+    expect(prompt).toContain(String(new Date().getFullYear()));
+  });
+});
+
 describe("buildSystemPrompt with Plausible", () => {
   it("includes Plausible guide when plausible is selected", () => {
     const prompt = buildSystemPrompt(["plausible"]);

@@ -73,30 +73,37 @@ function StudioContent() {
 
   const hasCode = code.length > 0;
 
+  const resetState = useCallback(() => {
+    setMessages([]);
+    setInput("");
+    setCode("");
+    setCurrentToolCalls([]);
+    setToolName("");
+    setToolDescription("");
+    setToolCategory("");
+    setToolTags([]);
+    setToolVisibility("PRIVATE");
+    setConvId(null);
+    setConvTitle(null);
+    setUploadedFiles([]);
+    setSelectedDataSources([]);
+    setUsedDataSources([]);
+    setCompactInfo(null);
+  }, []);
+
   // Reset state when navigating to /chat without id (new conversation)
   useEffect(() => {
     const currentId = searchParams.get("id");
     const currentEditId = searchParams.get("edit");
+    if (!currentId && !currentEditId) resetState();
+  }, [searchParams, resetState]);
 
-    if (!currentId && !currentEditId) {
-      // Reset all state for new conversation
-      setMessages([]);
-      setInput("");
-      setCode("");
-      setCurrentToolCalls([]);
-      setToolName("");
-      setToolDescription("");
-      setToolCategory("");
-      setToolTags([]);
-      setToolVisibility("PRIVATE");
-      setConvId(null);
-      setConvTitle(null);
-      setUploadedFiles([]);
-      setSelectedDataSources([]);
-      setUsedDataSources([]);
-      setCompactInfo(null);
-    }
-  }, [searchParams]);
+  // Reset state when "new-chat" event is dispatched (handles same-URL case)
+  useEffect(() => {
+    const handler = () => resetState();
+    window.addEventListener("new-chat", handler);
+    return () => window.removeEventListener("new-chat", handler);
+  }, [resetState]);
 
   // Load existing tool for editing
   useEffect(() => {
