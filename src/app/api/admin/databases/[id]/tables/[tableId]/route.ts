@@ -27,7 +27,7 @@ export async function PATCH(
       ...(body.note !== undefined && { note: body.note || null }),
       ...(body.hidden !== undefined && { hidden: body.hidden }),
       ...(body.allowedRoleIds !== undefined && {
-        allowedRoles: {
+        allowedGroups: {
           set: body.allowedRoleIds.map((roleId: string) => ({ id: roleId })),
         },
       }),
@@ -37,7 +37,7 @@ export async function PATCH(
       tableName: true,
       note: true,
       hidden: true,
-      allowedRoles: { select: { id: true, name: true } },
+      allowedGroups: { select: { id: true, name: true } },
     },
   });
 

@@ -117,6 +117,7 @@ function StudioContent() {
           setToolCategory(tool.category || "");
           setToolTags(tool.tags || []);
           setToolVisibility(tool.visibility || "PRIVATE");
+          setSelectedDataSources(tool.dataSources || []);
           if (tool.conversation?.messages) {
             setMessages(tool.conversation.messages);
           }
@@ -403,13 +404,14 @@ function StudioContent() {
                 { ...lastMessage, content: assistantMessage, toolCalls: Array.from(toolCallsMap.values()) },
               ];
             }
-            return prev;
+            // AI only responded with tool calls, no text — still add assistant message
+            return [...prev, { role: "assistant" as const, content: assistantMessage, toolCalls: Array.from(toolCallsMap.values()) }];
           });
         }
       }
 
       // Auto-save conversation
-      if (assistantMessage) {
+      if (assistantMessage || toolCallsMap.size > 0) {
         const finalMessages: Message[] = [
           ...messages,
           { role: "user", content: userMessage },
@@ -640,6 +642,7 @@ function StudioContent() {
           code,
           messages,
           conversationId: convId,
+          dataSources: selectedDataSources.length > 0 ? selectedDataSources : undefined,
         }),
       });
 
@@ -738,6 +741,7 @@ function StudioContent() {
                     <ChatMessage
                       message={message}
                       isStreaming={isStreamingMessage}
+                      toolCalls={toolCallsToShow}
                     />
                   </div>
                 );
@@ -818,6 +822,7 @@ function StudioContent() {
           <div className="flex-1 h-full">
             <PreviewPanel
               code={code}
+              dataSources={selectedDataSources}
               onError={handlePreviewError}
               onShare={() => setShowDeployDialog(true)}
             />
@@ -835,6 +840,7 @@ function StudioContent() {
         defaultTags={toolTags}
         defaultVisibility={toolVisibility}
         isEditing={!!editId}
+        hasExtDbSource={selectedDataSources.some((ds) => ds.startsWith("extdb_"))}
       />
     </div>
   );

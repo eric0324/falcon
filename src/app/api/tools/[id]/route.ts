@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { canUserAccessTool } from "@/lib/tool-visibility";
 
 async function getUserId(session: { user?: { email?: string | null } } | null) {
   if (!session?.user?.email) return null;
@@ -51,7 +52,8 @@ export async function GET(
     }
 
     // Check access based on visibility
-    if (tool.visibility === "PRIVATE" && tool.authorId !== userId) {
+    const hasAccess = await canUserAccessTool(tool, userId);
+    if (!hasAccess) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
@@ -93,7 +95,7 @@ export async function PATCH(
 
   try {
     const { id } = await params;
-    const { name, description, code, category, tags, visibility, conversationId } = await req.json();
+    const { name, description, code, category, tags, visibility, conversationId, dataSources } = await req.json();
 
     // Check ownership
     const existingTool = await prisma.tool.findUnique({
@@ -118,6 +120,7 @@ export async function PATCH(
         ...(tags !== undefined && { tags }),
         ...(visibility && { visibility }),
         ...(conversationId && !existingTool.conversationId && { conversationId }),
+        ...(dataSources !== undefined && { dataSources }),
       },
     });
 

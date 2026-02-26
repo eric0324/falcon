@@ -14,7 +14,7 @@ enum Role {
 
 enum Visibility {
   PRIVATE
-  DEPARTMENT
+  GROUP
   COMPANY
   PUBLIC
 }
@@ -56,7 +56,7 @@ model User {
   toolReviewReplies   ToolReviewReply[]
   tokenUsages              TokenUsage[]
   userGoogleServiceTokens  UserGoogleServiceToken[]
-  companyRoles             CompanyRole[]
+  groups                   Group[]
 }
 
 model Tool {
@@ -67,6 +67,8 @@ model Tool {
   visibility  Visibility @default(PRIVATE)
   category    String?
   tags        String[]
+  dataSources Json?
+
   author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
   authorId String
 
@@ -282,7 +284,7 @@ model ExternalDatabaseTable {
 
   database     ExternalDatabase       @relation(fields: [databaseId], references: [id], onDelete: Cascade)
   columns      ExternalDatabaseColumn[]
-  allowedRoles CompanyRole[]
+  allowedGroups Group[]
 
   @@unique([databaseId, tableName])
   @@index([databaseId])
@@ -298,15 +300,15 @@ model ExternalDatabaseColumn {
   note         String? @db.Text
 
   table        ExternalDatabaseTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
-  allowedRoles CompanyRole[]
+  allowedGroups Group[]
 
   @@unique([tableId, columnName])
   @@index([tableId])
 }
 
-// ===== Company Role Model =====
+// ===== Group Model =====
 
-model CompanyRole {
+model Group {
   id        String   @id @default(cuid())
   name      String   @unique
   createdAt DateTime @default(now())
@@ -314,5 +316,7 @@ model CompanyRole {
   users   User[]
   tables  ExternalDatabaseTable[]
   columns ExternalDatabaseColumn[]
+
+  @@map("CompanyRole")
 }
 

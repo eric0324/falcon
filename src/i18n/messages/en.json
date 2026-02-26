@@ -120,7 +120,7 @@
     },
     "visibility": {
       "private": "Private",
-      "department": "Department",
+      "group": "Group",
       "company": "Company-wide",
       "public": "Public"
     }

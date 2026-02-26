@@ -3,12 +3,18 @@ import { Check, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+interface ToolCallInfo {
+  name: string;
+  status: "calling" | "completed";
+}
+
 interface ChatMessageProps {
   message: {
     role: "user" | "assistant";
     content: string;
   };
   isStreaming?: boolean;
+  toolCalls?: ToolCallInfo[];
 }
 
 // Remove code blocks from message for display
@@ -40,16 +46,24 @@ function formatMessageContent(content: string, isAssistant: boolean): string {
   return formatted;
 }
 
-export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) {
+export function ChatMessage({ message, isStreaming = false, toolCalls = [] }: ChatMessageProps) {
   const isUser = message.role === "user";
   const displayContent = formatMessageContent(message.content, !isUser);
 
-  // Check code block status
+  // Check code block status (markdown)
   const codeBlockCount = (message.content.match(/```/g) || []).length;
-  const hasCompleteCode = !isUser && codeBlockCount >= 2;
-  // Only show "generating code" when there's an incomplete code block (odd number of ```)
+  const hasCompleteCodeBlock = !isUser && codeBlockCount >= 2;
   const hasIncompleteCodeBlock = codeBlockCount % 2 === 1;
-  const isGeneratingCode = !isUser && isStreaming && hasIncompleteCodeBlock;
+  const isGeneratingCodeBlock = !isUser && isStreaming && hasIncompleteCodeBlock;
+
+  // Check updateCode tool call status
+  const updateCodeCall = toolCalls.find((tc) => tc.name === "updateCode");
+  const isToolGenerating = updateCodeCall?.status === "calling";
+  const isToolCompleted = updateCodeCall?.status === "completed";
+
+  // Combined: either markdown code block or updateCode tool call
+  const isGeneratingCode = isGeneratingCodeBlock || (!isUser && isStreaming && isToolGenerating);
+  const hasCompleteCode = hasCompleteCodeBlock || (!isUser && isToolCompleted);
 
   // User message - with bubble on right, no avatar
   if (isUser) {
@@ -74,16 +88,16 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayContent}</ReactMarkdown>
       </div>
       {isGeneratingCode && (
-        <span className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-          <Loader2 className="h-3 w-3 animate-spin" />
+        <div className="inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 text-xs font-medium">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
           正在生成程式碼...
-        </span>
+        </div>
       )}
-      {hasCompleteCode && (
-        <span className="flex items-center gap-1 mt-1 text-xs text-green-600">
-          <Check className="h-3 w-3" />
+      {hasCompleteCode && !isStreaming && (
+        <div className="inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 text-xs font-medium">
+          <Check className="h-3.5 w-3.5" />
           已更新預覽
-        </span>
+        </div>
       )}
     </div>
   );

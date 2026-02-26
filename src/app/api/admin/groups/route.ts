@@ -6,7 +6,7 @@ export async function GET() {
   const auth = await requireAdmin();
   if (auth instanceof NextResponse) return auth;
 
-  const roles = await prisma.companyRole.findMany({
+  const groups = await prisma.group.findMany({
     orderBy: { name: "asc" },
     select: {
       id: true,
@@ -17,7 +17,7 @@ export async function GET() {
   });
 
   return NextResponse.json(
-    roles.map((r) => ({
+    groups.map((r) => ({
       id: r.id,
       name: r.name,
       createdAt: r.createdAt,
@@ -34,21 +34,21 @@ export async function POST(req: Request) {
   const { name } = body;
 
   if (!name || typeof name !== "string" || !name.trim()) {
-    return NextResponse.json({ error: "角色名稱為必填" }, { status: 400 });
+    return NextResponse.json({ error: "群組名稱為必填" }, { status: 400 });
   }
 
-  const existing = await prisma.companyRole.findUnique({
+  const existing = await prisma.group.findUnique({
     where: { name: name.trim() },
   });
 
   if (existing) {
-    return NextResponse.json({ error: "角色名稱已存在" }, { status: 409 });
+    return NextResponse.json({ error: "群組名稱已存在" }, { status: 409 });
   }
 
-  const role = await prisma.companyRole.create({
+  const group = await prisma.group.create({
     data: { name: name.trim() },
     select: { id: true, name: true, createdAt: true },
   });
 
-  return NextResponse.json(role, { status: 201 });
+  return NextResponse.json(group, { status: 201 });
 }

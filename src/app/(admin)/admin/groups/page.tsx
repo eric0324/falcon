@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { RoleManager } from "./role-manager";
+import { GroupManager } from "./group-manager";
 
-export default async function AdminRolesPage() {
-  const roles = await prisma.companyRole.findMany({
+export default async function AdminGroupsPage() {
+  const groups = await prisma.group.findMany({
     orderBy: { name: "asc" },
     select: {
       id: true,
@@ -12,7 +12,7 @@ export default async function AdminRolesPage() {
     },
   });
 
-  const initialRoles = roles.map((r) => ({
+  const initialGroups = groups.map((r) => ({
     id: r.id,
     name: r.name,
     createdAt: r.createdAt.toISOString(),
@@ -22,12 +22,12 @@ export default async function AdminRolesPage() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">角色管理</h1>
+        <h1 className="text-2xl font-bold">群組管理</h1>
         <p className="text-muted-foreground mt-1">
-          管理公司角色，用於控制外部資料庫的存取權限
+          管理群組，用於控制外部資料庫的存取權限
         </p>
       </div>
-      <RoleManager initialRoles={initialRoles} />
+      <GroupManager initialGroups={initialGroups} />
     </div>
   );
 }

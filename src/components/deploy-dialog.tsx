@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TOOL_CATEGORIES } from "@/lib/categories";
-import { X } from "lucide-react";
+import { X, AlertTriangle } from "lucide-react";
 
 interface DeployDialogProps {
   open: boolean;
@@ -40,6 +40,7 @@ interface DeployDialogProps {
   defaultTags?: string[];
   defaultVisibility?: string;
   isEditing?: boolean;
+  hasExtDbSource?: boolean;
 }
 
 export function DeployDialog({
@@ -52,6 +53,7 @@ export function DeployDialog({
   defaultTags = [],
   defaultVisibility = "PRIVATE",
   isEditing = false,
+  hasExtDbSource = false,
 }: DeployDialogProps) {
   const t = useTranslations("deploy");
   const tCategories = useTranslations("categories");
@@ -191,11 +193,17 @@ export function DeployDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="PRIVATE">🔒 {t("visibility.private")}</SelectItem>
-                <SelectItem value="DEPARTMENT">👥 {t("visibility.department")}</SelectItem>
+                <SelectItem value="GROUP">👥 {t("visibility.group")}</SelectItem>
                 <SelectItem value="COMPANY">🏢 {t("visibility.company")}</SelectItem>
                 <SelectItem value="PUBLIC">🌐 {t("visibility.public")}</SelectItem>
               </SelectContent>
             </Select>
+            {hasExtDbSource && visibility !== "PRIVATE" && (
+              <div className="flex gap-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 text-sm">
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                <p>此工具使用了外部資料庫資料來源。若公開發佈，沒有對應資料庫權限的使用者將無法正常使用此工具。</p>
+              </div>
+            )}
           </div>
         </div>
         <DialogFooter>

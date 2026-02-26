@@ -8,6 +8,7 @@ import { generateSandboxApiClient } from "@/lib/sandbox-api-client";
 interface ToolRunnerProps {
   code: string;
   toolId?: string;
+  dataSources?: string[]; // Preview mode: allowed data sources from conversation
 }
 
 function buildToolHtml(code: string, apiClientCode: string): string {
@@ -45,29 +46,20 @@ function buildToolHtml(code: string, apiClientCode: string): string {
 </html>`;
 }
 
-export function ToolRunner({ code, toolId }: ToolRunnerProps) {
+export function ToolRunner({ code, toolId, dataSources }: ToolRunnerProps) {
   const [key, setKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  // Generate API client code - use real bridge if toolId provided, otherwise mock
-  const apiClientCode = toolId
-    ? generateSandboxApiClient()
-    : `
+  const hasBridge = !!(toolId || (dataSources && dataSources.length > 0));
+  const apiClientCode = hasBridge ? generateSandboxApiClient() : `
 window.companyAPI = {
-  query: async (source, sql, params) => {
-    console.log('[Mock] query:', source, sql, params);
-    return [{ id: 1, name: 'Mock Data', status: 'active' }];
-  },
-  call: async (source, endpoint, data) => {
-    console.log('[Mock] call:', source, endpoint, data);
-    return { success: true };
-  },
-  getSources: async () => {
-    console.log('[Mock] getSources');
-    return [{ name: 'mock_db', displayName: 'Mock Database', type: 'POSTGRES' }];
-  }
+  execute: async (ds, action, params) => { console.log('[Mock] execute:', ds, action, params); return {}; },
+  query: async (ds, sql) => { console.log('[Mock] query:', ds, sql); return []; },
+  list: async (ds, params) => { console.log('[Mock] list:', ds, params); return []; },
+  read: async (ds, params) => { console.log('[Mock] read:', ds, params); return {}; },
+  search: async (ds, params) => { console.log('[Mock] search:', ds, params); return []; }
 };
-console.log('[Falcon] Mock API ready (no toolId provided)');
+console.log('[Falcon] Mock API ready');
 `;
 
   // Handle API bridge messages from the sandbox
@@ -79,28 +71,24 @@ console.log('[Falcon] Mock API ready (no toolId provided)');
       }
 
       if (!event.data || event.data.type !== "api-bridge") return;
-      if (!toolId) return;
+      if (!hasBridge) return;
 
-      const { id, operation, source, sql, params, endpoint, data } = event.data;
+      const { id, dataSourceId, action, params } = event.data;
 
       try {
         const response = await fetch("/api/bridge", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            toolId,
-            operation,
-            source,
-            sql,
+            ...(toolId ? { toolId } : { dataSources }),
+            dataSourceId,
+            action,
             params,
-            endpoint,
-            data,
           }),
         });
 
         const result = await response.json();
 
-        // Send response back to iframe
         const iframe = document.querySelector("iframe");
         if (iframe?.contentWindow) {
           iframe.contentWindow.postMessage(
@@ -127,7 +115,7 @@ console.log('[Falcon] Mock API ready (no toolId provided)');
         }
       }
     },
-    [toolId]
+    [toolId, dataSources, hasBridge]
   );
 
   useEffect(() => {

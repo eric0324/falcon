@@ -81,7 +81,9 @@ export function ToolCard({ tool }: ToolCardProps) {
               <Wrench className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium truncate">{tool.name}</h4>
+              <Link href={`/tool/${tool.id}`} className="hover:underline">
+                <h4 className="font-medium truncate">{tool.name}</h4>
+              </Link>
               <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
                 {tool.description || t("card.noDescription")}
               </p>

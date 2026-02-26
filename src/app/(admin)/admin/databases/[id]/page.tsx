@@ -49,7 +49,7 @@ export default async function AdminDatabaseDetailPage({
             tableName: true,
             note: true,
             hidden: true,
-            allowedRoles: { select: { id: true, name: true } },
+            allowedGroups: { select: { id: true, name: true } },
             columns: {
               orderBy: { columnName: "asc" },
               select: {
@@ -59,14 +59,14 @@ export default async function AdminDatabaseDetailPage({
                 isNullable: true,
                 isPrimaryKey: true,
                 note: true,
-                allowedRoles: { select: { id: true, name: true } },
+                allowedGroups: { select: { id: true, name: true } },
               },
             },
           },
         },
       },
     }),
-    prisma.companyRole.findMany({
+    prisma.group.findMany({
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),

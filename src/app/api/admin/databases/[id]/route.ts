@@ -35,7 +35,7 @@ export async function GET(
           tableName: true,
           note: true,
           hidden: true,
-          allowedRoles: { select: { id: true, name: true } },
+          allowedGroups: { select: { id: true, name: true } },
           columns: {
             orderBy: { columnName: "asc" },
             select: {
@@ -45,7 +45,7 @@ export async function GET(
               isNullable: true,
               isPrimaryKey: true,
               note: true,
-              allowedRoles: { select: { id: true, name: true } },
+              allowedGroups: { select: { id: true, name: true } },
             },
           },
         },

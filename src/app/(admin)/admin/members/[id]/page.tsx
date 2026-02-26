@@ -26,10 +26,10 @@ export default async function AdminMemberDetailPage({
       where: { id },
       select: {
         id: true, name: true, email: true, image: true, department: true,
-        companyRoles: { select: { id: true, name: true } },
+        groups: { select: { id: true, name: true } },
       },
     }),
-    prisma.companyRole.findMany({
+    prisma.group.findMany({
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
@@ -108,11 +108,11 @@ export default async function AdminMemberDetailPage({
         </div>
       </div>
 
-      {/* Role assignment */}
+      {/* Group assignment */}
       <UserRoleAssignment
         userId={user.id}
         allRoles={allRoles}
-        assignedRoleIds={user.companyRoles.map((r) => r.id)}
+        assignedRoleIds={user.groups.map((r) => r.id)}
       />
 
       <div className="mb-4">

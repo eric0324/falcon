@@ -11,15 +11,15 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  // Get user's company role IDs
+  // Get user's group IDs
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { companyRoles: { select: { id: true } } },
+    select: { groups: { select: { id: true } } },
   });
 
-  const roleIds = user?.companyRoles.map((r) => r.id) ?? [];
+  const groupIds = user?.groups.map((r) => r.id) ?? [];
 
-  if (roleIds.length === 0) {
+  if (groupIds.length === 0) {
     return NextResponse.json({ databases: [] });
   }
 
@@ -30,7 +30,7 @@ export async function GET() {
       tables: {
         some: {
           hidden: false,
-          allowedRoles: { some: { id: { in: roleIds } } },
+          allowedGroups: { some: { id: { in: groupIds } } },
         },
       },
     },

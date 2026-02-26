@@ -44,8 +44,8 @@ export async function POST(
     const foundTableNames = new Set(schema.map((t) => t.tableName));
 
     // Get all existing roles for connecting to new tables/columns
-    const allRoles = await prisma.companyRole.findMany({ select: { id: true } });
-    const connectAllRoles = allRoles.map((r) => ({ id: r.id }));
+    const allGroups = await prisma.group.findMany({ select: { id: true } });
+    const connectAllGroups = allGroups.map((r) => ({ id: r.id }));
 
     await prisma.$transaction(async (tx) => {
       // Delete tables that no longer exist
@@ -74,7 +74,7 @@ export async function POST(
           create: {
             databaseId: id,
             tableName: table.tableName,
-            allowedRoles: { connect: connectAllRoles },
+            allowedGroups: { connect: connectAllGroups },
           },
           update: {},
         });
@@ -114,7 +114,7 @@ export async function POST(
               dataType: col.dataType,
               isNullable: col.isNullable,
               isPrimaryKey: col.isPrimaryKey,
-              allowedRoles: { connect: connectAllRoles },
+              allowedGroups: { connect: connectAllGroups },
             },
             update: {
               dataType: col.dataType,
@@ -145,7 +145,7 @@ export async function POST(
             tableName: true,
             note: true,
             hidden: true,
-            allowedRoles: { select: { id: true, name: true } },
+            allowedGroups: { select: { id: true, name: true } },
             columns: {
               orderBy: { columnName: "asc" },
               select: {
@@ -155,7 +155,7 @@ export async function POST(
                 isNullable: true,
                 isPrimaryKey: true,
                 note: true,
-                allowedRoles: { select: { id: true, name: true } },
+                allowedGroups: { select: { id: true, name: true } },
               },
             },
           },

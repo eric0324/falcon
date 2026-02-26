@@ -9,7 +9,7 @@ const navItems = [
   { href: "/admin/members", label: "使用者管理", icon: Users },
   { href: "/admin/tools", label: "工具管理", icon: Wrench },
   { href: "/admin/databases", label: "資料庫管理", icon: Database },
-  { href: "/admin/roles", label: "角色管理", icon: Shield },
+  { href: "/admin/groups", label: "群組管理", icon: Shield },
 ];
 
 export function AdminSidebar() {

@@ -21,9 +21,7 @@ const mockSession = {
 describe("GET /api/marketplace", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: logged in user with department
     mockGetServerSession.mockResolvedValue(mockSession);
-    prismaMock.user.findUnique.mockResolvedValue({ department: "engineering" });
   });
 
   it("returns paginated tools", async () => {

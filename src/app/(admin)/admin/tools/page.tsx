@@ -24,7 +24,7 @@ function getCategoryLabel(category: string | null): string {
 
 const visibilityLabel: Record<string, { text: string; className: string }> = {
   PRIVATE: { text: "私人", className: "bg-neutral-100 text-neutral-600" },
-  DEPARTMENT: { text: "部門", className: "bg-blue-100 text-blue-700" },
+  GROUP: { text: "群組", className: "bg-blue-100 text-blue-700" },
   COMPANY: { text: "公司", className: "bg-green-100 text-green-700" },
   PUBLIC: { text: "公開", className: "bg-purple-100 text-purple-700" },
 };

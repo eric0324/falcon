@@ -26,7 +26,7 @@ export function UserRoleAssignment({ userId, allRoles, assignedRoleIds }: Props)
     setSaving(true);
 
     try {
-      await fetch(`/api/admin/members/${userId}/roles`, {
+      await fetch(`/api/admin/members/${userId}/groups`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roleIds: Array.from(next) }),
@@ -39,9 +39,9 @@ export function UserRoleAssignment({ userId, allRoles, assignedRoleIds }: Props)
   if (allRoles.length === 0) {
     return (
       <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-2">公司角色</h2>
+        <h2 className="text-lg font-semibold mb-2">群組</h2>
         <p className="text-sm text-muted-foreground">
-          尚未建立任何角色，請先到「角色管理」新增
+          尚未建立任何群組，請先到「群組管理」新增
         </p>
       </div>
     );
@@ -50,7 +50,7 @@ export function UserRoleAssignment({ userId, allRoles, assignedRoleIds }: Props)
   return (
     <div className="mb-6">
       <h2 className="text-lg font-semibold mb-2">
-        公司角色
+        群組
         {saving && <span className="text-xs text-muted-foreground font-normal ml-2">儲存中...</span>}
       </h2>
       <div className="flex flex-wrap gap-2">

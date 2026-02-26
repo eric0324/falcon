@@ -4,7 +4,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Visibility } from "@prisma/client";
+import { buildVisibilityFilter } from "@/lib/tool-visibility";
 import { TOOL_CATEGORIES } from "@/lib/categories";
 import { MarketplaceToolCard } from "@/components/marketplace-tool-card";
 import { SearchBar } from "@/components/search-bar";
@@ -18,26 +18,7 @@ export default async function MarketplacePage() {
     redirect("/login");
   }
 
-  // Get user's department for visibility filtering
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { department: true },
-  });
-
-  const visibilityFilter = {
-    OR: [
-      { visibility: Visibility.PUBLIC },
-      { visibility: Visibility.COMPANY },
-      ...(user?.department
-        ? [
-            {
-              visibility: Visibility.DEPARTMENT,
-              author: { department: user.department },
-            },
-          ]
-        : []),
-    ],
-  };
+  const visibilityFilter = buildVisibilityFilter(session.user.id);
 
   // Fetch trending tools (by weekly usage)
   const trendingTools = await prisma.tool.findMany({

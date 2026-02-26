@@ -26,7 +26,7 @@ export async function PUT(
   await prisma.user.update({
     where: { id },
     data: {
-      companyRoles: {
+      groups: {
         set: roleIds.map((roleId: string) => ({ id: roleId })),
       },
     },
@@ -36,7 +36,7 @@ export async function PUT(
     where: { id },
     select: {
       id: true,
-      companyRoles: { select: { id: true, name: true } },
+      groups: { select: { id: true, name: true } },
     },
   });
 

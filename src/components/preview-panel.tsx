@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { RefreshCw, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { generateSandboxApiClient } from "@/lib/sandbox-api-client";
 
 interface PreviewPanelProps {
   code: string;
+  dataSources?: string[];
   onError?: (error: string | null) => void;
   onShare?: () => void;
 }
@@ -21,11 +23,12 @@ const DEFAULT_CODE = `export default function App() {
   );
 }`;
 
-function buildPreviewHtml(code: string): string {
-  // Clean code: remove imports, handle export default
+function buildPreviewHtml(code: string, apiClientCode?: string): string {
   const cleanCode = code
     .replace(/^import\s+.*?from\s+['"][^'"]+['"];?\s*\n?/gm, "")
     .replace(/export\s+default\s+/, "");
+
+  const apiScript = apiClientCode ? `<script>${apiClientCode}</script>` : "";
 
   return `<!DOCTYPE html>
 <html>
@@ -40,6 +43,7 @@ function buildPreviewHtml(code: string): string {
 </head>
 <body>
   <div id="root"></div>
+  ${apiScript}
   <script type="text/babel">
     const { useState, useEffect, useCallback, useMemo, useRef, useReducer, useContext, createContext, Fragment } = React;
 
@@ -57,20 +61,84 @@ function buildPreviewHtml(code: string): string {
 </html>`;
 }
 
-export function PreviewPanel({ code, onError, onShare }: PreviewPanelProps) {
+export function PreviewPanel({ code, dataSources, onError, onShare }: PreviewPanelProps) {
   const [key, setKey] = useState(0);
   const [_error, setError] = useState<string | null>(null);
   const displayCode = code || DEFAULT_CODE;
 
-  const handleMessage = useCallback((event: MessageEvent) => {
-    if (event.data?.type === "preview-error") {
-      setError(event.data.message);
-      onError?.(event.data.message);
-    } else if (event.data?.type === "preview-success") {
-      setError(null);
-      onError?.(null);
-    }
-  }, [onError]);
+  const hasBridge = dataSources && dataSources.length > 0;
+  const apiClientCode = hasBridge ? generateSandboxApiClient() : `
+window.companyAPI = {
+  execute: async function(ds, action, params) { console.log('[Mock] execute:', ds, action, params); return {}; },
+  query: async function(ds, sql) { console.log('[Mock] query:', ds, sql); return []; },
+  list: async function(ds, params) { console.log('[Mock] list:', ds, params); return []; },
+  read: async function(ds, params) { console.log('[Mock] read:', ds, params); return {}; },
+  search: async function(ds, params) { console.log('[Mock] search:', ds, params); return []; }
+};
+console.log('[Falcon] Mock API ready');
+`;
+
+  // Handle bridge messages from iframe (preview mode)
+  const handleMessage = useCallback(
+    async (event: MessageEvent) => {
+      if (event.data?.type === "preview-error") {
+        setError(event.data.message);
+        onError?.(event.data.message);
+        return;
+      }
+      if (event.data?.type === "preview-success") {
+        setError(null);
+        onError?.(null);
+        return;
+      }
+
+      // Bridge message handling
+      if (event.data?.type !== "api-bridge") return;
+      console.log("[PreviewPanel Bridge] received:", event.data, "hasBridge:", hasBridge, "dataSources:", dataSources);
+      if (!hasBridge) return;
+
+      const { id, dataSourceId, action, params } = event.data;
+
+      try {
+        console.log("[PreviewPanel Bridge] fetching /api/bridge:", { dataSources, dataSourceId, action, params });
+        const response = await fetch("/api/bridge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ dataSources, dataSourceId, action, params }),
+        });
+
+        const result = await response.json();
+        console.log("[PreviewPanel Bridge] response:", response.status, result);
+
+        const iframe = document.querySelector<HTMLIFrameElement>('iframe[title="Preview"]');
+        if (iframe?.contentWindow) {
+          iframe.contentWindow.postMessage(
+            {
+              type: "api-bridge-response",
+              id,
+              result: response.ok ? result.data : undefined,
+              error: response.ok ? undefined : result.error,
+            },
+            "*"
+          );
+        }
+      } catch (err) {
+        console.error("[PreviewPanel Bridge] error:", err);
+        const iframe = document.querySelector<HTMLIFrameElement>('iframe[title="Preview"]');
+        if (iframe?.contentWindow) {
+          iframe.contentWindow.postMessage(
+            {
+              type: "api-bridge-response",
+              id,
+              error: err instanceof Error ? err.message : "Unknown error",
+            },
+            "*"
+          );
+        }
+      }
+    },
+    [onError, hasBridge, dataSources]
+  );
 
   useEffect(() => {
     window.addEventListener("message", handleMessage);
@@ -105,7 +173,7 @@ export function PreviewPanel({ code, onError, onShare }: PreviewPanelProps) {
       <div className="flex-1 relative bg-white">
         <iframe
           key={key}
-          srcDoc={buildPreviewHtml(displayCode)}
+          srcDoc={buildPreviewHtml(displayCode, apiClientCode)}
           className="w-full h-full border-0"
           sandbox="allow-scripts"
           title="Preview"

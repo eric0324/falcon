@@ -365,7 +365,10 @@ const EXTERNAL_DB_INSTRUCTIONS = `
 注意：
 - 參考 table 和 column 的備註（note）來理解資料意義
 - 只能用 SELECT 語句
-- 查詢結果最多 100 筆
+- 單次查詢最多 1000 筆
+- 統計需求請用 SQL 聚合（COUNT、SUM、AVG、GROUP BY），不要把大量原始資料撈到前端再計算
+- 製作工具時，表格顯示使用按需分頁（每頁 50 筆，使用者翻頁時才查詢下一頁）
+- 不要用過小的 LIMIT（如 5、10），除非使用者明確要求
 - 使用 parallel calls：可以同時查詢多張表的 schema`;
 
 // No data source instructions
@@ -373,6 +376,115 @@ const NO_DATA_SOURCE_INSTRUCTIONS = `
 
 ## Important
 No external data sources are currently enabled. If the user needs to search Google, Notion, Slack, or Asana data, remind them to select the desired service in the "Data Sources" menu first.`;
+
+// companyAPI instructions for tool building
+function buildCompanyApiInstructions(dataSources: string[]): string {
+  const sourceDescriptions: string[] = [];
+
+  for (const ds of dataSources) {
+    if (ds.startsWith("extdb_")) {
+      sourceDescriptions.push(
+        `- \`${ds}\` (外部資料庫): actions: \`query\` (params: {sql, limit?, offset?}), \`listTables\`, \`getSchema\` (params: {tableName})`
+      );
+    } else if (ds.startsWith("google_")) {
+      const service = ds.replace("google_", "");
+      sourceDescriptions.push(
+        `- \`${ds}\` (Google ${service}): actions: \`list\`, \`read\`, \`search\` (params: {resource, search, limit})`
+      );
+    } else if (ds === "notion") {
+      sourceDescriptions.push(
+        `- \`notion\`: actions: \`list\`, \`query\` (params: {databaseId}), \`read\` (params: {pageId}), \`search\` (params: {search})`
+      );
+    } else if (ds === "slack") {
+      sourceDescriptions.push(
+        `- \`slack\`: actions: \`list\`, \`read\` (params: {channelId}), \`thread\` (params: {channelId, threadTs}), \`search\` (params: {search})`
+      );
+    } else if (ds === "github") {
+      sourceDescriptions.push(
+        `- \`github\`: actions: \`listRepos\`, \`listPRs\` (params: {repo}), \`readPR\` (params: {repo, prNumber}), \`searchCode\` (params: {search}), \`commits\` (params: {repo})`
+      );
+    } else if (ds === "asana") {
+      sourceDescriptions.push(
+        `- \`asana\`: actions: \`list\`, \`tasks\` (params: {projectId}), \`read\` (params: {taskId}), \`comments\` (params: {taskId}), \`search\` (params: {search})`
+      );
+    } else if (ds === "plausible") {
+      sourceDescriptions.push(
+        `- \`plausible\`: actions: \`realtime\`, \`aggregate\`, \`timeseries\`, \`breakdown\` (params: {dateRange, dimension, period})`
+      );
+    } else if (ds === "ga4") {
+      sourceDescriptions.push(
+        `- \`ga4\`: actions: \`realtime\`, \`aggregate\`, \`timeseries\`, \`breakdown\` (params: {dateRange, dimension, period})`
+      );
+    } else if (ds === "meta_ads") {
+      sourceDescriptions.push(
+        `- \`meta_ads\`: actions: \`listAccounts\`, \`overview\`, \`campaigns\`, \`timeseries\`, \`breakdown\` (params: {accountId, dateRange, dimension})`
+      );
+    }
+  }
+
+  return `
+
+## Building Tools with Live Data (window.companyAPI)
+
+When the user requests a UI/tool and data sources are available, the generated code can use \`window.companyAPI\` to fetch live data at runtime instead of hardcoding data.
+
+### API
+
+\`\`\`js
+// Generic: call any data source
+const data = await window.companyAPI.execute(dataSourceId, action, params)
+
+// Shortcuts:
+const rows = await window.companyAPI.query(dataSourceId, sql)                          // extdb SQL
+const page = await window.companyAPI.query(dataSourceId, sql, { limit: 200, offset: 0 }) // extdb 分頁
+const items = await window.companyAPI.list(dataSourceId, params)    // list resources
+const item = await window.companyAPI.read(dataSourceId, params)     // read one resource
+const results = await window.companyAPI.search(dataSourceId, params) // search
+\`\`\`
+
+### Available data sources
+${sourceDescriptions.join("\n")}
+
+### Guidelines
+- Use \`useEffect\` + \`useState\` to fetch data on mount
+- Show a loading state while fetching
+- Handle errors gracefully (try/catch)
+- All API calls return Promises
+- Do NOT hardcode sample data when live data is available — fetch it at runtime
+- \`companyAPI.query()\` returns \`{ rows: [...], rowCount: N }\`，用 \`.rows\` 取得資料陣列
+
+### 重要：外部資料庫大資料集策略
+
+資料表可能有數十萬筆資料，**絕對不要嘗試一次全部載入**。請遵循以下原則：
+
+1. **統計數據用 SQL 聚合**：用 \`COUNT(*)\`、\`SUM()\`、\`GROUP BY\` 等在資料庫端計算，不要把原始資料全撈到前端再算
+2. **表格顯示用按需分頁**：每頁只載入一頁的資料（建議 50 筆），使用者點下一頁時才發送新查詢
+3. **搜尋/篩選用 SQL WHERE**：在 SQL 加 WHERE 條件篩選，不要前端過濾
+4. **單次查詢上限 1000 筆**：limit 最大值為 1000
+
+按需分頁範例：
+\`\`\`jsx
+const PAGE_SIZE = 50;
+const [page, setPage] = useState(0);
+const [data, setData] = useState({ rows: [], rowCount: 0 });
+const [total, setTotal] = useState(0);
+const [loading, setLoading] = useState(true);
+
+// 載入總筆數（只需一次）
+useEffect(() => {
+  companyAPI.query(ds, 'SELECT COUNT(*) as total FROM orders')
+    .then(r => setTotal(r.rows[0]?.total || 0));
+}, []);
+
+// 載入當頁資料（換頁時重新載入）
+useEffect(() => {
+  setLoading(true);
+  companyAPI.query(ds, \\\`SELECT * FROM orders ORDER BY id LIMIT \${PAGE_SIZE} OFFSET \${page * PAGE_SIZE}\\\`)
+    .then(r => setData(r))
+    .finally(() => setLoading(false));
+}, [page]);
+\`\`\``;
+}
 
 /**
  * Build system prompt based on selected data sources
@@ -450,6 +562,9 @@ export function buildSystemPrompt(dataSources?: string[]): string {
   if (hasExtDb) {
     prompt += EXTERNAL_DB_INSTRUCTIONS;
   }
+
+  // companyAPI instructions for tool building with live data
+  prompt += buildCompanyApiInstructions(dataSources);
 
   return prompt;
 }

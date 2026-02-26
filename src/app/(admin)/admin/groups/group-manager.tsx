@@ -5,15 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
 
-interface Role {
+interface Group {
   id: string;
   name: string;
   createdAt: string;
   userCount: number;
 }
 
-export function RoleManager({ initialRoles }: { initialRoles: Role[] }) {
-  const [roles, setRoles] = useState(initialRoles);
+export function GroupManager({ initialGroups }: { initialGroups: Group[] }) {
+  const [groups, setGroups] = useState(initialGroups);
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -26,7 +26,7 @@ export function RoleManager({ initialRoles }: { initialRoles: Role[] }) {
     setError(null);
 
     try {
-      const res = await fetch("/api/admin/roles", {
+      const res = await fetch("/api/admin/groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName.trim() }),
@@ -38,8 +38,8 @@ export function RoleManager({ initialRoles }: { initialRoles: Role[] }) {
         return;
       }
 
-      const role = await res.json();
-      setRoles((prev) => [...prev, { ...role, userCount: 0 }].sort((a, b) => a.name.localeCompare(b.name)));
+      const group = await res.json();
+      setGroups((prev) => [...prev, { ...group, userCount: 0 }].sort((a, b) => a.name.localeCompare(b.name)));
       setNewName("");
     } finally {
       setAdding(false);
@@ -50,7 +50,7 @@ export function RoleManager({ initialRoles }: { initialRoles: Role[] }) {
     if (!editName.trim()) return;
     setError(null);
 
-    const res = await fetch(`/api/admin/roles/${id}`, {
+    const res = await fetch(`/api/admin/groups/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: editName.trim() }),
@@ -62,7 +62,7 @@ export function RoleManager({ initialRoles }: { initialRoles: Role[] }) {
       return;
     }
 
-    setRoles((prev) =>
+    setGroups((prev) =>
       prev
         .map((r) => (r.id === id ? { ...r, name: editName.trim() } : r))
         .sort((a, b) => a.name.localeCompare(b.name))
@@ -70,23 +70,23 @@ export function RoleManager({ initialRoles }: { initialRoles: Role[] }) {
     setEditingId(null);
   }
 
-  async function handleDelete(role: Role) {
-    if (!confirm(`確定要刪除「${role.name}」角色嗎？將解除所有使用者和資料表的關聯。`)) return;
+  async function handleDelete(group: Group) {
+    if (!confirm(`確定要刪除「${group.name}」群組嗎？將解除所有使用者和資料表的關聯。`)) return;
 
-    const res = await fetch(`/api/admin/roles/${role.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/admin/groups/${group.id}`, { method: "DELETE" });
     if (res.ok) {
-      setRoles((prev) => prev.filter((r) => r.id !== role.id));
+      setGroups((prev) => prev.filter((r) => r.id !== group.id));
     }
   }
 
   return (
     <div className="max-w-lg">
-      {/* Add new role */}
+      {/* Add new group */}
       <div className="flex gap-2 mb-6">
         <Input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          placeholder="輸入新角色名稱..."
+          placeholder="輸入新群組名稱..."
           onKeyDown={(e) => {
             if (e.key === "Enter") handleAdd();
           }}
@@ -101,28 +101,28 @@ export function RoleManager({ initialRoles }: { initialRoles: Role[] }) {
         <p className="text-sm text-red-600 bg-red-50 rounded p-2 mb-4">{error}</p>
       )}
 
-      {/* Role list */}
-      {roles.length === 0 ? (
+      {/* Group list */}
+      {groups.length === 0 ? (
         <div className="border rounded-lg p-8 text-center text-muted-foreground">
-          尚未建立任何角色
+          尚未建立任何群組
         </div>
       ) : (
         <div className="border rounded-lg divide-y">
-          {roles.map((role) => (
-            <div key={role.id} className="flex items-center gap-3 p-3">
-              {editingId === role.id ? (
+          {groups.map((group) => (
+            <div key={group.id} className="flex items-center gap-3 p-3">
+              {editingId === group.id ? (
                 <>
                   <Input
                     autoFocus
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleRename(role.id);
+                      if (e.key === "Enter") handleRename(group.id);
                       if (e.key === "Escape") setEditingId(null);
                     }}
                     className="h-8"
                   />
-                  <button onClick={() => handleRename(role.id)} className="p-1 rounded hover:bg-muted text-green-600">
+                  <button onClick={() => handleRename(group.id)} className="p-1 rounded hover:bg-muted text-green-600">
                     <Check className="h-4 w-4" />
                   </button>
                   <button onClick={() => setEditingId(null)} className="p-1 rounded hover:bg-muted text-muted-foreground">
@@ -131,18 +131,18 @@ export function RoleManager({ initialRoles }: { initialRoles: Role[] }) {
                 </>
               ) : (
                 <>
-                  <span className="font-medium flex-1">{role.name}</span>
+                  <span className="font-medium flex-1">{group.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {role.userCount} 位使用者
+                    {group.userCount} 位使用者
                   </span>
                   <button
-                    onClick={() => { setEditingId(role.id); setEditName(role.name); setError(null); }}
+                    onClick={() => { setEditingId(group.id); setEditName(group.name); setError(null); }}
                     className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => handleDelete(role)}
+                    onClick={() => handleDelete(group)}
                     className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-red-600"
                   >
                     <Trash2 className="h-4 w-4" />

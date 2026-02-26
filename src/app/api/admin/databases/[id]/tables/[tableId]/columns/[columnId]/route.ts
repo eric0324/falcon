@@ -30,7 +30,7 @@ export async function PATCH(
     data: {
       ...(body.note !== undefined && { note: body.note || null }),
       ...(body.allowedRoleIds !== undefined && {
-        allowedRoles: {
+        allowedGroups: {
           set: body.allowedRoleIds.map((roleId: string) => ({ id: roleId })),
         },
       }),
@@ -39,7 +39,7 @@ export async function PATCH(
       id: true,
       columnName: true,
       note: true,
-      allowedRoles: { select: { id: true, name: true } },
+      allowedGroups: { select: { id: true, name: true } },
     },
   });
 

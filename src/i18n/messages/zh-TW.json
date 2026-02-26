@@ -120,7 +120,7 @@
     },
     "visibility": {
       "private": "僅自己可見",
-      "department": "部門可見",
+      "group": "群組可見",
       "company": "全公司可見",
       "public": "公開"
     }

@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { buildVisibilityFilter } from "@/lib/tool-visibility";
 
 // GET /api/marketplace - Get marketplace tools
 export async function GET(request: NextRequest) {
@@ -15,33 +16,10 @@ export async function GET(request: NextRequest) {
   const offset = parseInt(searchParams.get("offset") || "0");
 
   try {
-    // Build visibility filter (used in OR clause below)
-
-    // Get user's department for DEPARTMENT visibility
-    let userDepartment: string | null = null;
-    if (session?.user?.id) {
-      const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { department: true },
-      });
-      userDepartment = user?.department || null;
-    }
-
-    // Base where clause
-    const where: Record<string, unknown> = {
-      OR: [
-        { visibility: "PUBLIC" },
-        { visibility: "COMPANY" },
-        ...(userDepartment
-          ? [
-              {
-                visibility: "DEPARTMENT",
-                author: { department: userDepartment },
-              },
-            ]
-          : []),
-      ],
-    };
+    // Base where clause with visibility filter
+    const where: Record<string, unknown> = session?.user?.id
+      ? { ...buildVisibilityFilter(session.user.id) }
+      : { visibility: "PUBLIC" };
 
     // Add category filter
     if (category) {

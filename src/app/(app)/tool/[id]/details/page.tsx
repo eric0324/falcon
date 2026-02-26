@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { canUserAccessTool } from "@/lib/tool-visibility";
 import { getCategoryById } from "@/lib/categories";
 import { formatDistanceToNow } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -45,18 +46,7 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
   }
 
   // Check access based on visibility
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { department: true },
-  });
-
-  const canAccess =
-    tool.authorId === session.user.id ||
-    tool.visibility === "PUBLIC" ||
-    tool.visibility === "COMPANY" ||
-    (tool.visibility === "DEPARTMENT" &&
-      user?.department &&
-      tool.author.department === user.department);
+  const canAccess = await canUserAccessTool(tool, session.user.id);
 
   if (!canAccess) {
     notFound();
@@ -66,7 +56,7 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
   const category = tool.category ? getCategoryById(tool.category) : null;
 
   // Check if current user has already reviewed
-  const userReview = await prisma.review.findUnique({
+  const userReview = await prisma.toolReview.findUnique({
     where: {
       toolId_userId: {
         toolId: id,

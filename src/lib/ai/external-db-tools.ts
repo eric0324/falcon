@@ -4,12 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { decrypt } from "@/lib/encryption";
 import { executeQuery, validateTableAccess, type DbConnectionConfig } from "@/lib/external-db";
 
-async function getUserRoleIds(userId: string): Promise<string[]> {
+async function getUserGroupIds(userId: string): Promise<string[]> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { companyRoles: { select: { id: true } } },
+    select: { groups: { select: { id: true } } },
   });
-  return user?.companyRoles.map((r) => r.id) ?? [];
+  return user?.groups.map((r) => r.id) ?? [];
 }
 
 async function getDbConfig(databaseId: string): Promise<DbConnectionConfig> {
@@ -39,16 +39,16 @@ export function createExternalDbTools(userId: string, databaseIds: string[]) {
       }),
       execute: async ({ databaseId }) => {
         try {
-          const roleIds = await getUserRoleIds(userId);
-          if (roleIds.length === 0) {
-            return { success: true, tables: [], hint: "使用者無任何角色，無法存取資料表" };
+          const groupIds = await getUserGroupIds(userId);
+          if (groupIds.length === 0) {
+            return { success: true, tables: [], hint: "使用者無任何群組，無法存取資料表" };
           }
 
           const tables = await prisma.externalDatabaseTable.findMany({
             where: {
               databaseId,
               hidden: false,
-              allowedRoles: { some: { id: { in: roleIds } } },
+              allowedGroups: { some: { id: { in: groupIds } } },
             },
             select: { tableName: true, note: true },
             orderBy: { tableName: "asc" },
@@ -82,9 +82,9 @@ export function createExternalDbTools(userId: string, databaseIds: string[]) {
       }),
       execute: async ({ databaseId, tableName }) => {
         try {
-          const roleIds = await getUserRoleIds(userId);
-          if (roleIds.length === 0) {
-            return { success: false, error: "使用者無任何角色，無法存取" };
+          const groupIds = await getUserGroupIds(userId);
+          if (groupIds.length === 0) {
+            return { success: false, error: "使用者無任何群組，無法存取" };
           }
 
           const table = await prisma.externalDatabaseTable.findFirst({
@@ -92,13 +92,13 @@ export function createExternalDbTools(userId: string, databaseIds: string[]) {
               databaseId,
               tableName,
               hidden: false,
-              allowedRoles: { some: { id: { in: roleIds } } },
+              allowedGroups: { some: { id: { in: groupIds } } },
             },
             select: {
               note: true,
               columns: {
                 where: {
-                  allowedRoles: { some: { id: { in: roleIds } } },
+                  allowedGroups: { some: { id: { in: groupIds } } },
                 },
                 select: {
                   columnName: true,
@@ -136,33 +136,35 @@ export function createExternalDbTools(userId: string, databaseIds: string[]) {
 
     queryDatabase: tool({
       description:
-        "對外部資料庫執行 SQL 查詢（僅支援 SELECT，最多回傳 100 筆）。",
+        "對外部資料庫執行 SQL 查詢（僅支援 SELECT，單次最多 1000 筆，支援 limit/offset 分頁）。",
       inputSchema: z.object({
         databaseId: z
           .enum(databaseIds as [string, ...string[]])
           .describe("資料庫 ID"),
         sql: z.string().describe("SELECT SQL 語句"),
+        limit: z.number().optional().describe("回傳筆數上限（預設 200，最大 1000）"),
+        offset: z.number().optional().describe("跳過前 N 筆（用於分頁）"),
       }),
-      execute: async ({ databaseId, sql }) => {
+      execute: async ({ databaseId, sql, limit, offset }) => {
         try {
           // Verify user can only query tables they have access to
-          const roleIds = await getUserRoleIds(userId);
-          if (roleIds.length === 0) {
-            return { success: false, error: "使用者無任何角色，無法查詢" };
+          const groupIds = await getUserGroupIds(userId);
+          if (groupIds.length === 0) {
+            return { success: false, error: "使用者無任何群組，無法查詢" };
           }
 
           const allowedTables = await prisma.externalDatabaseTable.findMany({
             where: {
               databaseId,
               hidden: false,
-              allowedRoles: { some: { id: { in: roleIds } } },
+              allowedGroups: { some: { id: { in: groupIds } } },
             },
             select: { tableName: true },
           });
           validateTableAccess(sql, allowedTables.map((t) => t.tableName));
 
           const config = await getDbConfig(databaseId);
-          const result = await executeQuery(config, sql);
+          const result = await executeQuery(config, sql, { limit, offset });
           return {
             success: true,
             rows: result.rows,

@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Visibility, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import { buildVisibilityFilter } from "@/lib/tool-visibility";
 import { MarketplaceToolCard } from "@/components/marketplace-tool-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, TrendingUp, Star, Eye, Sparkles } from "lucide-react";
@@ -21,26 +22,7 @@ export default async function LeaderboardPage({ searchParams }: LeaderboardPageP
     redirect("/login");
   }
 
-  // Get user's department
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { department: true },
-  });
-
-  const visibilityFilter: Prisma.ToolWhereInput = {
-    OR: [
-      { visibility: Visibility.PUBLIC },
-      { visibility: Visibility.COMPANY },
-      ...(user?.department
-        ? [
-            {
-              visibility: Visibility.DEPARTMENT,
-              author: { department: user.department },
-            },
-          ]
-        : []),
-    ],
-  };
+  const visibilityFilter: Prisma.ToolWhereInput = buildVisibilityFilter(session.user.id);
 
   // Fetch different rankings
   const [trendingTools, topRatedTools, mostUsedTools, risingStarsTools] = await Promise.all([

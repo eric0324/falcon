@@ -16,7 +16,7 @@ interface Column {
   isNullable: boolean;
   isPrimaryKey: boolean;
   note: string | null;
-  allowedRoles: RoleRef[];
+  allowedGroups: RoleRef[];
 }
 
 interface Table {
@@ -24,7 +24,7 @@ interface Table {
   tableName: string;
   note: string | null;
   hidden: boolean;
-  allowedRoles: RoleRef[];
+  allowedGroups: RoleRef[];
   columns: Column[];
 }
 
@@ -75,7 +75,7 @@ function RolePicker({
       <button
         onClick={() => { setOpen(!open); setSelected(new Set(selectedIds)); }}
         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-        title="設定角色權限"
+        title="設定群組權限"
       >
         <Shield className="h-3 w-3" />
         {selectedRoles.length === allRoles.length
@@ -211,7 +211,7 @@ export function SchemaBrowser({ databaseId, tables: initialTables, allRoles }: S
     });
     if (res.ok) {
       const updated = await res.json();
-      setTables((prev) => prev.map((t) => (t.id === tableId ? { ...t, allowedRoles: updated.allowedRoles } : t)));
+      setTables((prev) => prev.map((t) => (t.id === tableId ? { ...t, allowedGroups: updated.allowedGroups } : t)));
     }
   }
 
@@ -226,7 +226,7 @@ export function SchemaBrowser({ databaseId, tables: initialTables, allRoles }: S
       setTables((prev) =>
         prev.map((t) => ({
           ...t,
-          columns: t.columns.map((c) => (c.id === columnId ? { ...c, allowedRoles: updated.allowedRoles } : c)),
+          columns: t.columns.map((c) => (c.id === columnId ? { ...c, allowedGroups: updated.allowedGroups } : c)),
         }))
       );
     }
@@ -288,7 +288,7 @@ export function SchemaBrowser({ databaseId, tables: initialTables, allRoles }: S
                     {/* Role picker for table */}
                     <RolePicker
                       allRoles={allRoles}
-                      selectedIds={table.allowedRoles.map((r) => r.id)}
+                      selectedIds={table.allowedGroups.map((r) => r.id)}
                       onSave={(ids) => updateTableRoles(table.id, ids)}
                     />
                     <button
@@ -309,7 +309,7 @@ export function SchemaBrowser({ databaseId, tables: initialTables, allRoles }: S
                         <tr className="border-b text-xs text-muted-foreground">
                           <th className="text-left p-2 pl-10 font-medium">欄位名稱</th>
                           <th className="text-left p-2 font-medium">備註</th>
-                          <th className="text-left p-2 font-medium">角色</th>
+                          <th className="text-left p-2 font-medium">群組</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -344,7 +344,7 @@ export function SchemaBrowser({ databaseId, tables: initialTables, allRoles }: S
                             <td className="p-2">
                               <RolePicker
                                 allRoles={allRoles}
-                                selectedIds={col.allowedRoles.map((r) => r.id)}
+                                selectedIds={col.allowedGroups.map((r) => r.id)}
                                 onSave={(ids) => updateColumnRoles(table.id, col.id, ids)}
                               />
                             </td>

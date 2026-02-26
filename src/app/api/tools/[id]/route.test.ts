@@ -4,6 +4,7 @@ const mockGetServerSession = vi.hoisted(() => vi.fn());
 const prismaMock = vi.hoisted(() => ({
   user: { findUnique: vi.fn() },
   tool: { findUnique: vi.fn(), update: vi.fn(), delete: vi.fn() },
+  group: { findFirst: vi.fn() },
 }));
 
 vi.mock("next-auth", () => ({ getServerSession: mockGetServerSession }));

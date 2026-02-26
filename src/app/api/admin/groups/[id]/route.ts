@@ -14,22 +14,22 @@ export async function PATCH(
   const { name } = body;
 
   if (!name || typeof name !== "string" || !name.trim()) {
-    return NextResponse.json({ error: "角色名稱為必填" }, { status: 400 });
+    return NextResponse.json({ error: "群組名稱為必填" }, { status: 400 });
   }
 
-  const existing = await prisma.companyRole.findUnique({ where: { id } });
+  const existing = await prisma.group.findUnique({ where: { id } });
   if (!existing) {
-    return NextResponse.json({ error: "角色不存在" }, { status: 404 });
+    return NextResponse.json({ error: "群組不存在" }, { status: 404 });
   }
 
-  const duplicate = await prisma.companyRole.findFirst({
+  const duplicate = await prisma.group.findFirst({
     where: { name: name.trim(), id: { not: id } },
   });
   if (duplicate) {
-    return NextResponse.json({ error: "角色名稱已存在" }, { status: 409 });
+    return NextResponse.json({ error: "群組名稱已存在" }, { status: 409 });
   }
 
-  const updated = await prisma.companyRole.update({
+  const updated = await prisma.group.update({
     where: { id },
     data: { name: name.trim() },
     select: { id: true, name: true },
@@ -47,11 +47,11 @@ export async function DELETE(
 
   const { id } = await params;
 
-  const existing = await prisma.companyRole.findUnique({ where: { id } });
+  const existing = await prisma.group.findUnique({ where: { id } });
   if (!existing) {
-    return NextResponse.json({ error: "角色不存在" }, { status: 404 });
+    return NextResponse.json({ error: "群組不存在" }, { status: 404 });
   }
 
-  await prisma.companyRole.delete({ where: { id } });
+  await prisma.group.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }

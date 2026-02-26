@@ -64,7 +64,7 @@ async function withMysqlConnection<T>(
   }
 }
 
-const MAX_ROWS = 100;
+const MAX_ROWS = 1000;
 const QUERY_TIMEOUT_MS = 30_000;
 const MAX_CELL_LENGTH = 500;
 
@@ -132,12 +132,30 @@ export function validateTableAccess(sql: string, allowedTables: string[]): void 
   }
 }
 
-export function ensureLimit(sql: string, limit = MAX_ROWS): string {
+export function ensurePagination(
+  sql: string,
+  limit?: number,
+  offset?: number
+): string {
   const trimmed = sql.trim().replace(/;+\s*$/, "");
+  const effectiveLimit = Math.min(limit ?? MAX_ROWS, MAX_ROWS);
+
+  // If SQL already has LIMIT, cap it at MAX_ROWS
   if (/\bLIMIT\s+\d+/i.test(trimmed)) {
-    return trimmed;
+    const capped = trimmed.replace(/\bLIMIT\s+(\d+)/i, (_match, num) => {
+      return `LIMIT ${Math.min(parseInt(num), MAX_ROWS)}`;
+    });
+    // Add OFFSET if requested and not already present
+    if (offset && !/\bOFFSET\s+\d+/i.test(capped)) {
+      return `${capped} OFFSET ${offset}`;
+    }
+    return capped;
   }
-  return `${trimmed} LIMIT ${limit}`;
+
+  // No LIMIT — inject LIMIT and optional OFFSET
+  const limitClause = `LIMIT ${effectiveLimit}`;
+  const offsetClause = offset ? ` OFFSET ${offset}` : "";
+  return `${trimmed} ${limitClause}${offsetClause}`;
 }
 
 function truncateCellValues(rows: Record<string, unknown>[]): Record<string, unknown>[] {
@@ -156,10 +174,11 @@ function truncateCellValues(rows: Record<string, unknown>[]): Record<string, unk
 
 export async function executeQuery(
   config: DbConnectionConfig,
-  sql: string
+  sql: string,
+  options?: { limit?: number; offset?: number }
 ): Promise<{ rows: Record<string, unknown>[]; rowCount: number }> {
   validateSelectOnly(sql);
-  const safeSql = ensureLimit(sql);
+  const safeSql = ensurePagination(sql, options?.limit, options?.offset);
 
   if (config.type === "POSTGRESQL") {
     return withPgClient(config, async (client) => {
