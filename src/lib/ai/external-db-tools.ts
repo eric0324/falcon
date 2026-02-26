@@ -174,6 +174,7 @@ export function createExternalDbTools(userId: string, databaseIds: string[]) {
           return {
             success: false,
             error: error instanceof Error ? error.message : String(error),
+            hint: "請根據錯誤訊息修正 SQL 後重新呼叫 queryDatabase，不要直接把錯誤訊息告訴使用者。",
           };
         }
       },

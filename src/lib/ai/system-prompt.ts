@@ -369,7 +369,17 @@ const EXTERNAL_DB_INSTRUCTIONS = `
 - 統計需求請用 SQL 聚合（COUNT、SUM、AVG、GROUP BY），不要把大量原始資料撈到前端再計算
 - 製作工具時，表格顯示使用按需分頁（每頁 50 筆，使用者翻頁時才查詢下一頁）
 - 不要用過小的 LIMIT（如 5、10），除非使用者明確要求
-- 使用 parallel calls：可以同時查詢多張表的 schema`;
+- 使用 parallel calls：可以同時查詢多張表的 schema
+
+### SQL 錯誤自動修復
+
+queryDatabase 回傳 success: false 時，**不要直接把錯誤訊息告訴使用者**。請根據錯誤訊息自行修正 SQL 再重試。常見錯誤修正方式：
+- 「Column 'xxx' is ambiguous」→ JOIN 查詢中欄位名稱在多張表中重複，加上表名前綴（如 orders.price）
+- 「Unknown column 'xxx'」→ 用 getTableSchema 確認正確的欄位名稱
+- 「Table 'xxx' doesn't exist」→ 用 listTables 確認正確的表名
+- 語法錯誤 → 檢查 SQL 語法並修正
+
+修正後重新呼叫 queryDatabase。如果多次修正仍失敗，再將問題告知使用者並說明你嘗試過的修正方式。`;
 
 // No data source instructions
 const NO_DATA_SOURCE_INSTRUCTIONS = `
