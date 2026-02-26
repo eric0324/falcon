@@ -43,8 +43,9 @@ function extractResourceName(
 
 /**
  * Create Google tools bound to a specific user
+ * @param allowedServices - 允許存取的 Google 服務，未提供時允許全部
  */
-export function createGoogleTools(userId: string) {
+export function createGoogleTools(userId: string, allowedServices?: Set<string>) {
   return {
     /**
      * Search and retrieve data from Google services
@@ -79,6 +80,14 @@ export function createGoogleTools(userId: string) {
         const timeMax = params.timeMax;
         const label = (params as { label?: string }).label;
         const limit = params.limit;
+
+        // 驗證服務是否在允許清單中
+        if (allowedServices && !allowedServices.has(service)) {
+          return {
+            success: false,
+            error: `Google ${service} 未被授權存取。使用者只選擇了: ${[...allowedServices].join(", ")}`,
+          };
+        }
 
         console.log(`[googleSearch] Called with params:`, JSON.stringify(params));
 
@@ -190,6 +199,14 @@ export function createGoogleTools(userId: string) {
         data: z.record(z.string(), z.unknown()).describe("要寫入的資料"),
       }),
       execute: async ({ service, action, resource, data }) => {
+        // 驗證服務是否在允許清單中
+        if (allowedServices && !allowedServices.has(service)) {
+          return {
+            success: false,
+            error: `Google ${service} 未被授權存取。使用者只選擇了: ${[...allowedServices].join(", ")}`,
+          };
+        }
+
         try {
           // Check if service is connected
           const status = await getGoogleConnectionStatus(userId);

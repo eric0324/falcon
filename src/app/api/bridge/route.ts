@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { dispatchBridge } from "@/lib/bridge/handlers";
+import { logDataSourceCall, sanitizeBridgeParams, sanitizeResponse } from "@/lib/data-source-log";
 
 async function getUser(session: { user?: { email?: string | null } } | null) {
   if (!session?.user?.email) return null;
@@ -34,16 +35,19 @@ export async function POST(req: Request) {
     // 2. Determine allowed data sources
     let allowedSources: string[];
 
+    let toolName: string | undefined;
+
     if (toolId) {
       // Published mode: look up from Tool.dataSources
       const tool = await prisma.tool.findUnique({
         where: { id: toolId },
-        select: { dataSources: true },
+        select: { dataSources: true, name: true },
       });
       if (!tool) {
         return NextResponse.json({ error: "Tool not found" }, { status: 404 });
       }
       allowedSources = (tool.dataSources as string[]) || [];
+      toolName = tool.name;
     } else if (previewDataSources && Array.isArray(previewDataSources)) {
       // Preview mode: use the provided list
       allowedSources = previewDataSources;
@@ -72,10 +76,41 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4. Dispatch to handler
-    const data = await dispatchBridge(user.id, dataSourceId, action, params || {});
-
-    return NextResponse.json({ data });
+    // 4. Dispatch to handler with logging
+    const start = Date.now();
+    try {
+      const data = await dispatchBridge(user.id, dataSourceId, action, params || {});
+      logDataSourceCall({
+        userId: user.id,
+        toolId: toolId ?? undefined,
+        source: "bridge",
+        dataSourceId,
+        action,
+        toolName,
+        params: sanitizeBridgeParams(action, params),
+        response: sanitizeResponse(data as Record<string, unknown>),
+        success: true,
+        durationMs: Date.now() - start,
+        rowCount: (data as Record<string, unknown>)?.rowCount as number | undefined,
+      });
+      return NextResponse.json({ data });
+    } catch (error) {
+      logDataSourceCall({
+        userId: user.id,
+        toolId: toolId ?? undefined,
+        source: "bridge",
+        dataSourceId,
+        action,
+        toolName,
+        params: sanitizeBridgeParams(action, params),
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        durationMs: Date.now() - start,
+      });
+      console.error("POST /api/bridge error:", error);
+      const message = error instanceof Error ? error.message : "Bridge request failed";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
   } catch (error) {
     console.error("POST /api/bridge error:", error);
     const message = error instanceof Error ? error.message : "Bridge request failed";

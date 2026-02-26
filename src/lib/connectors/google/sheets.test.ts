@@ -57,7 +57,7 @@ describe("GoogleSheetsConnector", () => {
 
       const result = await connector.list({});
 
-      const data = result.data as any[];
+      const data = result.data as Record<string, unknown>[];
       expect(result.success).toBe(true);
       expect(data).toHaveLength(2);
       expect(data[0]).toEqual({
@@ -84,7 +84,7 @@ describe("GoogleSheetsConnector", () => {
       const result = await connector.list({ resource: "sheet1" });
 
       expect(result.success).toBe(true);
-      expect(result.data as any).toEqual({
+      expect(result.data as Record<string, unknown>).toEqual({
         id: "sheet1",
         title: "My Spreadsheet",
         sheets: [
@@ -111,7 +111,7 @@ describe("GoogleSheetsConnector", () => {
 
       const result = await connector.list({ resource: "sheet1/Sheet1!A1:C3" });
 
-      const data = result.data as any;
+      const data = result.data as Record<string, unknown>;
       expect(result.success).toBe(true);
       expect(data.headers).toEqual(["Name", "Age", "City"]);
       expect(data.rows).toHaveLength(2);

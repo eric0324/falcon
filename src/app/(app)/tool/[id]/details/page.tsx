@@ -8,10 +8,11 @@ import { canUserAccessTool } from "@/lib/tool-visibility";
 import { getCategoryById } from "@/lib/categories";
 import { formatDistanceToNow } from "date-fns";
 import { zhTW } from "date-fns/locale";
-import { ArrowLeft, Pencil, Play, Share2 } from "lucide-react";
+import { ArrowLeft, Pencil, Play } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import { ToolStats } from "@/components/tool-stats";
+import { ShareButton } from "./share-button";
 import { ReviewSection } from "@/components/review-section";
 
 interface ToolDetailsPageProps {
@@ -105,10 +106,7 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
               )}
             </div>
             <div className="flex gap-2 shrink-0">
-              <Button variant="outline" size="sm">
-                <Share2 className="h-4 w-4 mr-1" />
-                {tCommon("share")}
-              </Button>
+              <ShareButton toolId={tool.id} visibility={tool.visibility} label={tCommon("share")} />
               {isOwner && (
                 <Button variant="outline" size="sm" asChild>
                   <Link href={`/chat?edit=${tool.id}`}>

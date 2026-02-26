@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ConversationList } from "./conversation-list";
 import { UserRoleAssignment } from "./user-role-assignment";
+import { DepartmentEdit } from "./department-edit";
 import { Pagination } from "../../pagination";
 
 const PAGE_SIZE = 10;
@@ -107,6 +108,9 @@ export default async function AdminMemberDetailPage({
           </p>
         </div>
       </div>
+
+      {/* Department edit */}
+      <DepartmentEdit userId={user.id} initialDepartment={user.department} />
 
       {/* Group assignment */}
       <UserRoleAssignment

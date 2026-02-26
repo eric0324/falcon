@@ -14,7 +14,9 @@ export function Pagination({ currentPage, totalPages, basePath }: PaginationProp
   const nextPage = currentPage < totalPages ? currentPage + 1 : null;
 
   function href(page: number) {
-    return page === 1 ? basePath : `${basePath}?page=${page}`;
+    if (page === 1) return basePath;
+    const separator = basePath.includes("?") ? "&" : "?";
+    return `${basePath}${separator}page=${page}`;
   }
 
   return (

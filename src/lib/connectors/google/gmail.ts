@@ -38,11 +38,6 @@ interface GmailThread {
   messages?: GmailMessage[];
 }
 
-interface GmailThreadListResponse {
-  threads?: Array<{ id: string; snippet: string; historyId: string }>;
-  nextPageToken?: string;
-  resultSizeEstimate?: number;
-}
 
 export class GoogleGmailConnector extends GoogleBaseConnector {
   constructor(userId: string) {

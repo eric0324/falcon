@@ -51,34 +51,6 @@ function extractPropertyValue(property: Record<string, unknown>): unknown {
 }
 
 /**
- * Transform Notion page to simplified object
- */
-function transformPage(page: NotionPage): Record<string, unknown> {
-  const result: Record<string, unknown> = {
-    id: page.id,
-    url: page.url,
-  };
-
-  if (page.icon?.type === "emoji") {
-    result.icon = page.icon.emoji;
-  }
-
-  // Include parent info so AI knows which database this page belongs to
-  if (page.parent) {
-    result.parentType = page.parent.type;
-    if (page.parent.database_id) {
-      result.parentDatabaseId = page.parent.database_id;
-    }
-  }
-
-  for (const [key, value] of Object.entries(page.properties)) {
-    result[key] = extractPropertyValue(value as Record<string, unknown>);
-  }
-
-  return result;
-}
-
-/**
  * Extract just the title from a Notion page's properties
  */
 function extractPageTitle(page: NotionPage): string {
@@ -91,18 +63,6 @@ function extractPageTitle(page: NotionPage): string {
   return "";
 }
 
-/**
- * Transform Notion database to simplified object
- */
-function transformDatabase(db: NotionDatabase): Record<string, unknown> {
-  return {
-    id: db.id,
-    title: extractPlainText(db.title),
-    description: extractPlainText(db.description),
-    icon: db.icon?.type === "emoji" ? db.icon.emoji : null,
-    url: db.url,
-  };
-}
 
 /**
  * Create Notion tools for AI
@@ -125,7 +85,7 @@ export function createNotionTools() {
         limit: z.number().optional().describe("最多返回幾筆結果，預設 20"),
       }),
       execute: async (params) => {
-        const { action, databaseId, pageId, search, limit = 20 } = params;
+        const { databaseId, pageId, search, limit = 20 } = params;
 
         try {
           // Check if Notion is configured

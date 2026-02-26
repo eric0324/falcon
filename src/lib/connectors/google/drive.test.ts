@@ -59,7 +59,7 @@ describe("GoogleDriveConnector", () => {
       });
 
       const result = await connector.list({});
-      const data = result.data as any[];
+      const data = result.data as Record<string, unknown>[];
 
       expect(result.success).toBe(true);
       expect(data).toHaveLength(2);
@@ -116,7 +116,7 @@ describe("GoogleDriveConnector", () => {
       });
 
       const result = await connector.list({ resource: "file:file1" });
-      const data = result.data as any;
+      const data = result.data as Record<string, unknown>;
 
       expect(result.success).toBe(true);
       expect(data.id).toBe("file1");

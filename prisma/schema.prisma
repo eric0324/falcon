@@ -57,6 +57,7 @@ model User {
   tokenUsages              TokenUsage[]
   userGoogleServiceTokens  UserGoogleServiceToken[]
   groups                   Group[]
+  dataSourceLogs           DataSourceLog[]
 }
 
 model Tool {
@@ -304,6 +305,34 @@ model ExternalDatabaseColumn {
 
   @@unique([tableId, columnName])
   @@index([tableId])
+}
+
+// ===== Data Source Log =====
+
+model DataSourceLog {
+  id             String   @id @default(cuid())
+  userId         String
+  conversationId String?
+  toolId         String?
+  source         String   // "chat" | "bridge"
+  dataSourceId   String
+  action         String
+  toolName       String?
+  params         Json?
+  response       Json?
+  success        Boolean
+  error          String?
+  durationMs     Int?
+  rowCount       Int?
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([conversationId])
+  @@index([toolId])
+  @@index([dataSourceId])
+  @@index([createdAt])
 }
 
 // ===== Group Model =====

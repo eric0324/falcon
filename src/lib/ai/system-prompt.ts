@@ -396,10 +396,21 @@ function buildCompanyApiInstructions(dataSources: string[]): string {
       sourceDescriptions.push(
         `- \`${ds}\` (外部資料庫): actions: \`query\` (params: {sql, limit?, offset?}), \`listTables\`, \`getSchema\` (params: {tableName})`
       );
-    } else if (ds.startsWith("google_")) {
-      const service = ds.replace("google_", "");
+    } else if (ds === "google_sheets") {
       sourceDescriptions.push(
-        `- \`${ds}\` (Google ${service}): actions: \`list\`, \`read\`, \`search\` (params: {resource, search, limit})`
+        `- \`google_sheets\` (Google Sheets): actions: \`list\`, \`read\` (params: {resource?, search?, limit?})`
+      );
+    } else if (ds === "google_drive") {
+      sourceDescriptions.push(
+        `- \`google_drive\` (Google Drive, read-only): actions: \`list\`, \`search\` (params: {resource?, search?, mimeType?, limit?})`
+      );
+    } else if (ds === "google_calendar") {
+      sourceDescriptions.push(
+        `- \`google_calendar\` (Google Calendar): actions: \`list\`, \`read\` (params: {resource?, search?, timeMin?, timeMax?, limit?})`
+      );
+    } else if (ds === "google_gmail") {
+      sourceDescriptions.push(
+        `- \`google_gmail\` (Gmail, read-only): actions: \`list\`, \`read\`, \`search\` (params: {resource?, search?, label?, limit?})`
       );
     } else if (ds === "notion") {
       sourceDescriptions.push(
@@ -432,6 +443,106 @@ function buildCompanyApiInstructions(dataSources: string[]): string {
     }
   }
 
+  // Build return format documentation for enabled data sources
+  const formatSections: string[] = [];
+
+  if (dataSources.some(ds => ds.startsWith("google_"))) {
+    formatSections.push(`**Google:**
+\`\`\`
+list("google_sheets", {})                                → [{ id, name, type }]
+list("google_sheets", { resource: "ID" })                → { id, title, sheets: [{ id, title }] }
+list("google_sheets", { resource: "ID/Sheet1" })         → { headers: [...], rows: [{ col: "val" }], raw: [[...]] }
+list("google_drive", {})                                 → [{ id, name, mimeType, createdAt, modifiedAt, size, webViewLink, isFolder }]
+list("google_calendar", {})                              → [{ id, name, isPrimary }]
+list("google_calendar", { resource: "primary" })         → [{ id, summary, description, location, start, end, isAllDay, status, htmlLink, meetLink, attendees, organizer }]
+list("google_gmail", {})                                 → [{ id, threadId, snippet, from, to, subject, date, isUnread }]
+read("google_gmail", { resource: "message:ID" })         → 同上 + body
+read("google_gmail", { resource: "thread:ID" })          → { id, snippet, messageCount, messages: [...] }
+\`\`\`
+Sheets 用 \`.rows\` 取物件陣列，\`.headers\` 取欄位名。`);
+  }
+
+  if (dataSources.includes("notion")) {
+    formatSections.push(`**Notion:**
+\`\`\`
+list("notion", {})                                       → [{ id, title: [{ plain_text }], url }] (Notion DB objects)
+execute("notion", "query", { databaseId })               → [{ id, url, properties: { field: { type, value } } }]
+execute("notion", "read", { pageId })                    → { id, url, properties, content: "plain text..." }
+execute("notion", "search", { search })                  → [{ id, url, properties }]
+\`\`\``);
+  }
+
+  if (dataSources.includes("slack")) {
+    formatSections.push(`**Slack:**
+\`\`\`
+list("slack", {})                                        → [{ id, name, topic, memberCount }]
+execute("slack", "read", { channelId })                  → [{ user, text, ts, replyCount }]
+execute("slack", "thread", { channelId, threadTs })      → [{ user, text, ts }]
+execute("slack", "search", { search })                   → [{ channel, user, text, ts, permalink }]
+\`\`\``);
+  }
+
+  if (dataSources.includes("github")) {
+    formatSections.push(`**GitHub:**
+\`\`\`
+execute("github", "listRepos", {})                       → [{ name, fullName, description, language, updatedAt, url }]
+execute("github", "listPRs", { repo })                   → [{ number, title, author, state, createdAt, draft, labels, url }]
+execute("github", "readPR", { repo, prNumber })          → { number, title, body, author, state, merged, additions, deletions, totalFiles, files, reviews, url }
+execute("github", "searchCode", { search })              → [{ name, path, repo, url, textMatches }]
+execute("github", "commits", { repo })                   → [{ sha, message, author, date, url }]
+\`\`\``);
+  }
+
+  if (dataSources.includes("asana")) {
+    formatSections.push(`**Asana:**
+\`\`\`
+list("asana", {})                                        → [{ id, name, status, dueOn, teamName }]
+execute("asana", "tasks", { projectId })                 → [{ section, tasks: [{ id, name, assignee, dueOn, completed, customFields }] }]
+execute("asana", "read", { taskId })                     → { id, name, notes, assignee, dueOn, completed, customFields, subtasks }
+execute("asana", "comments", { taskId })                 → [{ user, text, createdAt }]
+execute("asana", "search", { search })                   → [{ id, name, assignee, completed, projectName }]
+\`\`\``);
+  }
+
+  if (dataSources.includes("plausible")) {
+    formatSections.push(`**Plausible:**
+\`\`\`
+execute("plausible", "realtime", {})                     → { visitors: N }
+execute("plausible", "aggregate", { dateRange })         → { visitors, pageviews, visits, bounceRate, visitDuration, viewsPerVisit }
+execute("plausible", "timeseries", { dateRange, period })→ [{ date, visitors, pageviews }]
+execute("plausible", "breakdown", { dimension, dateRange })→ [{ dimension, visitors, pageviews }]
+\`\`\``);
+  }
+
+  if (dataSources.includes("ga4")) {
+    formatSections.push(`**GA4:**
+\`\`\`
+execute("ga4", "realtime", {})                           → { activeUsers: N }
+execute("ga4", "aggregate", { dateRange })               → { activeUsers, screenPageViews, sessions, bounceRate, averageSessionDuration }
+execute("ga4", "timeseries", { dateRange, period })      → [{ date, activeUsers, screenPageViews }]
+execute("ga4", "breakdown", { dimension, dateRange })    → [{ dimension, activeUsers, screenPageViews }]
+\`\`\``);
+  }
+
+  if (dataSources.includes("meta_ads")) {
+    formatSections.push(`**Meta Ads:**
+\`\`\`
+execute("meta_ads", "listAccounts", {})                  → [{ name, accountId }]
+execute("meta_ads", "overview", { accountId, dateRange })→ { spend, impressions, clicks, ctr, cpc, cpm, reach, frequency, actions, costPerAction }
+execute("meta_ads", "campaigns", { accountId, dateRange })→ [{ campaignName, campaignId, spend, impressions, clicks, ctr, cpc, cpm, actions, costPerAction }]
+execute("meta_ads", "timeseries", { accountId, dateRange })→ [{ date, spend, impressions, clicks }]
+execute("meta_ads", "breakdown", { accountId, dimension })→ [{ dimension, spend, impressions, clicks, ctr }]
+\`\`\``);
+  }
+
+  const formatDocs = formatSections.length > 0 ? `
+### 各資料源回傳格式
+
+所有 companyAPI 呼叫直接回傳資料物件或陣列（不包 success 外層）。
+
+${formatSections.join("\n\n")}
+` : "";
+
   return `
 
 ## Building Tools with Live Data (window.companyAPI)
@@ -462,7 +573,7 @@ ${sourceDescriptions.join("\n")}
 - All API calls return Promises
 - Do NOT hardcode sample data when live data is available — fetch it at runtime
 - \`companyAPI.query()\` returns \`{ rows: [...], rowCount: N }\`，用 \`.rows\` 取得資料陣列
-
+${formatDocs}
 ### 重要：外部資料庫大資料集策略
 
 資料表可能有數十萬筆資料，**絕對不要嘗試一次全部載入**。請遵循以下原則：

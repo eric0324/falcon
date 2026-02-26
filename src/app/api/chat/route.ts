@@ -16,6 +16,7 @@ import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 import { shouldCompact } from "@/lib/ai/token-utils";
 import { compactMessages } from "@/lib/ai/compact";
 import { prisma } from "@/lib/prisma";
+import { logDataSourceCall, extractDataSourceInfo, sanitizeResponse } from "@/lib/data-source-log";
 
 interface FileData {
   name: string;
@@ -78,13 +79,29 @@ export async function POST(req: Request) {
   const userId = session.user.id;
 
   try {
-    const { messages, model, files, conversationId, dataSources } = await req.json();
+    const { messages, model, files, conversationId: incomingConversationId, dataSources } = await req.json();
 
     // Use specified model or default
     const selectedModel = models[(model as ModelId) || defaultModel];
+    const modelName = (model || defaultModel) as ModelId;
 
-    // Create tools with user context
-    const googleTools = createGoogleTools(userId);
+    // Ensure conversationId exists for logging — create conversation early if needed
+    let conversationId = incomingConversationId as string | undefined;
+    if (!conversationId) {
+      const firstUserMsg = messages.find((m: { role: string; content: string }) => m.role === "user");
+      const title = firstUserMsg?.content?.trim().slice(0, 50) || "New conversation";
+      const conv = await prisma.conversation.create({
+        data: {
+          userId,
+          title,
+          model: modelName,
+          dataSources: dataSources || undefined,
+        },
+      });
+      conversationId = conv.id;
+    }
+
+    // Create tools with user context (non-Google tools created eagerly)
     const notionTools = createNotionTools();
     const slackTools = createSlackTools();
     const asanaTools = createAsanaTools();
@@ -101,9 +118,14 @@ export async function POST(req: Request) {
     if (dataSources && dataSources.length > 0) {
       const selectedSources = new Set(dataSources as string[]);
 
-      // Google services - only if explicitly selected
-      if (selectedSources.has("google_sheets") || selectedSources.has("google_drive") ||
-          selectedSources.has("google_calendar") || selectedSources.has("google_gmail")) {
+      // Google services - only add if selected, with per-service access control
+      const allowedGoogleServices = new Set<string>();
+      if (selectedSources.has("google_sheets")) allowedGoogleServices.add("sheets");
+      if (selectedSources.has("google_drive")) allowedGoogleServices.add("drive");
+      if (selectedSources.has("google_calendar")) allowedGoogleServices.add("calendar");
+      if (selectedSources.has("google_gmail")) allowedGoogleServices.add("gmail");
+      if (allowedGoogleServices.size > 0) {
+        const googleTools = createGoogleTools(userId, allowedGoogleServices);
         filteredTools = { ...filteredTools, ...googleTools };
       }
 
@@ -201,7 +223,6 @@ export async function POST(req: Request) {
     // Track token usage across all steps
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
-    const modelName = (model || defaultModel) as ModelId;
 
     // Auto compact: check if conversation needs compaction
     let compactInfo: { compacted: boolean; originalCount: number; keptCount: number; summary?: string } | null = null;
@@ -242,6 +263,11 @@ export async function POST(req: Request) {
 
         try {
 
+        // Send conversationId so frontend can use it
+        if (conversationId) {
+          controller.enqueue(encoder.encode(`i:${JSON.stringify({ conversationId })}\n`));
+        }
+
         // Send compact event if compaction occurred
         if (compactInfo) {
           const compactLine = `c:${JSON.stringify(compactInfo)}\n`;
@@ -261,6 +287,7 @@ export async function POST(req: Request) {
           let hasToolCalls = false;
           const toolCalls: Array<{ toolCallId: string; toolName: string; args: unknown }> = [];
           const toolResults: Array<{ toolCallId: string; result: unknown }> = [];
+          const toolCallTimestamps: Record<string, number> = {};
           for await (const part of result.fullStream) {
             let line = "";
 
@@ -270,6 +297,7 @@ export async function POST(req: Request) {
                 break;
               case "tool-call":
                 hasToolCalls = true;
+                toolCallTimestamps[part.toolCallId] = Date.now();
                 toolCalls.push({
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
@@ -281,7 +309,7 @@ export async function POST(req: Request) {
                   args: part.input,
                 })}\n`;
                 break;
-              case "tool-result":
+              case "tool-result": {
                 toolResults.push({
                   toolCallId: part.toolCallId,
                   result: part.output,
@@ -290,7 +318,30 @@ export async function POST(req: Request) {
                   toolCallId: part.toolCallId,
                   result: part.output,
                 })}\n`;
+                // Log data source calls
+                const tc = toolCalls.find((c) => c.toolCallId === part.toolCallId);
+                if (tc) {
+                  const info = extractDataSourceInfo(tc.toolName, tc.args as Record<string, unknown>);
+                  if (info) {
+                    const output = part.output as Record<string, unknown> | undefined;
+                    logDataSourceCall({
+                      userId,
+                      conversationId,
+                      source: "chat",
+                      dataSourceId: info.dataSourceId,
+                      action: info.action,
+                      toolName: tc.toolName,
+                      params: info.params,
+                      response: sanitizeResponse(output),
+                      success: output?.success !== false,
+                      error: output?.success === false ? (output?.error as string) : undefined,
+                      durationMs: Date.now() - (toolCallTimestamps[part.toolCallId] || Date.now()),
+                      rowCount: output?.rowCount as number | undefined,
+                    });
+                  }
+                }
                 break;
+              }
               case "error":
                 line = `e:${JSON.stringify({ error: String(part.error) })}\n`;
                 break;

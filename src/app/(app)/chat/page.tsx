@@ -377,6 +377,15 @@ function StudioContent() {
                 break;
               }
 
+              case "i": { // Conversation ID from server
+                const { conversationId: serverConvId } = data as { conversationId: string };
+                if (serverConvId && !convId) {
+                  setConvId(serverConvId);
+                  router.push(`/chat?id=${serverConvId}`);
+                }
+                break;
+              }
+
               case "c": { // Compact event
                 const compact = data as CompactInfo;
                 setCompactInfo(compact);

@@ -49,7 +49,7 @@ describe("GoogleCalendarConnector", () => {
       });
 
       const result = await connector.list({});
-      const data = result.data as any[];
+      const data = result.data as Record<string, unknown>[];
 
       expect(result.success).toBe(true);
       expect(data).toHaveLength(2);
@@ -78,7 +78,7 @@ describe("GoogleCalendarConnector", () => {
       });
 
       const result = await connector.list({ resource: "primary" });
-      const data = result.data as any[];
+      const data = result.data as Record<string, unknown>[];
 
       expect(result.success).toBe(true);
       expect(data).toHaveLength(1);
@@ -100,7 +100,7 @@ describe("GoogleCalendarConnector", () => {
       });
 
       const result = await connector.list({ resource: "primary/event1" });
-      const data = result.data as any;
+      const data = result.data as Record<string, unknown>;
 
       expect(result.success).toBe(true);
       expect(data.summary).toBe("Team Meeting");
@@ -135,7 +135,7 @@ describe("GoogleCalendarConnector", () => {
       });
 
       expect(result.success).toBe(true);
-      expect((result.data as any).summary).toBe("New Meeting");
+      expect((result.data as Record<string, unknown>).summary).toBe("New Meeting");
     });
 
     it("should fail if required fields are missing", async () => {
@@ -176,7 +176,7 @@ describe("GoogleCalendarConnector", () => {
       });
 
       expect(result.success).toBe(true);
-      expect((result.data as any).summary).toBe("Updated Meeting");
+      expect((result.data as Record<string, unknown>).summary).toBe("Updated Meeting");
     });
 
     it("should fail if resource format is invalid", async () => {
