@@ -118,7 +118,7 @@ export default async function LeaderboardPage({ searchParams }: LeaderboardPageP
         {/* Breadcrumb */}
         <div className="mb-6">
           <Button variant="ghost" size="sm" asChild className="-ml-2">
-            <Link href="/marketplace">
+            <Link href="/">
               <ArrowLeft className="h-4 w-4 mr-1" />
               返回市集
             </Link>

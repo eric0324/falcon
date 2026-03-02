@@ -84,8 +84,10 @@
   },
   "marketplace": {
     "hero": {
-      "title": "工具市集",
-      "description": "探索同事們創建的實用工具，或分享你的作品"
+      "morning": "早安",
+      "afternoon": "午安",
+      "evening": "晚安",
+      "description": "探索夥伴們製作的實用工具，或用 AI 打造你自己的工具"
     },
     "sections": {
       "categories": "分類瀏覽",
@@ -93,8 +95,18 @@
       "trending": "本週熱門",
       "newest": "最新上架"
     },
+    "tabs": {
+      "trending": "本週熱門",
+      "topRated": "最高評價",
+      "mostUsed": "使用最多",
+      "rising": "新星崛起",
+      "newest": "最新上架"
+    },
     "empty": {
       "trending": "還沒有熱門工具，成為第一個分享工具的人吧！",
+      "topRated": "還沒有獲得評價的工具，快去評論吧！",
+      "mostUsed": "還沒有被使用的工具。",
+      "rising": "還沒有新星工具。",
       "newest": "還沒有工具，快去建立一個吧！"
     }
   },
@@ -274,6 +286,11 @@
       "title": "還沒有熱門工具",
       "description": "使用更多工具來幫助它們上榜！"
     }
+  },
+  "quota": {
+    "warning": "本月額度即將用盡（已用 {used} / {limit}）",
+    "blocked": "本月額度已超額（已用 {used} / {limit}），請聯繫管理員。",
+    "inputDisabled": "額度已超額 — 無法輸入"
   },
   "integrations": {
     "title": "整合服務",

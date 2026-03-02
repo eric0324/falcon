@@ -182,6 +182,46 @@ bun scripts/datasource.ts remove <name>
 | 財務 | 全部含 salaries | 無 |
 | 其他 | 只有 products | - |
 
+## Scripts
+
+### import-schema-notes.ts — 匯入外部資料庫 schema 備註
+
+將 CSV 檔案中的表備註和欄位備註批次匯入到 `ExternalDatabase` 的 table/column `note` 欄位。
+LLM 在查詢外部資料庫時會參考這些備註來理解資料意義。
+
+#### CSV 格式
+
+```csv
+"表名","表備註","欄位名","欄位型別","欄位備註"
+"orders","訂單主表","id","bigint","主鍵"
+"orders","訂單主表","sts","varchar","訂單狀態：P=待處理 S=已出貨 C=已完成"
+```
+
+#### 使用步驟
+
+1. 在 admin 後台建立外部資料庫連線，取得 database ID
+2. 執行掃描（sync）讓系統建立 table/column 記錄
+3. 執行 script 匯入備註：
+
+```bash
+bunx tsx scripts/import-schema-notes.ts <csv-path> <database-id>
+```
+
+#### 範例
+
+```bash
+bunx tsx scripts/import-schema-notes.ts ~/Desktop/database_schema.csv cm1abc2def3
+```
+
+#### 行為說明
+
+- 已存在的 table/column → 只更新 `note`，不覆蓋 `hidden`、`allowedGroups` 等設定
+- CSV 中有但資料庫沒有的 table/column → 自動建立，並連結所有現有群組
+- 空備註 → 設為 null
+- 支援 BOM 編碼的 CSV（Excel 匯出）
+
+---
+
 ## 本地開發
 
 ```bash
@@ -211,8 +251,10 @@ falcon/
 │   │   └── permissions.ts # 權限邏輯
 │   └── hooks/            # React Hooks
 ├── scripts/
-│   ├── datasource.ts     # 資料源管理 CLI
-│   └── init-mysql.sql    # MySQL 測試資料
+│   ├── datasource.ts            # 資料源管理 CLI
+│   ├── import-schema-notes.ts   # 匯入 schema 備註
+│   ├── seed-orders.ts           # 壓力測試 seed
+│   └── init-mysql.sql           # MySQL 測試資料
 ├── prisma/
 │   └── schema.prisma     # 資料庫 Schema
 └── docker-compose.yml

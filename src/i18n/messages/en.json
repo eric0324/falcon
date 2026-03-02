@@ -84,8 +84,10 @@
   },
   "marketplace": {
     "hero": {
-      "title": "Tool Marketplace",
-      "description": "Discover useful tools created by your colleagues, or share your own"
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening",
+      "description": "Discover useful tools created by your colleagues, or build your own with AI"
     },
     "sections": {
       "categories": "Browse Categories",
@@ -93,8 +95,18 @@
       "trending": "Trending This Week",
       "newest": "Newest"
     },
+    "tabs": {
+      "trending": "Trending",
+      "topRated": "Top Rated",
+      "mostUsed": "Most Used",
+      "rising": "Rising Stars",
+      "newest": "Newest"
+    },
     "empty": {
       "trending": "No trending tools yet. Be the first to share a tool!",
+      "topRated": "No rated tools yet. Be the first to review!",
+      "mostUsed": "No tools have been used yet.",
+      "rising": "No rising stars yet.",
       "newest": "No tools yet. Create one now!"
     }
   },
@@ -274,6 +286,11 @@
       "title": "No trending tools yet",
       "description": "Use more tools to help them get on the list!"
     }
+  },
+  "quota": {
+    "warning": "Monthly quota nearly exhausted (Used {used} / {limit})",
+    "blocked": "Monthly quota exceeded (Used {used} / {limit}). Please contact your admin.",
+    "inputDisabled": "Quota exceeded — input disabled"
   },
   "integrations": {
     "title": "Integrations",

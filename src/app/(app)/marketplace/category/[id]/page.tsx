@@ -64,31 +64,24 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         {/* Breadcrumb */}
         <div className="mb-6">
           <Button variant="ghost" size="sm" asChild className="-ml-2">
-            <Link href="/marketplace">
+            <Link href="/">
               <ArrowLeft className="h-4 w-4 mr-1" />
-              {tCommon("backToMarketplace")}
+              返回
             </Link>
           </Button>
         </div>
 
-        {/* Category Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-3xl">{category.icon}</span>
-            <h1 className="text-2xl font-bold">{tCategories(category.id)}</h1>
-          </div>
-          <p className="text-muted-foreground">
-            {tools.length} 個工具
-          </p>
-        </div>
-
-        {/* Other Categories */}
+        {/* Categories */}
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-          {TOOL_CATEGORIES.filter((c) => c.id !== categoryId).map((c) => (
+          {TOOL_CATEGORIES.map((c) => (
             <Link
               key={c.id}
               href={`/marketplace/category/${c.id}`}
-              className="flex items-center gap-1 px-3 py-1.5 border rounded-full text-sm hover:bg-muted whitespace-nowrap"
+              className={`flex items-center gap-1 px-3 py-1.5 border rounded-full text-sm whitespace-nowrap transition-colors ${
+                c.id === categoryId
+                  ? "bg-foreground text-background border-foreground"
+                  : "hover:bg-muted"
+              }`}
             >
               <span>{c.icon}</span>
               <span>{tCategories(c.id)}</span>

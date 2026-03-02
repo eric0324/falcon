@@ -6,7 +6,6 @@ import { useState, useEffect, Suspense } from "react";
 import { useTranslations } from "next-intl";
 import { signOut } from "next-auth/react";
 import {
-  Store,
   Wrench,
   Trash2,
   Loader2,
@@ -72,8 +71,7 @@ interface SidebarProps {
 
 const navItems = [
   { href: "/chat", labelKey: "nav.chat" as const, icon: Plus, neverActive: true },
-  { href: "/", labelKey: "nav.tools" as const, icon: Wrench, exact: true },
-  { href: "/marketplace", labelKey: "nav.explore" as const, icon: Store },
+  { href: "/tools", labelKey: "nav.tools" as const, icon: Wrench },
 ];
 
 function SidebarContent({ conversations: initialConversations, user }: SidebarProps) {
@@ -271,7 +269,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
       >
         {/* Header */}
         <div className="p-3 flex items-center gap-2">
-          <span className="font-semibold text-neutral-900">Falcon</span>
+          <Link href="/" className="font-semibold text-neutral-900 hover:text-neutral-700 transition-colors">Falcon</Link>
           <div className="flex-1" />
           <Button
             variant="ghost"

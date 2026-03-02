@@ -58,6 +58,7 @@ model User {
   userGoogleServiceTokens  UserGoogleServiceToken[]
   groups                   Group[]
   dataSourceLogs           DataSourceLog[]
+  quota                    UserQuota?
 }
 
 model Tool {
@@ -207,6 +208,7 @@ model TokenUsage {
   inputTokens     Int
   outputTokens    Int
   totalTokens     Int
+  costUsd         Float    @default(0)
 
   createdAt       DateTime @default(now())
 
@@ -217,6 +219,18 @@ model TokenUsage {
   @@index([conversationMessageId])
   @@index([createdAt])
   @@index([model])
+}
+
+// ===== User Quota =====
+
+model UserQuota {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  monthlyLimitUsd Float    @default(50)
+  bonusBalanceUsd Float    @default(0)
+  periodStart     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ===== Google Services Models =====

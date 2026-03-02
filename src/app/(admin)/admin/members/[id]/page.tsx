@@ -7,6 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ConversationList } from "./conversation-list";
 import { UserRoleAssignment } from "./user-role-assignment";
 import { DepartmentEdit } from "./department-edit";
+import { QuotaManager } from "./quota-manager";
 import { Pagination } from "../../pagination";
 
 const PAGE_SIZE = 10;
@@ -118,6 +119,9 @@ export default async function AdminMemberDetailPage({
         allRoles={allRoles}
         assignedRoleIds={user.groups.map((r) => r.id)}
       />
+
+      {/* Quota management */}
+      <QuotaManager userId={user.id} />
 
       <div className="mb-4">
         <h2 className="text-lg font-semibold">

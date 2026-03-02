@@ -32,7 +32,7 @@ const defaultContent: Record<string, {
     titleKey: "noResults.title",
     descriptionKey: "noResults.description",
     actionLabelKey: "noResults.action",
-    actionHref: "/marketplace",
+    actionHref: "/",
   },
   "no-reviews": {
     icon: Star,

@@ -40,7 +40,7 @@ interface DeployDialogProps {
   defaultTags?: string[];
   defaultVisibility?: string;
   isEditing?: boolean;
-  hasExtDbSource?: boolean;
+  hasAnyDataSource?: boolean;
 }
 
 export function DeployDialog({
@@ -53,7 +53,7 @@ export function DeployDialog({
   defaultTags = [],
   defaultVisibility = "PRIVATE",
   isEditing = false,
-  hasExtDbSource = false,
+  hasAnyDataSource = false,
 }: DeployDialogProps) {
   const t = useTranslations("deploy");
   const tCategories = useTranslations("categories");
@@ -198,10 +198,10 @@ export function DeployDialog({
                 <SelectItem value="PUBLIC">🌐 {t("visibility.public")}</SelectItem>
               </SelectContent>
             </Select>
-            {hasExtDbSource && visibility !== "PRIVATE" && (
+            {hasAnyDataSource && visibility === "PUBLIC" && (
               <div className="flex gap-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 text-sm">
                 <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                <p>此工具使用了外部資料庫資料來源。若公開發佈，沒有對應資料庫權限的使用者將無法正常使用此工具。</p>
+                <p>公開工具無法使用資料來源，請移除資料來源或調整為其他權限。</p>
               </div>
             )}
           </div>
@@ -216,7 +216,7 @@ export function DeployDialog({
           </Button>
           <Button
             onClick={handleDeploy}
-            disabled={!name.trim() || isDeploying}
+            disabled={!name.trim() || isDeploying || (hasAnyDataSource && visibility === "PUBLIC")}
           >
             {isDeploying
               ? isEditing

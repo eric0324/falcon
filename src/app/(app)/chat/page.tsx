@@ -30,12 +30,20 @@ interface CompactInfo {
   keptCount: number;
 }
 
+interface QuotaStatus {
+  status: "ok" | "warning" | "blocked";
+  currentUsageUsd: number;
+  effectiveLimitUsd: number;
+  remainingUsd: number;
+}
+
 function StudioContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const { toast } = useToast();
   const t = useTranslations("studio");
+  const tq = useTranslations("quota");
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -62,6 +70,9 @@ function StudioContent() {
   // Auto compact state
   const [compactInfo, setCompactInfo] = useState<CompactInfo | null>(null);
 
+  // Quota state
+  const [quotaStatus, setQuotaStatus] = useState<QuotaStatus | null>(null);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -72,6 +83,7 @@ function StudioContent() {
   const MAX_ERROR_RETRIES = 2;
 
   const hasCode = code.length > 0;
+  const isQuotaBlocked = quotaStatus?.status === "blocked";
 
   const resetState = useCallback(() => {
     setMessages([]);
@@ -273,6 +285,16 @@ function StudioContent() {
         }),
       });
 
+      if (res.status === 403) {
+        const errBody = await res.json().catch(() => null);
+        if (errBody?.error === "quota_exceeded") {
+          setQuotaStatus(errBody.quota as QuotaStatus);
+          setMessages((prev) => prev.slice(0, -1));
+          setIsLoading(false);
+          return;
+        }
+      }
+
       if (!res.ok) {
         throw new Error("Failed to get response");
       }
@@ -389,6 +411,11 @@ function StudioContent() {
               case "c": { // Compact event
                 const compact = data as CompactInfo;
                 setCompactInfo(compact);
+                break;
+              }
+
+              case "q": { // Quota status
+                setQuotaStatus(data as QuotaStatus);
                 break;
               }
             }
@@ -777,6 +804,24 @@ function StudioContent() {
 
           {/* Input Area */}
           <div className="border-t">
+            {/* Quota warning/blocked banner */}
+            {quotaStatus?.status === "warning" && (
+              <div className="px-4 py-2 bg-yellow-50 dark:bg-yellow-950 border-b border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200 text-sm">
+                {tq("warning", {
+                  used: quotaStatus.currentUsageUsd.toFixed(2),
+                  limit: quotaStatus.effectiveLimitUsd.toFixed(2),
+                })}
+              </div>
+            )}
+            {quotaStatus?.status === "blocked" && (
+              <div className="px-4 py-2 bg-red-50 dark:bg-red-950 border-b border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 text-sm">
+                {tq("blocked", {
+                  used: quotaStatus.currentUsageUsd.toFixed(2),
+                  limit: quotaStatus.effectiveLimitUsd.toFixed(2),
+                })}
+              </div>
+            )}
+
             {/* File preview */}
             {uploadedFiles.length > 0 && (
               <FileList files={uploadedFiles} onRemove={handleRemoveFile} />
@@ -790,15 +835,15 @@ function StudioContent() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={t("input.placeholder")}
+                  placeholder={isQuotaBlocked ? tq("inputDisabled") : t("input.placeholder")}
                   className="min-h-[80px] pr-12 resize-none"
-                  disabled={isLoading}
+                  disabled={isLoading || isQuotaBlocked}
                 />
                 <Button
                   type="submit"
                   size="icon"
                   className="absolute bottom-2 right-2"
-                  disabled={!input.trim() || isLoading}
+                  disabled={!input.trim() || isLoading || isQuotaBlocked}
                 >
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -849,7 +894,7 @@ function StudioContent() {
         defaultTags={toolTags}
         defaultVisibility={toolVisibility}
         isEditing={!!editId}
-        hasExtDbSource={selectedDataSources.some((ds) => ds.startsWith("extdb_"))}
+        hasAnyDataSource={selectedDataSources.length > 0}
       />
     </div>
   );

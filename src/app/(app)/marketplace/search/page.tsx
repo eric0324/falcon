@@ -23,7 +23,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   }
 
   if (!query) {
-    redirect("/marketplace");
+    redirect("/");
   }
 
   const visibilityFilter: Prisma.ToolWhereInput = buildVisibilityFilter(session.user.id);
@@ -70,7 +70,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         {/* Breadcrumb */}
         <div className="mb-6">
           <Button variant="ghost" size="sm" asChild className="-ml-2">
-            <Link href="/marketplace">
+            <Link href="/">
               <ArrowLeft className="h-4 w-4 mr-1" />
               返回市集
             </Link>

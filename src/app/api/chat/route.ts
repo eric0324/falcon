@@ -16,6 +16,7 @@ import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 import { shouldCompact } from "@/lib/ai/token-utils";
 import { compactMessages } from "@/lib/ai/compact";
 import { prisma } from "@/lib/prisma";
+import { checkQuota, estimateCost } from "@/lib/quota";
 import { logDataSourceCall, extractDataSourceInfo, sanitizeResponse } from "@/lib/data-source-log";
 
 interface FileData {
@@ -79,6 +80,15 @@ export async function POST(req: Request) {
   const userId = session.user.id;
 
   try {
+    // Quota check — block if over 110%
+    const quotaStatus = await checkQuota(userId);
+    if (quotaStatus.status === "blocked") {
+      return Response.json(
+        { error: "quota_exceeded", quota: quotaStatus },
+        { status: 403 }
+      );
+    }
+
     const { messages, model, files, conversationId: incomingConversationId, dataSources } = await req.json();
 
     // Use specified model or default
@@ -428,6 +438,7 @@ export async function POST(req: Request) {
         // Save token usage to database
         if (totalInputTokens > 0 || totalOutputTokens > 0) {
           try {
+            const costUsd = estimateCost(modelName, totalInputTokens, totalOutputTokens);
             await prisma.tokenUsage.create({
               data: {
                 userId,
@@ -435,8 +446,17 @@ export async function POST(req: Request) {
                 inputTokens: totalInputTokens,
                 outputTokens: totalOutputTokens,
                 totalTokens: totalInputTokens + totalOutputTokens,
+                costUsd,
               },
             });
+
+            // Send updated quota status
+            try {
+              const updatedQuota = await checkQuota(userId);
+              controller.enqueue(encoder.encode(`q:${JSON.stringify(updatedQuota)}\n`));
+            } catch (qe) {
+              console.error(`[Chat API] Failed to get quota status:`, qe);
+            }
           } catch (e) {
             console.error(`[Chat API] Failed to save token usage:`, e);
           }
