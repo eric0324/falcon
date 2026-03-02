@@ -70,8 +70,8 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { href: "/chat", labelKey: "nav.chat" as const, icon: Plus, neverActive: true },
-  { href: "/tools", labelKey: "nav.tools" as const, icon: Wrench },
+  { href: "/chat", labelKey: "nav.chat" as const, icon: Plus, neverActive: true, exact: false },
+  { href: "/tools", labelKey: "nav.tools" as const, icon: Wrench, neverActive: false, exact: false },
 ];
 
 function SidebarContent({ conversations: initialConversations, user }: SidebarProps) {

@@ -85,7 +85,7 @@ export function createGoogleTools(userId: string, allowedServices?: Set<string>)
         if (allowedServices && !allowedServices.has(service)) {
           return {
             success: false,
-            error: `Google ${service} 未被授權存取。使用者只選擇了: ${[...allowedServices].join(", ")}`,
+            error: `Google ${service} 未被授權存取。使用者只選擇了: ${Array.from(allowedServices).join(", ")}`,
           };
         }
 
@@ -203,7 +203,7 @@ export function createGoogleTools(userId: string, allowedServices?: Set<string>)
         if (allowedServices && !allowedServices.has(service)) {
           return {
             success: false,
-            error: `Google ${service} 未被授權存取。使用者只選擇了: ${[...allowedServices].join(", ")}`,
+            error: `Google ${service} 未被授權存取。使用者只選擇了: ${Array.from(allowedServices).join(", ")}`,
           };
         }
 

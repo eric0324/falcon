@@ -114,8 +114,8 @@ describe("GoogleSheetsConnector", () => {
       const data = result.data as Record<string, unknown>;
       expect(result.success).toBe(true);
       expect(data.headers).toEqual(["Name", "Age", "City"]);
-      expect(data.rows).toHaveLength(2);
-      expect(data.rows[0]).toEqual({
+      expect(data.rows as unknown[]).toHaveLength(2);
+      expect((data.rows as Record<string, string>[])[0]).toEqual({
         Name: "Alice",
         Age: "30",
         City: "New York",
