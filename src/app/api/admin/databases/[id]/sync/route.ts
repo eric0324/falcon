@@ -99,8 +99,6 @@ export async function POST(
 
         // Upsert columns
         for (const col of table.columns) {
-          const isNewColumn = isNewTable || !existingColumns.has(col.columnName);
-
           await tx.externalDatabaseColumn.upsert({
             where: {
               tableId_columnName: {

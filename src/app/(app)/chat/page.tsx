@@ -61,7 +61,7 @@ function StudioContent() {
   const [selectedModel, setSelectedModel] = useState<ModelId>(defaultModel);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [selectedDataSources, setSelectedDataSources] = useState<string[]>([]);
-  const [usedDataSources, setUsedDataSources] = useState<ToolDataSource[]>([]);
+  const [, setUsedDataSources] = useState<ToolDataSource[]>([]);
 
   // Conversation persistence
   const [convId, setConvId] = useState<string | null>(searchParams.get("id"));

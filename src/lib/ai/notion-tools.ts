@@ -20,37 +20,6 @@ function extractPlainText(richText: Array<{ plain_text: string }> | undefined): 
 }
 
 /**
- * Extract property value from Notion page property
- */
-function extractPropertyValue(property: Record<string, unknown>): unknown {
-  const type = property.type as string;
-
-  switch (type) {
-    case "title":
-    case "rich_text":
-      return extractPlainText(property[type] as Array<{ plain_text: string }>);
-    case "number":
-      return property.number;
-    case "select":
-      return (property.select as { name: string } | null)?.name || null;
-    case "multi_select":
-      return (property.multi_select as Array<{ name: string }>)?.map((s) => s.name) || [];
-    case "date":
-      return property.date;
-    case "checkbox":
-      return property.checkbox;
-    case "url":
-      return property.url;
-    case "email":
-      return property.email;
-    case "status":
-      return (property.status as { name: string } | null)?.name || null;
-    default:
-      return null;
-  }
-}
-
-/**
  * Extract just the title from a Notion page's properties
  */
 function extractPageTitle(page: NotionPage): string {

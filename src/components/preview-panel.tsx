@@ -63,7 +63,7 @@ function buildPreviewHtml(code: string, apiClientCode?: string): string {
 
 export function PreviewPanel({ code, dataSources, onError, onShare }: PreviewPanelProps) {
   const [key, setKey] = useState(0);
-  const [_error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const displayCode = code || DEFAULT_CODE;
 
   const hasBridge = dataSources && dataSources.length > 0;
