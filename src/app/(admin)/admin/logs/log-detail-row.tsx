@@ -61,7 +61,7 @@ export function LogDetailRow({ log }: LogDetailRowProps) {
                       : "-"}
                   </pre>
                 </div>
-                {log.response && (
+                {log.response != null && (
                   <div>
                     <p className="font-medium text-muted-foreground mb-1">Response</p>
                     <pre className="bg-white border rounded p-2 text-xs overflow-auto max-h-48">
