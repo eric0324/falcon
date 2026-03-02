@@ -4,7 +4,7 @@ import { openai } from "@ai-sdk/openai";
 
 export const models = {
   "claude-sonnet": anthropic("claude-sonnet-4-20250514"),
-  "claude-haiku": anthropic("claude-3-5-haiku-20241022"),
+  "claude-haiku": anthropic("claude-haiku-4-5-20251001"),
   "gpt-4o": openai("gpt-4o"),
   "gpt-4o-mini": openai("gpt-4o-mini"),
   "gemini-flash": google("gemini-2.0-flash"),
