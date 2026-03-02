@@ -303,6 +303,7 @@ function StudioContent() {
       const decoder = new TextDecoder();
       let assistantMessage = "";
       let buffer = "";
+      let savedConvId = convId;
       const toolCallsMap = new Map<string, ToolCall>();
 
       if (reader) {
@@ -401,7 +402,8 @@ function StudioContent() {
 
               case "i": { // Conversation ID from server
                 const { conversationId: serverConvId } = data as { conversationId: string };
-                if (serverConvId && !convId) {
+                if (serverConvId && !savedConvId) {
+                  savedConvId = serverConvId;
                   setConvId(serverConvId);
                   router.push(`/chat?id=${serverConvId}`);
                 }
@@ -461,7 +463,7 @@ function StudioContent() {
         ];
 
         try {
-          if (!convId && !editId) {
+          if (!savedConvId && !editId) {
             const createRes = await fetch("/api/conversations", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -473,12 +475,13 @@ function StudioContent() {
             });
             if (createRes.ok) {
               const conv = await createRes.json();
+              savedConvId = conv.id;
               setConvId(conv.id);
               if (conv.title) setConvTitle(conv.title);
               router.push(`/chat?id=${conv.id}`);
             }
-          } else if (convId) {
-            await fetch(`/api/conversations/${convId}`, {
+          } else if (savedConvId) {
+            await fetch(`/api/conversations/${savedConvId}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
