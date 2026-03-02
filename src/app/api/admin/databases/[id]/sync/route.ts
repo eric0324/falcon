@@ -62,8 +62,6 @@ export async function POST(
       // Upsert tables and columns
       for (const table of schema) {
         const existingTable = existingTableMap.get(table.tableName);
-        const isNewTable = !existingTable;
-
         const upsertedTable = await tx.externalDatabaseTable.upsert({
           where: {
             databaseId_tableName: {

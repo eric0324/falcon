@@ -653,6 +653,7 @@ function StudioContent() {
     // Small delay before auto-fix
     const timer = setTimeout(autoFix, 1000);
     return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [previewError, isLoading, errorRetryCount, messages, selectedModel, parseDataStreamLine, extractCode]);
 
   const handleDeploy = async (data: {

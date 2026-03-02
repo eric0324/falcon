@@ -66,7 +66,6 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   });
 
   const tCategories = await getTranslations("categories");
-  const tCommon = await getTranslations("common");
 
   return (
     <div className="p-6">
