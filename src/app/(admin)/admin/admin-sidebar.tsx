@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Wrench, Database, Shield, FileText, ArrowLeft } from "lucide-react";
+import { Users, Wrench, Database, Shield, FileText, ShieldCheck, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -10,6 +10,7 @@ const navItems = [
   { href: "/admin/tools", label: "工具管理", icon: Wrench },
   { href: "/admin/databases", label: "資料庫管理", icon: Database },
   { href: "/admin/groups", label: "群組管理", icon: Shield },
+  { href: "/admin/scans", label: "程式碼掃描", icon: ShieldCheck },
   { href: "/admin/logs", label: "稽核日誌", icon: FileText },
 ];
 

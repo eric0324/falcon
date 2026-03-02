@@ -2,6 +2,8 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { runRuleScan } from "@/lib/code-scan/rules";
+import { scanOnDeploy } from "@/lib/code-scan";
 
 async function getUserId(session: { user?: { email?: string | null } } | null) {
   if (!session?.user?.email) return null;
@@ -66,6 +68,16 @@ export async function POST(req: Request) {
       );
     }
 
+    // Run rule scan before saving
+    const findings = runRuleScan(code);
+    const hasCritical = findings.some((f) => f.severity === "critical");
+    if (hasCritical) {
+      return NextResponse.json(
+        { error: "code_scan_failed", findings },
+        { status: 400 }
+      );
+    }
+
     const tool = await prisma.tool.create({
       data: {
         name,
@@ -87,7 +99,12 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json(tool);
+    // Save scan result + background LLM analysis (pass pre-computed findings)
+    scanOnDeploy(tool.id, code, findings).catch(() => {});
+
+    // Include non-critical findings in response so frontend can warn the user
+    const warnings = findings.filter((f) => f.severity !== "critical");
+    return NextResponse.json({ ...tool, scanWarnings: warnings.length > 0 ? warnings : undefined });
   } catch (error) {
     console.error("POST /api/tools error:", error);
     return NextResponse.json(

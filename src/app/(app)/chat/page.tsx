@@ -683,18 +683,50 @@ function StudioContent() {
       });
 
       if (!res.ok) {
+        const errBody = await res.json().catch(() => null);
+        if (res.status === 400 && errBody?.error === "code_scan_failed") {
+          const findings = errBody.findings as Array<{
+            severity: string;
+            message: string;
+            rule: string;
+            line?: number;
+          }>;
+          const criticalCount = findings.filter((f) => f.severity === "critical").length;
+          const messages = findings
+            .slice(0, 5)
+            .map((f) => `[${f.severity.toUpperCase()}] ${f.message}${f.line ? ` (line ${f.line})` : ""}`)
+            .join("\n");
+          toast({
+            title: t("toast.codeScanFailed", { count: String(criticalCount) }),
+            description: messages,
+            variant: "destructive",
+          });
+          return;
+        }
         throw new Error("Failed to save tool");
       }
 
       const tool = await res.json();
 
-      toast({
-        title: editId ? t("toast.toolUpdated") : t("toast.toolPublished"),
-        description: t("toast.toolSaveSuccess", {
-          name: data.name,
-          action: editId ? t("toast.toolUpdated") : t("toast.toolPublished")
-        }),
-      });
+      // Show scan warnings if any
+      if (tool.scanWarnings?.length > 0) {
+        const warnMessages = (tool.scanWarnings as Array<{ severity: string; message: string; line?: number }>)
+          .slice(0, 5)
+          .map((f) => `[${f.severity.toUpperCase()}] ${f.message}${f.line ? ` (line ${f.line})` : ""}`)
+          .join("\n");
+        toast({
+          title: t("toast.codeScanWarning", { count: String(tool.scanWarnings.length) }),
+          description: warnMessages,
+        });
+      } else {
+        toast({
+          title: editId ? t("toast.toolUpdated") : t("toast.toolPublished"),
+          description: t("toast.toolSaveSuccess", {
+            name: data.name,
+            action: editId ? t("toast.toolUpdated") : t("toast.toolPublished")
+          }),
+        });
+      }
 
       router.push(`/tool/${tool.id}`);
     } catch {

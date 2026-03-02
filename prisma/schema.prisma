@@ -83,6 +83,7 @@ model Tool {
   usages  ToolUsage[]
   reviews ToolReview[]
   stats   ToolStats?
+  scans   CodeScan[]
 
   @@index([category])
   @@index([visibility])
@@ -195,6 +196,29 @@ model ToolStats {
   @@index([weeklyUsage])
   @@index([weightedRating])
   @@index([trendingScore])
+}
+
+// ===== Code Scan Models =====
+
+enum ScanStatus {
+  PASS
+  WARN
+  FAIL
+}
+
+model CodeScan {
+  id         String     @id @default(cuid())
+  toolId     String
+  status     ScanStatus
+  findings   Json       // ScanFinding[]
+  llmSummary String?    @db.Text
+  scannedAt  DateTime   @default(now())
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId])
+  @@index([status])
+  @@index([scannedAt])
 }
 
 // ===== Token Usage Models =====

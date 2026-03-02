@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canUserAccessTool } from "@/lib/tool-visibility";
+import { runRuleScan } from "@/lib/code-scan/rules";
+import { scanOnDeploy } from "@/lib/code-scan";
 
 async function getUserId(session: { user?: { email?: string | null } } | null) {
   if (!session?.user?.email) return null;
@@ -110,6 +112,19 @@ export async function PATCH(
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
+    // Run rule scan if code is being updated
+    let codeFindings: ReturnType<typeof runRuleScan> | undefined;
+    if (code) {
+      codeFindings = runRuleScan(code);
+      const hasCritical = codeFindings.some((f) => f.severity === "critical");
+      if (hasCritical) {
+        return NextResponse.json(
+          { error: "code_scan_failed", findings: codeFindings },
+          { status: 400 }
+        );
+      }
+    }
+
     const tool = await prisma.tool.update({
       where: { id },
       data: {
@@ -124,7 +139,14 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json(tool);
+    // Save scan result + background LLM analysis (pass pre-computed findings)
+    if (code) {
+      scanOnDeploy(tool.id, code, codeFindings).catch(() => {});
+    }
+
+    // Include non-critical findings in response so frontend can warn the user
+    const warnings = codeFindings?.filter((f) => f.severity !== "critical");
+    return NextResponse.json({ ...tool, scanWarnings: warnings && warnings.length > 0 ? warnings : undefined });
   } catch (error) {
     console.error("PATCH /api/tools/[id] error:", error);
     return NextResponse.json(

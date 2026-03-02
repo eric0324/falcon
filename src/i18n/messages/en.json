@@ -79,8 +79,32 @@
       "saveError": "Save failed. Please try again.",
       "toolUpdated": "Tool updated",
       "toolPublished": "Tool published",
-      "toolSaveSuccess": "\"{name}\" has been {action} successfully."
+      "toolSaveSuccess": "\"{name}\" has been {action} successfully.",
+      "codeScanFailed": "Code scan blocked deploy ({count} critical issues)",
+      "codeScanWarning": "Deployed with {count} warning(s)"
     }
+  },
+  "codeScan": {
+    "title": "Code Scans",
+    "totalCount": "{count} scan records",
+    "noScans": "No scan records",
+    "filters": {
+      "all": "All",
+      "fail": "FAIL",
+      "warn": "WARN",
+      "pass": "PASS"
+    },
+    "table": {
+      "toolName": "Tool Name",
+      "author": "Author",
+      "status": "Status",
+      "findings": "Findings",
+      "scannedAt": "Scanned At",
+      "actions": "Actions"
+    },
+    "rescan": "Rescan",
+    "llmSummary": "AI Summary",
+    "noFindings": "No issues found"
   },
   "marketplace": {
     "hero": {
