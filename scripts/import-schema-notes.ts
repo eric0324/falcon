@@ -113,7 +113,7 @@ async function main() {
   let tableCount = 0;
   let columnCount = 0;
 
-  for (const [tableName, { note: tableNote, columns }] of tableMap) {
+  for (const [tableName, { note: tableNote, columns }] of Array.from(tableMap.entries())) {
     // Upsert table
     const existingTable = await prisma.externalDatabaseTable.findUnique({
       where: { databaseId_tableName: { databaseId, tableName } },
