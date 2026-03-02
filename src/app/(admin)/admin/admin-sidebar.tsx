@@ -10,7 +10,7 @@ const navItems = [
   { href: "/admin/tools", label: "工具管理", icon: Wrench },
   { href: "/admin/databases", label: "資料庫管理", icon: Database },
   { href: "/admin/groups", label: "群組管理", icon: Shield },
-  { href: "/admin/scans", label: "程式碼掃描", icon: ShieldCheck },
+  { href: "/admin/scans", label: "弱點掃描", icon: ShieldCheck },
   { href: "/admin/logs", label: "稽核日誌", icon: FileText },
 ];
 

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
@@ -12,6 +13,14 @@ import { Button } from "@/components/ui/button";
 
 interface CategoryPageProps {
   params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const category = getCategoryById(id);
+  if (!category) return { title: "分類" };
+  const t = await getTranslations("categories");
+  return { title: `${category.icon} ${t(category.id)}` };
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {

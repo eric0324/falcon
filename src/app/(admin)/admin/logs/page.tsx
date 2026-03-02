@@ -4,6 +4,8 @@ import { Pagination } from "../pagination";
 import { LogFilters } from "./log-filters";
 import { LogDetailRow } from "./log-detail-row";
 
+export const metadata = { title: "稽核日誌" };
+
 const PAGE_SIZE = 20;
 
 function formatDate(date: Date): string {

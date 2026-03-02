@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToolCard } from "@/components/tool-card";
 
+export const metadata = { title: "我的工具" };
+
 export default async function ToolsPage() {
   const session = await getServerSession(authOptions);
 

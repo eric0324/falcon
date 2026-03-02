@@ -30,21 +30,36 @@ interface CsvRow {
 }
 
 function parseCsv(content: string): CsvRow[] {
-  const lines = content.split("\n").filter((l) => l.trim());
+  // 統一換行符號（處理 Windows \r\n）
+  const lines = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter((l) => l.trim());
   // 跳過標題列
   const dataLines = lines.slice(1);
 
   return dataLines.map((line) => {
     // 處理 CSV：移除引號、處理逗號分隔
-    const fields = line.match(/("([^"]*)"|[^,]*)/g) || [];
-    const clean = fields.map((f) => f.replace(/^"|"$/g, "").trim());
+    const fields: string[] = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        inQuotes = !inQuotes;
+      } else if (ch === "," && !inQuotes) {
+        fields.push(current.trim());
+        current = "";
+      } else {
+        current += ch;
+      }
+    }
+    fields.push(current.trim());
 
     return {
-      tableName: clean[0] || "",
-      tableNote: clean[1] || "",
-      columnName: clean[2] || "",
-      dataType: clean[3] || "",
-      columnNote: clean[4] || "",
+      tableName: fields[0] || "",
+      tableNote: fields[1] || "",
+      columnName: fields[2] || "",
+      dataType: fields[3] || "",
+      columnNote: fields[4] || "",
     };
   }).filter((r) => r.tableName && r.columnName);
 }

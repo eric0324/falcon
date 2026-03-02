@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -11,6 +12,12 @@ import { ToolUsageTracker } from "@/components/tool-usage-tracker";
 
 interface ToolPageProps {
   params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: ToolPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const tool = await prisma.tool.findUnique({ where: { id }, select: { name: true } });
+  return { title: tool?.name ?? "工具" };
 }
 
 export default async function ToolPage({ params }: ToolPageProps) {

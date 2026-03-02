@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Pagination } from "../pagination";
 import { DatabaseForm } from "./database-form";
 
+export const metadata = { title: "資料庫管理" };
+
 const PAGE_SIZE = 10;
 
 function formatDate(date: Date | null): string {

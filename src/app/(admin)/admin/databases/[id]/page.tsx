@@ -1,10 +1,22 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { DatabaseForm } from "../database-form";
 import { TestConnectionButton } from "./test-connection-button";
+import { DeleteDatabaseButton } from "./delete-database-button";
 import { SchemaBrowser } from "./schema-browser";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const db = await prisma.externalDatabase.findUnique({ where: { id }, select: { name: true } });
+  return { title: db ? `${db.name} - 資料庫` : "資料庫詳情" };
+}
 
 const typeLabel: Record<string, string> = {
   POSTGRESQL: "PostgreSQL",
@@ -100,6 +112,7 @@ export default async function AdminDatabaseDetailPage({
         </div>
         <div className="flex items-center gap-2">
           <TestConnectionButton databaseId={db.id} />
+          <DeleteDatabaseButton databaseId={db.id} databaseName={db.name} />
           <DatabaseForm
             initialData={{
             id: db.id,

@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ToolRunner } from "@/components/tool-runner";
 
 interface PublicToolPageProps {
   params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: PublicToolPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const tool = await prisma.tool.findUnique({ where: { id }, select: { name: true } });
+  return { title: tool?.name ?? "工具" };
 }
 
 export default async function PublicToolPage({ params }: PublicToolPageProps) {

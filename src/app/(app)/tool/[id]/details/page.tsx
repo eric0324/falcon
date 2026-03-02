@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
@@ -17,6 +18,12 @@ import { ReviewSection } from "@/components/review-section";
 
 interface ToolDetailsPageProps {
   params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: ToolDetailsPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const tool = await prisma.tool.findUnique({ where: { id }, select: { name: true } });
+  return { title: tool ? `${tool.name} - 詳情` : "工具詳情" };
 }
 
 export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) {

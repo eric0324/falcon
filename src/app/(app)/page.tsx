@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, Star, Eye, Sparkles, Clock } from "lucide-react";
 import { HeroGreeting } from "@/components/hero-greeting";
 
+export const metadata = { title: "首頁" };
+
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
 

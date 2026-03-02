@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, TrendingUp, Star, Eye, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+export const metadata = { title: "排行榜" };
+
 interface LeaderboardPageProps {
   searchParams: Promise<{ tab?: string }>;
 }

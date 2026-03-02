@@ -3,6 +3,8 @@ import { TOOL_CATEGORIES } from "@/lib/categories";
 import { ToolDetailPanel } from "./tool-detail-panel";
 import { Pagination } from "../pagination";
 
+export const metadata = { title: "工具管理" };
+
 const PAGE_SIZE = 10;
 
 const categoryLabelMap: Record<string, string> = Object.fromEntries(

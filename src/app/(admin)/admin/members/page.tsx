@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Pagination } from "../pagination";
 
+export const metadata = { title: "成員管理" };
+
 const PAGE_SIZE = 10;
 
 function formatTokens(n: number): string {

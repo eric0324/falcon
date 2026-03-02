@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -12,6 +13,11 @@ import { Button } from "@/components/ui/button";
 
 interface SearchPageProps {
   searchParams: Promise<{ q?: string }>;
+}
+
+export async function generateMetadata({ searchParams }: SearchPageProps): Promise<Metadata> {
+  const { q } = await searchParams;
+  return { title: q ? `搜尋「${q}」` : "搜尋" };
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {

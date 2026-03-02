@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { estimateCost } from "@/lib/ai/models";
 import { notFound } from "next/navigation";
@@ -11,6 +12,16 @@ import { QuotaManager } from "./quota-manager";
 import { Pagination } from "../../pagination";
 
 const PAGE_SIZE = 10;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const user = await prisma.user.findUnique({ where: { id }, select: { name: true, email: true } });
+  return { title: user ? `${user.name || user.email} - 成員詳情` : "成員詳情" };
+}
 
 export default async function AdminMemberDetailPage({
   params,

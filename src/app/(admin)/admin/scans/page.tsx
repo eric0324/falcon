@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 import { Pagination } from "../pagination";
 import { ScanList } from "./scan-list";
 
+export const metadata = { title: "弱點掃描" };
+
 const PAGE_SIZE = 20;
 
 export default async function AdminScansPage({
@@ -68,7 +70,7 @@ export default async function AdminScansPage({
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">程式碼掃描</h1>
+        <h1 className="text-2xl font-bold">弱點掃描</h1>
         <p className="text-muted-foreground mt-1">共 {totalCount} 筆掃描紀錄</p>
       </div>
 

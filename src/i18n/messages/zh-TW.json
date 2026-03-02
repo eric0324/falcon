@@ -80,12 +80,12 @@
       "toolUpdated": "工具已更新",
       "toolPublished": "工具已發布",
       "toolSaveSuccess": "「{name}」已{action}成功。",
-      "codeScanFailed": "程式碼掃描阻擋部署（{count} 個嚴重問題）",
+      "codeScanFailed": "弱點掃描阻擋部署（{count} 個嚴重問題）",
       "codeScanWarning": "已部署，但有 {count} 個警告"
     }
   },
   "codeScan": {
-    "title": "程式碼掃描",
+    "title": "弱點掃描",
     "totalCount": "共 {count} 筆掃描紀錄",
     "noScans": "沒有掃描紀錄",
     "filters": {

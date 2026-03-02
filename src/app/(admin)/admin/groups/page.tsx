@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { GroupManager } from "./group-manager";
 
+export const metadata = { title: "群組管理" };
+
 export default async function AdminGroupsPage() {
   const groups = await prisma.group.findMany({
     orderBy: { name: "asc" },
