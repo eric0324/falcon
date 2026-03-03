@@ -12,6 +12,7 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/chat") ||
     request.nextUrl.pathname.startsWith("/tool") ||
     request.nextUrl.pathname.startsWith("/marketplace") ||
+    request.nextUrl.pathname.startsWith("/profile") ||
     request.nextUrl.pathname.startsWith("/admin") ||
     request.nextUrl.pathname.startsWith("/api/tools") ||
     request.nextUrl.pathname.startsWith("/api/marketplace") ||
@@ -33,6 +34,7 @@ export const config = {
     "/chat/:path*",
     "/tool/:path*",
     "/marketplace/:path*",
+    "/profile/:path*",
     "/admin/:path*",
     "/api/tools/:path*",
     "/api/marketplace/:path*",

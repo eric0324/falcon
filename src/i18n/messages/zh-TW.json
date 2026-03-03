@@ -320,6 +320,13 @@
     "blocked": "本月額度已超額（已用 {used} / {limit}），請聯繫管理員。",
     "inputDisabled": "額度已超額 — 無法輸入"
   },
+  "profile": {
+    "anonymous": "匿名使用者",
+    "noDepartment": "未設定部門",
+    "joined": "加入於 {time}",
+    "sharedTools": "我開發的工具",
+    "noTools": "這位使用者還沒有分享工具"
+  },
   "integrations": {
     "title": "整合服務",
     "description": "管理第三方服務連接",

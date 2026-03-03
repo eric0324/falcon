@@ -320,6 +320,13 @@
     "blocked": "Monthly quota exceeded (Used {used} / {limit}). Please contact your admin.",
     "inputDisabled": "Quota exceeded — input disabled"
   },
+  "profile": {
+    "anonymous": "Anonymous User",
+    "noDepartment": "No department",
+    "joined": "Joined {time}",
+    "sharedTools": "Shared Tools",
+    "noTools": "This user has no shared tools yet"
+  },
   "integrations": {
     "title": "Integrations",
     "description": "Manage third-party service connections",

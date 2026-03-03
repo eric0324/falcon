@@ -146,7 +146,10 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
           )}
 
           {/* Author Info */}
-          <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+          <Link
+            href={`/profile/${tool.author.id}`}
+            className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+          >
             <UserAvatar
               src={tool.author.image}
               name={tool.author.name}
@@ -162,7 +165,7 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
                 })}
               </p>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Stats */}
