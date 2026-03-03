@@ -3,11 +3,11 @@ import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 
 export const models = {
-  "claude-sonnet": anthropic("claude-sonnet-4-20250514"),
+  "claude-sonnet": anthropic("claude-sonnet-4-6-20250217"),
   "claude-haiku": anthropic("claude-haiku-4-5-20251001"),
-  "gpt-4o": openai("gpt-4o"),
-  "gpt-4o-mini": openai("gpt-4o-mini"),
-  "gemini-flash": google("gemini-2.0-flash"),
+  "gpt-5-mini": openai("gpt-5-mini"),
+  "gpt-5-nano": openai("gpt-5-nano"),
+  "gemini-flash": google("gemini-2.5-flash"),
   "gemini-pro": google("gemini-2.5-pro"),
 } as const;
 
@@ -15,23 +15,23 @@ export type ModelId = keyof typeof models;
 
 export const modelInfo: Record<ModelId, { name: string; description: string }> = {
   "claude-sonnet": {
-    name: "Claude Sonnet",
+    name: "Claude Sonnet 4.6",
     description: "平衡速度與品質，適合大多數任務",
   },
   "claude-haiku": {
-    name: "Claude Haiku",
+    name: "Claude Haiku 4.5",
     description: "快速回應，適合簡單任務",
   },
-  "gpt-4o": {
-    name: "GPT-4o",
-    description: "OpenAI 最新模型，多模態支援",
+  "gpt-5-mini": {
+    name: "GPT-5 Mini",
+    description: "OpenAI 快速推理模型，性價比高",
   },
-  "gpt-4o-mini": {
-    name: "GPT-4o Mini",
-    description: "輕量版 GPT-4o，更快更便宜",
+  "gpt-5-nano": {
+    name: "GPT-5 Nano",
+    description: "極速極便宜，適合簡單任務",
   },
   "gemini-flash": {
-    name: "Gemini 2.0 Flash",
+    name: "Gemini 2.5 Flash",
     description: "Google 快速模型，適合即時任務",
   },
   "gemini-pro": {
@@ -45,10 +45,10 @@ export const defaultModel: ModelId = "claude-haiku";
 /** Pricing per 1M tokens in USD */
 export const modelPricing: Record<string, { input: number; output: number }> = {
   "claude-sonnet": { input: 3, output: 15 },
-  "claude-haiku": { input: 0.8, output: 4 },
-  "gpt-4o": { input: 2.5, output: 10 },
-  "gpt-4o-mini": { input: 0.15, output: 0.6 },
-  "gemini-flash": { input: 0.1, output: 0.4 },
+  "claude-haiku": { input: 1, output: 5 },
+  "gpt-5-mini": { input: 0.25, output: 2 },
+  "gpt-5-nano": { input: 0.05, output: 0.4 },
+  "gemini-flash": { input: 0.15, output: 0.6 },
   "gemini-pro": { input: 1.25, output: 10 },
 };
 

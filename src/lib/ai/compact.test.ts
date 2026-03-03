@@ -11,8 +11,8 @@ vi.mock("./models", () => ({
   models: {
     "claude-haiku": { provider: "anthropic", modelId: "claude-haiku" },
     "claude-sonnet": { provider: "anthropic", modelId: "claude-sonnet" },
-    "gpt-4o": { provider: "openai", modelId: "gpt-4o" },
-    "gpt-4o-mini": { provider: "openai", modelId: "gpt-4o-mini" },
+    "gpt-5-mini": { provider: "openai", modelId: "gpt-5-mini" },
+    "gpt-5-nano": { provider: "openai", modelId: "gpt-5-nano" },
     "gemini-flash": { provider: "google", modelId: "gemini-flash" },
     "gemini-pro": { provider: "google", modelId: "gemini-pro" },
   },

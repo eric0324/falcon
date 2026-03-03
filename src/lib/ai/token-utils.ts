@@ -6,8 +6,8 @@ import { ModelId } from "./models";
 export const MODEL_CONTEXT_LIMITS: Record<ModelId, number> = {
   "claude-sonnet": 200_000,
   "claude-haiku": 200_000,
-  "gpt-4o": 128_000,
-  "gpt-4o-mini": 128_000,
+  "gpt-5-mini": 400_000,
+  "gpt-5-nano": 400_000,
   "gemini-flash": 1_048_576,
   "gemini-pro": 1_048_576,
 };

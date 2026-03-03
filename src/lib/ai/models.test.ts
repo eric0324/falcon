@@ -20,8 +20,8 @@ describe("models", () => {
     const keys = Object.keys(models);
     expect(keys).toContain("claude-sonnet");
     expect(keys).toContain("claude-haiku");
-    expect(keys).toContain("gpt-4o");
-    expect(keys).toContain("gpt-4o-mini");
+    expect(keys).toContain("gpt-5-mini");
+    expect(keys).toContain("gpt-5-nano");
     expect(keys).toContain("gemini-flash");
     expect(keys).toContain("gemini-pro");
   });

@@ -72,8 +72,8 @@ describe("MODEL_CONTEXT_LIMITS", () => {
   it("has limits for all known models", () => {
     expect(MODEL_CONTEXT_LIMITS["claude-sonnet"]).toBeDefined();
     expect(MODEL_CONTEXT_LIMITS["claude-haiku"]).toBeDefined();
-    expect(MODEL_CONTEXT_LIMITS["gpt-4o"]).toBeDefined();
-    expect(MODEL_CONTEXT_LIMITS["gpt-4o-mini"]).toBeDefined();
+    expect(MODEL_CONTEXT_LIMITS["gpt-5-mini"]).toBeDefined();
+    expect(MODEL_CONTEXT_LIMITS["gpt-5-nano"]).toBeDefined();
     expect(MODEL_CONTEXT_LIMITS["gemini-flash"]).toBeDefined();
     expect(MODEL_CONTEXT_LIMITS["gemini-pro"]).toBeDefined();
   });
@@ -95,11 +95,11 @@ describe("shouldCompact", () => {
   });
 
   it("returns true when tokens exceed 80% threshold", () => {
-    // Create a very long message that exceeds 80% of gpt-4o-mini's 128k limit
-    // 128000 * 0.8 = 102400 tokens → need ~409600 English chars
-    const longContent = "a".repeat(420000);
+    // Create a very long message that exceeds 80% of claude-haiku's 200k limit
+    // 200000 * 0.8 = 160000 tokens → need ~640000 English chars
+    const longContent = "a".repeat(650000);
     const messages = [{ role: "user", content: longContent }];
-    expect(shouldCompact(messages, "gpt-4o-mini")).toBe(true);
+    expect(shouldCompact(messages, "claude-haiku")).toBe(true);
   });
 
   it("returns false for empty messages", () => {
@@ -108,9 +108,9 @@ describe("shouldCompact", () => {
 
   it("respects different model limits", () => {
     // Gemini has much larger context (1M), same content should NOT trigger
-    const content = "a".repeat(420000); // ~105k tokens, above gpt-4o 80% but below gemini 80%
+    const content = "a".repeat(650000); // ~162k tokens, above claude 80% but below gemini 80%
     const messages = [{ role: "user", content: content }];
-    expect(shouldCompact(messages, "gpt-4o")).toBe(true);
+    expect(shouldCompact(messages, "claude-haiku")).toBe(true);
     expect(shouldCompact(messages, "gemini-flash")).toBe(false);
   });
 });

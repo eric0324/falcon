@@ -225,23 +225,23 @@
   "models": {
     "selectModel": "Select Model",
     "claude-sonnet": {
-      "name": "Claude Sonnet",
+      "name": "Claude Sonnet 4.6",
       "description": "Balanced speed and quality, suitable for most tasks"
     },
     "claude-haiku": {
-      "name": "Claude Haiku",
+      "name": "Claude Haiku 4.5",
       "description": "Fast responses, suitable for simple tasks"
     },
-    "gpt-4o": {
-      "name": "GPT-4o",
-      "description": "OpenAI's latest model with multimodal support"
+    "gpt-5-mini": {
+      "name": "GPT-5 Mini",
+      "description": "OpenAI's fast reasoning model, great value"
     },
-    "gpt-4o-mini": {
-      "name": "GPT-4o Mini",
-      "description": "Lightweight GPT-4o, faster and cheaper"
+    "gpt-5-nano": {
+      "name": "GPT-5 Nano",
+      "description": "Ultra fast and cheap, for simple tasks"
     },
     "gemini-flash": {
-      "name": "Gemini 2.0 Flash",
+      "name": "Gemini 2.5 Flash",
       "description": "Google's fast model for real-time tasks"
     },
     "gemini-pro": {
