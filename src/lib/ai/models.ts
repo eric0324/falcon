@@ -3,7 +3,7 @@ import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 
 export const models = {
-  "claude-sonnet": anthropic("claude-sonnet-4-6-20250217"),
+  "claude-sonnet": anthropic("claude-sonnet-4-6"),
   "claude-haiku": anthropic("claude-haiku-4-5-20251001"),
   "gpt-5-mini": openai("gpt-5-mini"),
   "gpt-5-nano": openai("gpt-5-nano"),
