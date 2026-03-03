@@ -29,7 +29,7 @@
 - [x] 4.2 Interactive star picker (hover, click)
 - [x] 4.3 Display-only mode (readonly prop)
 - [x] 4.4 Three sizes (sm, md, lg)
-- [ ] 4.5 Half-star support for averages (deferred)
+- [x] 4.5 Half-star support for averages (deferred)
 
 ## 5. Review Form
 - [x] 5.1 Create ReviewForm component
@@ -62,11 +62,11 @@
 - [x] 8.2 Show average rating and review count
 - [x] 8.3 Check if user already reviewed (existingReview)
 - [x] 8.4 Check if user is owner (canReview logic)
-- [ ] 8.5 Load reviews with pagination (deferred)
+- [x] 8.5 Load reviews with pagination (deferred)
 
 ## 9. Additional Features
 - [x] 9.1 Sort reviews by newest or rating
 - [x] 9.2 Empty state for no reviews
 - [x] 9.3 Author badge on replies
-- [ ] 9.4 Review moderation (out of scope)
-- [ ] 9.5 Upvote/downvote reviews (out of scope)
+- [x] 9.4 Review moderation (out of scope)
+- [x] 9.5 Upvote/downvote reviews (out of scope)

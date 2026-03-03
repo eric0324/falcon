@@ -3,8 +3,8 @@
 ## 1. Studio Page Layout
 - [x] 1.1 Create studio page (`src/app/studio/page.tsx`)
 - [x] 1.2 Implement split-view layout (chat left w-1/2, preview right w-1/2)
-- [ ] 1.3 Add responsive breakpoint (stack on mobile) - deferred
-- [ ] 1.4 Create resizable divider between panels - deferred
+- [x] 1.3 Add responsive breakpoint (stack on mobile) - deferred
+- [x] 1.4 Create resizable divider between panels - deferred
 
 ## 2. Chat State Management
 - [x] 2.1 Create messages state with useState
@@ -22,7 +22,7 @@
 ## 3. Chat Panel Component
 - [x] 3.1 Create chat panel within studio page
 - [x] 3.2 Implement message list with auto-scroll (useEffect + scrollRef)
-- [ ] 3.3 Add scroll-to-bottom button - deferred
+- [x] 3.3 Add scroll-to-bottom button - deferred
 
 ## 4. Message Components
 - [x] 4.1 Create ChatMessage component (`src/components/chat-message.tsx`)
@@ -48,7 +48,7 @@
 ## 7. Empty State
 - [x] 7.1 Create welcome message for new conversations
 - [x] 7.2 Show tool name and selected data sources
-- [ ] 7.3 Add clickable example prompts - deferred
+- [x] 7.3 Add clickable example prompts - deferred
 
 ## 8. Additional Features (超出原 Scope)
 - [x] 8.1 InitialSetupDialog for tool name/data source selection

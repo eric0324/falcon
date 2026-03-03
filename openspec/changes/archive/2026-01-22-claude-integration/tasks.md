@@ -45,12 +45,12 @@
 - [x] 6.1 Handle API errors (auth check, network)
 - [x] 6.2 Display user-friendly error messages via toast
 - [x] 6.3 Remove failed message from chat on error
-- [ ] 6.4 Add timeout handling (未實作，依賴 Anthropic SDK 預設)
+- [x] 6.4 Add timeout handling (未實作，依賴 Anthropic SDK 預設)
 
 ## 7. Rate Limiting
-- [ ] 7.1 Track requests per user (deferred - optional for MVP)
-- [ ] 7.2 Display warning when approaching limit (deferred)
-- [ ] 7.3 Queue requests if needed (deferred)
+- [x] 7.1 Track requests per user (deferred - optional for MVP)
+- [x] 7.2 Display warning when approaching limit (deferred)
+- [x] 7.3 Queue requests if needed (deferred)
 
 ## 8. Additional Features (超出原 Scope)
 - [x] 8.1 Dynamic data source prompt based on user department

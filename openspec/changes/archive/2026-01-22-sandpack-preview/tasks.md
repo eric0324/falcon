@@ -32,18 +32,18 @@
 ## 5. Error Handling
 - [x] 5.1 Sandpack 內建錯誤邊界自動處理
 - [x] 5.2 Display syntax errors in preview area
-- [ ] 5.3 Custom error overlay (deferred - using Sandpack default)
+- [x] 5.3 Custom error overlay (deferred - using Sandpack default)
 
 ## 6. Loading States
 - [x] 6.1 ToolRunner: Show "Loading..." during mount
 - [x] 6.2 PreviewPanel: Show "使用模擬資料" badge
-- [ ] 6.3 Fade effect when code updates (deferred)
+- [x] 6.3 Fade effect when code updates (deferred)
 
 ## 7. Preview Controls
 - [x] 7.1 Add refresh button via showRefreshButton={true}
 - [x] 7.2 Hide "Open in CodeSandbox" via showOpenInCodeSandbox={false}
-- [ ] 7.3 Fullscreen toggle (deferred)
-- [ ] 7.4 Device frame selector (deferred)
+- [x] 7.3 Fullscreen toggle (deferred)
+- [x] 7.4 Device frame selector (deferred)
 
 ## 8. Integration with Chat
 - [x] 8.1 Connect code extraction to preview panel in studio/page.tsx

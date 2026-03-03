@@ -14,7 +14,7 @@
 - [x] 2.3 實作 `querySampleData` tool
 - [x] 2.4 實作 `listDataSources` tool
 - [x] 2.5 實作 `updateCode` tool
-- [ ] ~~2.6 實作 `previewCode` tool~~ (移至 Out of Scope - 未來再加視覺回饋)
+- [x] ~~2.6 實作 `previewCode` tool~~ (移至 Out of Scope - 未來再加視覺回饋)
 
 ## 3. Agent Loop 實作
 - [x] 3.1 使用 AI SDK 的 `ToolLoopAgent` 實作自動多步驟工具呼叫

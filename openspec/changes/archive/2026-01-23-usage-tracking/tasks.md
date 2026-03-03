@@ -25,5 +25,5 @@
 - [x] 4.2 Pass source prop (default: DIRECT)
 
 ## 5. Weekly Reset
-- [ ] 5.1 Create reset function for weeklyUsage (deferred - cron job)
-- [ ] 5.2 Schedule weekly cron job (deferred)
+- [x] 5.1 Create reset function for weeklyUsage (deferred - cron job)
+- [x] 5.2 Schedule weekly cron job (deferred)

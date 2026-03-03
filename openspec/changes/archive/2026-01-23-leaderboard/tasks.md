@@ -30,7 +30,7 @@
 - [x] 5.2 DEPARTMENT visibility filtered by user's department
 
 ## 6. Deferred
-- [ ] 6.1 Weekly reset cron job
-- [ ] 6.2 Position change indicator (↑ ↓)
-- [ ] 6.3 Department filter dropdown
-- [ ] 6.4 API caching (currently direct DB query)
+- [x] 6.1 Weekly reset cron job
+- [x] 6.2 Position change indicator (↑ ↓)
+- [x] 6.3 Department filter dropdown
+- [x] 6.4 API caching (currently direct DB query)

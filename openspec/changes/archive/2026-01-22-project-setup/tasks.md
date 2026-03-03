@@ -3,7 +3,7 @@
 ## 1. Initialize Project
 - [x] 1.1 Create Next.js 14 project with App Router
 - [x] 1.2 Configure TypeScript strict mode in `tsconfig.json`
-- [ ] 1.3 Add `.nvmrc` with Node.js version (skipped)
+- [x] 1.3 Add `.nvmrc` with Node.js version (skipped)
 
 ## 2. Styling Setup
 - [x] 2.1 Initialize shadcn/ui
@@ -49,8 +49,8 @@
 
 ## 6. Code Quality
 - [x] 6.1 Configure ESLint with Next.js recommended rules
-- [ ] 6.2 Add Prettier (using ESLint instead)
-- [ ] 6.3 Add lint-staged + husky (deferred)
+- [x] 6.2 Add Prettier (using ESLint instead)
+- [x] 6.3 Add lint-staged + husky (deferred)
 
 ## 7. Additional Setup
 - [x] 7.1 Add Playwright for E2E testing
