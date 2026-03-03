@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, CornerDownLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,6 +15,7 @@ import { ToolCallDisplay, ToolCall } from "@/components/tool-call-display";
 import { ModelSelector } from "@/components/model-selector";
 import { DataSourceSelector } from "@/components/data-source-selector";
 import { FileUpload, FileList, UploadedFile } from "@/components/file-upload";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ModelId, defaultModel } from "@/lib/ai/models";
 import { ToolDataSource } from "@/types/data-source";
 
@@ -72,6 +73,14 @@ function StudioContent() {
 
   // Quota state
   const [quotaStatus, setQuotaStatus] = useState<QuotaStatus | null>(null);
+
+  // Send mode: true = Enter sends, false = Ctrl/Cmd+Enter sends
+  const [enterToSend, setEnterToSend] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("studio:enterToSend") !== "false";
+    }
+    return true;
+  });
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -510,9 +519,20 @@ function StudioContent() {
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
+      if (enterToSend) {
+        e.preventDefault();
+        handleSubmit(e);
+      }
+    }
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !enterToSend) {
       e.preventDefault();
       handleSubmit(e);
     }
+  };
+
+  const toggleEnterToSend = (checked: boolean) => {
+    setEnterToSend(checked);
+    localStorage.setItem("studio:enterToSend", String(checked));
   };
 
   // Handle preview errors - auto request fix from AI
@@ -902,6 +922,20 @@ function StudioContent() {
                   onChange={setUploadedFiles}
                   disabled={isLoading}
                 />
+                <div className="ml-auto flex items-center gap-1.5">
+                  <Checkbox
+                    id="enter-to-send"
+                    checked={enterToSend}
+                    onCheckedChange={toggleEnterToSend}
+                  />
+                  <label
+                    htmlFor="enter-to-send"
+                    className="text-xs text-muted-foreground cursor-pointer select-none flex items-center gap-1"
+                  >
+                    <CornerDownLeft className="h-3 w-3" />
+                    {t("input.enterToSend")}
+                  </label>
+                </div>
               </div>
             </form>
           </div>

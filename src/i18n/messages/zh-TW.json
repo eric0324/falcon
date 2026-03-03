@@ -68,7 +68,8 @@
       "description": "問我任何問題、查詢資料，或描述你想建立的工具。"
     },
     "input": {
-      "placeholder": "問點什麼，或描述你想要的功能..."
+      "placeholder": "問點什麼，或描述你想要的功能...",
+      "enterToSend": "Enter 送出"
     },
     "thinking": "思考中...",
     "toast": {
