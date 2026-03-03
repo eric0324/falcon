@@ -264,6 +264,7 @@ enum GoogleService {
   DRIVE
   CALENDAR
   GMAIL
+  YOUTUBE
 }
 
 model UserGoogleServiceToken {

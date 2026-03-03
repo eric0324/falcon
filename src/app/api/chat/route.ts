@@ -11,6 +11,7 @@ import { createPlausibleTools } from "@/lib/ai/plausible-tools";
 import { createGA4Tools } from "@/lib/ai/ga4-tools";
 import { createMetaAdsTools } from "@/lib/ai/meta-ads-tools";
 import { createGitHubTools } from "@/lib/ai/github-tools";
+import { createYouTubeTools } from "@/lib/ai/youtube-tools";
 import { createExternalDbTools } from "@/lib/ai/external-db-tools";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 import { shouldCompact } from "@/lib/ai/token-utils";
@@ -172,6 +173,12 @@ export async function POST(req: Request) {
       // GitHub - only if explicitly selected
       if (selectedSources.has("github")) {
         filteredTools = { ...filteredTools, ...githubTools };
+      }
+
+      // YouTube - only if explicitly selected
+      if (selectedSources.has("google_youtube")) {
+        const youtubeTools = createYouTubeTools(userId);
+        filteredTools = { ...filteredTools, ...youtubeTools };
       }
 
       // External databases - match extdb_ prefix

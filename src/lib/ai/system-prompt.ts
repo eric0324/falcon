@@ -350,6 +350,41 @@ const GITHUB_INSTRUCTIONS = `
 - Use parallel calls: get listPRs + commits for the same repo simultaneously
 - Patches in readPR are truncated for large PRs — mention total file count to the user`;
 
+// YouTube-specific instructions
+const YOUTUBE_INSTRUCTIONS = `
+
+## YouTube
+
+### Available tool
+- youtubeQuery: Search videos, view channel info, video stats, comments, captions, playlists, and analytics
+
+### Actions
+- Search videos: youtubeQuery({ action: "search", query: "keyword", maxResults: 10 })
+- Channel info: youtubeQuery({ action: "channel", channelId: "UCxxx" })
+- Video details: youtubeQuery({ action: "video", videoId: "xxx" })
+- Video comments: youtubeQuery({ action: "comments", videoId: "xxx" })
+- Video captions: youtubeQuery({ action: "captions", videoId: "xxx" })
+- Playlist items: youtubeQuery({ action: "playlist", playlistId: "PLxxx" })
+- Channel analytics: youtubeQuery({ action: "analytics", channelId: "UCxxx", startDate: "2025-01-01", endDate: "2025-01-31", metrics: ["views", "estimatedMinutesWatched"], dimensions: ["day"] })
+
+### Analytics metrics
+views, estimatedMinutesWatched, averageViewDuration, subscribersGained, subscribersLost, likes, dislikes, shares
+
+### Analytics dimensions
+day, country, video, deviceType, operatingSystem, ageGroup, gender, sharingService, insightTrafficSourceType
+
+### Quota management
+- Search costs 100 units per call (daily limit: 10,000 units)
+- All other actions cost 1 unit
+- **Prefer channel + video over search** to conserve quota
+
+### Strategy
+- Use channel to get channel overview first
+- Use video to check specific video stats
+- Use search sparingly — only when the user needs to find videos by keyword
+- Use analytics for self-owned channels (requires channel owner authorization)
+- Use parallel calls: get channel info + video details simultaneously`;
+
 // External database instructions
 const EXTERNAL_DB_INSTRUCTIONS = `
 
@@ -439,6 +474,10 @@ function buildCompanyApiInstructions(dataSources: string[]): string {
     } else if (ds === "meta_ads") {
       sourceDescriptions.push(
         `- \`meta_ads\`: actions: \`listAccounts\`, \`overview\`, \`campaigns\`, \`timeseries\`, \`breakdown\` (params: {accountId, dateRange, dimension})`
+      );
+    } else if (ds === "google_youtube") {
+      sourceDescriptions.push(
+        `- \`google_youtube\`: actions: \`search\`, \`channel\`, \`video\`, \`comments\`, \`captions\`, \`playlist\`, \`analytics\` (params: {query, channelId, videoId, playlistId, startDate, endDate, metrics, dimensions})`
       );
     }
   }
@@ -646,8 +685,16 @@ export function buildSystemPrompt(dataSources?: string[]): string {
   const hasMetaAds = dataSources.includes("meta_ads");
   const hasGitHub = dataSources.includes("github");
 
-  if (enabledGoogleServices.length > 0) {
-    prompt += buildGoogleInstructions(enabledGoogleServices);
+  // YouTube is handled separately from other Google services
+  const hasYouTube = dataSources.includes("google_youtube");
+  const googleServicesWithoutYouTube = enabledGoogleServices.filter(s => s !== "youtube");
+
+  if (googleServicesWithoutYouTube.length > 0) {
+    prompt += buildGoogleInstructions(googleServicesWithoutYouTube);
+  }
+
+  if (hasYouTube) {
+    prompt += YOUTUBE_INSTRUCTIONS;
   }
 
   if (hasNotion) {

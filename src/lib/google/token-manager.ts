@@ -136,6 +136,7 @@ export async function getGoogleConnectionStatus(
     DRIVE: connectedServices.has("DRIVE"),
     CALENDAR: connectedServices.has("CALENDAR"),
     GMAIL: connectedServices.has("GMAIL"),
+    YOUTUBE: connectedServices.has("YOUTUBE"),
   };
 }
 

@@ -12,6 +12,8 @@ export const GOOGLE_SCOPES = {
   DRIVE: "https://www.googleapis.com/auth/drive.readonly",
   CALENDAR: "https://www.googleapis.com/auth/calendar",
   GMAIL: "https://www.googleapis.com/auth/gmail.readonly",
+  YOUTUBE:
+    "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly",
 } as const;
 
 export type GoogleServiceType = keyof typeof GOOGLE_SCOPES;

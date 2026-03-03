@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
   if (!service || !(service in GOOGLE_SCOPES)) {
     return NextResponse.json(
-      { error: "Invalid service. Valid services: sheets, drive, calendar" },
+      { error: "Invalid service. Valid services: sheets, drive, calendar, gmail, youtube" },
       { status: 400 }
     );
   }

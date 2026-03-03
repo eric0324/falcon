@@ -278,6 +278,10 @@
       "name": "Gmail",
       "description": "Search and browse emails"
     },
+    "youtube": {
+      "name": "YouTube",
+      "description": "Search videos, view stats, and channel analytics"
+    },
     "connect": "Connect",
     "disconnect": "Disconnect",
     "connected": "Connected",

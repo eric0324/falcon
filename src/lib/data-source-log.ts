@@ -110,6 +110,12 @@ export function extractDataSourceInfo(
         action: args.action as string,
         params: { repo: args.repo, search: args.search },
       };
+    case "youtubeQuery":
+      return {
+        dataSourceId: "google_youtube",
+        action: args.action as string,
+        params: { query: args.query, channelId: args.channelId, videoId: args.videoId },
+      };
     default:
       return null;
   }

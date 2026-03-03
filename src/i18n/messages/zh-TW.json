@@ -278,6 +278,10 @@
       "name": "Gmail",
       "description": "搜尋和瀏覽郵件"
     },
+    "youtube": {
+      "name": "YouTube",
+      "description": "搜尋影片、查看統計和頻道分析"
+    },
     "connect": "連接",
     "disconnect": "中斷連接",
     "connected": "已連接",

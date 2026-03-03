@@ -31,9 +31,10 @@ import {
   LineChart,
   Megaphone,
   Github,
+  Youtube,
 } from "lucide-react";
 
-type GoogleServiceType = "sheets" | "drive" | "calendar" | "gmail";
+type GoogleServiceType = "sheets" | "drive" | "calendar" | "gmail" | "youtube";
 
 const GOOGLE_SERVICES: {
   id: GoogleServiceType;
@@ -43,6 +44,7 @@ const GOOGLE_SERVICES: {
   { id: "drive", icon: FolderOpen },
   { id: "calendar", icon: Calendar },
   { id: "gmail", icon: Mail },
+  { id: "youtube", icon: Youtube },
 ];
 
 interface DataSourceSelectorProps {
@@ -62,6 +64,7 @@ type GoogleConnectionStatus = {
   drive: boolean;
   calendar: boolean;
   gmail: boolean;
+  youtube: boolean;
 };
 
 type IntegrationStatus = {
@@ -88,6 +91,7 @@ export function DataSourceSelector({
     drive: false,
     calendar: false,
     gmail: false,
+    youtube: false,
   });
   const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus>({
     notion: false,
@@ -281,7 +285,7 @@ export function DataSourceSelector({
                       {tGoogle(`${id}.description`)}
                     </p>
                   </div>
-                  <div className="w-14 flex justify-end shrink-0 mt-0.5">
+                  <div className="flex justify-end shrink-0 mt-0.5 ml-2">
                     {isConnecting ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : !isConnected ? (
@@ -290,7 +294,7 @@ export function DataSourceSelector({
                           e.stopPropagation();
                           handleGoogleConnect(id);
                         }}
-                        className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                        className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors whitespace-nowrap"
                         title={tGoogle("connect")}
                       >
                         <Link className="h-3 w-3" />

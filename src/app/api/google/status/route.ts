@@ -33,6 +33,7 @@ export async function GET() {
         drive: status.DRIVE,
         calendar: status.CALENDAR,
         gmail: status.GMAIL,
+        youtube: status.YOUTUBE,
       },
       tokens: tokens.map((t) => ({
         service: t.service,
