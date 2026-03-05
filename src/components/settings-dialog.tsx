@@ -18,13 +18,19 @@ interface SettingsDialogProps {
   defaultTab?: SettingsTab;
 }
 
+const changelog = [
+  { version: "v0.1.2", description: "Smarter conversation titles with inline editing support" },
+  { version: "v0.1.1", description: "YouTube integration and customizable message submit method" },
+  { version: "v0.1.0", description: "Initial release - AI chat, tool creation, and marketplace features" },
+];
+
 export function SettingsDialog({ open, onOpenChange, defaultTab = "changelog" }: SettingsDialogProps) {
   const t = useTranslations("sidebar.settings");
 
   const getTitle = () => {
     switch (defaultTab) {
       case "changelog":
-        return t("changelog");
+        return "Changelog";
       case "about":
         return t("about");
       default:
@@ -41,12 +47,14 @@ export function SettingsDialog({ open, onOpenChange, defaultTab = "changelog" }:
 
         {defaultTab === "changelog" && (
           <div className="space-y-4 pt-2 max-h-[60vh] overflow-y-auto">
-            <div className="border-l-2 border-primary pl-4">
-              <p className="font-medium text-sm">v0.1.0</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {t("changelogV010")}
-              </p>
-            </div>
+            {changelog.map((entry) => (
+              <div key={entry.version} className="border-l-2 border-primary pl-4">
+                <p className="font-medium text-sm">{entry.version}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {entry.description}
+                </p>
+              </div>
+            ))}
           </div>
         )}
 
@@ -54,7 +62,7 @@ export function SettingsDialog({ open, onOpenChange, defaultTab = "changelog" }:
           <div className="space-y-4 pt-2">
             <div className="text-center py-2">
               <p className="text-2xl font-bold">Falcon</p>
-              <p className="text-sm text-muted-foreground mt-1">v0.1.0</p>
+              <p className="text-sm text-muted-foreground mt-1">{changelog[0].version}</p>
             </div>
 
             <p className="text-sm text-muted-foreground text-center">

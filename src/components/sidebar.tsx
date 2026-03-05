@@ -17,6 +17,8 @@ import {
   Info,
   LogOut,
   Check,
+  Pencil,
+  MoreHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -33,6 +35,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/sidebar-provider";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { locales, Locale } from "@/i18n/config";
 
@@ -81,6 +91,9 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
   const { isOpen, isMobile, close, toggle } = useSidebar();
   const [conversations, setConversations] = useState(initialConversations);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<"changelog" | "about">("changelog");
   const [currentLocale, setCurrentLocale] = useState<Locale>("en");
@@ -109,17 +122,22 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
     setHasFetched(false);
   }, [currentConvId]);
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
+  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     e.stopPropagation();
-    if (deletingId) return;
+    setDeleteConfirmId(id);
+  };
 
+  const handleDeleteConfirm = async () => {
+    const id = deleteConfirmId;
+    if (!id || deletingId) return;
+
+    setDeleteConfirmId(null);
     setDeletingId(id);
     try {
       const res = await fetch(`/api/conversations/${id}`, { method: "DELETE" });
       if (res.ok) {
         setConversations((prev) => prev.filter((c) => c.id !== id));
-        // If deleting current conversation, navigate to new chat
         if (currentConvId === id) {
           router.push("/chat");
         }
@@ -128,6 +146,41 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
       // Silently fail
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleEditStart = (id: string, currentTitle: string) => {
+    setEditingId(id);
+    setEditingTitle(currentTitle);
+  };
+
+  const handleEditSave = async () => {
+    if (!editingId || !editingTitle.trim()) {
+      setEditingId(null);
+      return;
+    }
+    const title = editingTitle.trim();
+    setConversations((prev) =>
+      prev.map((c) => (c.id === editingId ? { ...c, title } : c))
+    );
+    setEditingId(null);
+    try {
+      await fetch(`/api/conversations/${editingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+    } catch {
+      // Silently fail — optimistic update already applied
+    }
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleEditSave();
+    } else if (e.key === "Escape") {
+      setEditingId(null);
     }
   };
 
@@ -337,34 +390,62 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                           : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
                       )}
                     >
-                      <Link
-                        href={`/chat?id=${conv.id}`}
-                        onClick={(e) => handleNavClick(e, `/chat?id=${conv.id}`)}
-                        className="flex-1 flex items-center justify-between px-3 py-2.5"
-                      >
-                        <span>
-                          {(conv.title || t("conversation.newConversation")).slice(0, 12)}
-                          {(conv.title || "").length > 12 && "..."}
-                        </span>
-                        <span
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleDelete(e, conv.id);
-                          }}
-                          className={cn(
-                            "shrink-0 p-1 rounded",
-                            "text-neutral-400 hover:text-red-500 hover:bg-neutral-200",
-                            isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                          )}
+                      {editingId === conv.id ? (
+                        <div className="flex-1 px-2 py-1.5">
+                          <input
+                            autoFocus
+                            value={editingTitle}
+                            onChange={(e) => setEditingTitle(e.target.value)}
+                            onKeyDown={handleEditKeyDown}
+                            onBlur={handleEditSave}
+                            placeholder={t("conversation.editTitlePlaceholder")}
+                            className="w-full px-1.5 py-1 text-sm bg-white border border-neutral-300 rounded outline-none focus:border-neutral-500"
+                          />
+                        </div>
+                      ) : (
+                        <Link
+                          href={`/chat?id=${conv.id}`}
+                          onClick={(e) => handleNavClick(e, `/chat?id=${conv.id}`)}
+                          className="flex-1 flex items-center justify-between px-3 py-2.5"
                         >
-                          {deletingId === conv.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-3.5 w-3.5" />
-                          )}
-                        </span>
-                      </Link>
+                          <span className="truncate">
+                            {conv.title || t("conversation.newConversation")}
+                          </span>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <span
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }}
+                                className={cn(
+                                  "shrink-0 p-1 rounded text-neutral-400 hover:text-neutral-600 hover:bg-neutral-200 cursor-pointer",
+                                  isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                                )}
+                              >
+                                {deletingId === conv.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <MoreHorizontal className="h-3.5 w-3.5" />
+                                )}
+                              </span>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" side="bottom">
+                              <DropdownMenuItem onClick={() => handleEditStart(conv.id, conv.title || "")}>
+                                <Pencil className="h-3.5 w-3.5 mr-2" />
+                                {t("conversation.rename")}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setDeleteConfirmId(conv.id)}
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                {t("conversation.delete")}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </Link>
+                      )}
                     </div>
                   );
                 })}
@@ -433,6 +514,22 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
           onOpenChange={setSettingsOpen}
           defaultTab={settingsTab}
         />
+        <Dialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>{t("conversation.deleteTitle")}</DialogTitle>
+              <DialogDescription>{t("conversation.deleteDescription")}</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>
+                {t("conversation.deleteCancel")}
+              </Button>
+              <Button variant="destructive" onClick={handleDeleteConfirm}>
+                {t("conversation.deleteConfirm")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </aside>
     </>
   );

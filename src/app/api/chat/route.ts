@@ -16,9 +16,13 @@ import { createExternalDbTools } from "@/lib/ai/external-db-tools";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 import { shouldCompact } from "@/lib/ai/token-utils";
 import { compactMessages } from "@/lib/ai/compact";
+import { generateConversationTitle } from "@/lib/ai/generate-title";
 import { prisma } from "@/lib/prisma";
 import { checkQuota, estimateCost } from "@/lib/quota";
 import { logDataSourceCall, extractDataSourceInfo, sanitizeResponse } from "@/lib/data-source-log";
+
+// Vercel serverless: increase timeout for AI streaming
+export const maxDuration = 60;
 
 interface FileData {
   name: string;
@@ -98,13 +102,14 @@ export async function POST(req: Request) {
 
     // Ensure conversationId exists for logging — create conversation early if needed
     let conversationId = incomingConversationId as string | undefined;
+    let generatedTitle: string | undefined;
     if (!conversationId) {
       const firstUserMsg = messages.find((m: { role: string; content: string }) => m.role === "user");
-      const title = firstUserMsg?.content?.trim().slice(0, 50) || "New conversation";
+      generatedTitle = await generateConversationTitle(firstUserMsg?.content);
       const conv = await prisma.conversation.create({
         data: {
           userId,
-          title,
+          title: generatedTitle,
           model: modelName,
           dataSources: dataSources || undefined,
         },
@@ -280,9 +285,9 @@ export async function POST(req: Request) {
 
         try {
 
-        // Send conversationId so frontend can use it
+        // Send conversationId (and title if newly created) so frontend can use it
         if (conversationId) {
-          controller.enqueue(encoder.encode(`i:${JSON.stringify({ conversationId })}\n`));
+          controller.enqueue(encoder.encode(`i:${JSON.stringify({ conversationId, title: generatedTitle })}\n`));
         }
 
         // Send compact event if compaction occurred

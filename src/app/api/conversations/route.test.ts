@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockGetServerSession = vi.hoisted(() => vi.fn());
 const mockCreateConversationWithMessages = vi.hoisted(() => vi.fn());
 const mockLinkOrphanTokenUsage = vi.hoisted(() => vi.fn());
+const mockGenerateConversationTitle = vi.hoisted(() => vi.fn());
 const prismaMock = vi.hoisted(() => ({
   conversation: {
     findMany: vi.fn(),
@@ -16,6 +17,10 @@ vi.mock("@/lib/conversation-messages", () => ({
   createConversationWithMessages: mockCreateConversationWithMessages,
   linkOrphanTokenUsage: mockLinkOrphanTokenUsage,
 }));
+vi.mock("@/lib/ai/generate-title", () => ({
+  generateConversationTitle: mockGenerateConversationTitle,
+}));
+
 
 import { GET, POST } from "./route";
 
@@ -88,8 +93,9 @@ describe("POST /api/conversations", () => {
     expect(res.status).toBe(401);
   });
 
-  it("creates a conversation with messages via createConversationWithMessages", async () => {
+  it("creates a conversation with AI-generated title", async () => {
     mockGetServerSession.mockResolvedValue(mockSession);
+    mockGenerateConversationTitle.mockResolvedValue("查詢訂單狀態");
     const messages = [
       { role: "user", content: "幫我查訂單" },
       { role: "assistant", content: "好的，讓我查看..." },
@@ -97,7 +103,7 @@ describe("POST /api/conversations", () => {
     mockCreateConversationWithMessages.mockResolvedValue({
       conversation: {
         id: "conv-new",
-        title: "幫我查訂單",
+        title: "查詢訂單狀態",
         model: "claude-sonnet-4-20250514",
         userId: "user-1",
         createdAt: new Date(),
@@ -115,42 +121,14 @@ describe("POST /api/conversations", () => {
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.id).toBe("conv-new");
-    expect(body.title).toBe("幫我查訂單");
+    expect(mockGenerateConversationTitle).toHaveBeenCalledWith("幫我查訂單");
     expect(mockCreateConversationWithMessages).toHaveBeenCalledWith({
-      title: "幫我查訂單",
+      title: "查詢訂單狀態",
       model: "claude-sonnet-4-20250514",
       userId: "user-1",
       messages,
     });
-
-    // Orphan linking should delegate to linkOrphanTokenUsage with last assistant message
     expect(mockLinkOrphanTokenUsage).toHaveBeenCalledWith("user-1", "msg-2");
-  });
-
-  it("auto-generates title from first user message (max 50 chars)", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
-    mockCreateConversationWithMessages.mockResolvedValue({
-      conversation: {
-        id: "conv-new",
-        title: "這是一個很長的訊息應該要被截斷到五十個字以內才對不然標題就太",
-      },
-      assistantMessageIds: [],
-    });
-
-    await POST(
-      makeRequest({
-        messages: [
-          {
-            role: "user",
-            content:
-              "這是一個很長的訊息應該要被截斷到五十個字以內才對不然標題就太長了會影響到顯示的效果",
-          },
-        ],
-      })
-    );
-
-    const callArgs = mockCreateConversationWithMessages.mock.calls[0][0];
-    expect(callArgs.title.length).toBeLessThanOrEqual(50);
   });
 
   it("returns 400 when messages are missing", async () => {

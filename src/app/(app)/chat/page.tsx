@@ -85,6 +85,9 @@ function StudioContent() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Guard: prevent effects from overwriting state during active streaming
+  const isSubmittingRef = useRef(false);
+
   // Auto-fix preview errors
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [errorRetryCount, setErrorRetryCount] = useState(0);
@@ -114,6 +117,7 @@ function StudioContent() {
 
   // Reset state when navigating to /chat without id (new conversation)
   useEffect(() => {
+    if (isSubmittingRef.current) return;
     const currentId = searchParams.get("id");
     const currentEditId = searchParams.get("edit");
     if (!currentId && !currentEditId) resetState();
@@ -156,6 +160,7 @@ function StudioContent() {
 
   // Load existing conversation from URL
   useEffect(() => {
+    if (isSubmittingRef.current) return;
     const loadId = searchParams.get("id");
     if (!loadId || editId) return;
 
@@ -267,6 +272,7 @@ function StudioContent() {
 
     const userMessage = input.trim();
     setInput("");
+    isSubmittingRef.current = true;
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setIsLoading(true);
     setCurrentToolCalls([]);
@@ -313,6 +319,7 @@ function StudioContent() {
       let assistantMessage = "";
       let buffer = "";
       let savedConvId = convId;
+      let savedTitle: string | undefined;
       const toolCallsMap = new Map<string, ToolCall>();
 
       if (reader) {
@@ -409,12 +416,11 @@ function StudioContent() {
                 break;
               }
 
-              case "i": { // Conversation ID from server
-                const { conversationId: serverConvId } = data as { conversationId: string };
+              case "i": { // Conversation ID (and title) from server
+                const { conversationId: serverConvId, title: serverTitle } = data as { conversationId: string; title?: string };
                 if (serverConvId && !savedConvId) {
                   savedConvId = serverConvId;
-                  setConvId(serverConvId);
-                  router.push(`/chat?id=${serverConvId}`);
+                  if (serverTitle) savedTitle = serverTitle;
                 }
                 break;
               }
@@ -485,9 +491,7 @@ function StudioContent() {
             if (createRes.ok) {
               const conv = await createRes.json();
               savedConvId = conv.id;
-              setConvId(conv.id);
-              if (conv.title) setConvTitle(conv.title);
-              router.push(`/chat?id=${conv.id}`);
+              savedTitle = conv.title || savedTitle;
             }
           } else if (savedConvId) {
             await fetch(`/api/conversations/${savedConvId}`, {
@@ -499,6 +503,13 @@ function StudioContent() {
                 dataSources: selectedDataSources,
               }),
             });
+          }
+
+          // Update state and URL only after messages are persisted
+          if (savedConvId && savedConvId !== convId) {
+            setConvId(savedConvId);
+            if (savedTitle) setConvTitle(savedTitle);
+            window.history.replaceState(null, "", `/chat?id=${savedConvId}`);
           }
         } catch {
           // Auto-save failure is non-critical
@@ -514,6 +525,7 @@ function StudioContent() {
     } finally {
       setIsLoading(false);
       setCurrentToolCalls([]);
+      isSubmittingRef.current = false;
     }
   };
 

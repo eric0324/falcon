@@ -39,14 +39,20 @@
     },
     "conversation": {
       "empty": "沒有對話",
-      "newConversation": "新對話"
+      "newConversation": "新對話",
+      "editTitlePlaceholder": "輸入對話標題",
+      "rename": "重新命名",
+      "delete": "刪除",
+      "deleteTitle": "刪除對話",
+      "deleteDescription": "確定要刪除這個對話嗎？此操作無法復原。",
+      "deleteCancel": "取消",
+      "deleteConfirm": "刪除"
     },
     "settings": {
       "title": "設定",
       "profile": "個人設定",
       "language": "語言",
       "changelog": "開發日記",
-      "changelogV010": "初始版本發布 - 支援 AI 對話、工具建立與市集功能",
       "about": "關於",
       "aboutDescription": "Falcon 是一個 AI 驅動的企業助理平台，結合對話、資料查詢與工具建立功能。",
       "logout": "登出"

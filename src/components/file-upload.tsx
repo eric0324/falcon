@@ -42,6 +42,40 @@ const ACCEPTED_TYPES = {
 
 const ACCEPTED_EXTENSIONS = ".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.md,.csv,.js,.ts,.json,.html,.css";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_IMAGE_BASE64_SIZE = 512 * 1024; // Compress images to ~512KB base64 to stay under Vercel 4.5MB body limit
+
+function compressImage(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let { width, height } = img;
+
+      // Scale down if too large
+      const MAX_DIM = 1600;
+      if (width > MAX_DIM || height > MAX_DIM) {
+        const scale = MAX_DIM / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Try progressively lower quality until under limit
+      let quality = 0.8;
+      let base64 = canvas.toDataURL("image/jpeg", quality).split(",")[1];
+      while (base64.length > MAX_IMAGE_BASE64_SIZE && quality > 0.2) {
+        quality -= 0.1;
+        base64 = canvas.toDataURL("image/jpeg", quality).split(",")[1];
+      }
+      resolve(base64);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
 
 function getFileIcon(type: string) {
   if (type.startsWith("image/")) {
@@ -86,17 +120,21 @@ export function FileUpload({ files, onChange, disabled }: FileUploadProps) {
         continue;
       }
 
-      // Convert to base64
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          // Remove data URL prefix (e.g., "data:image/png;base64,")
-          const base64Data = result.split(",")[1];
-          resolve(base64Data);
-        };
-        reader.readAsDataURL(file);
-      });
+      // Convert to base64 (compress images to stay under Vercel body limit)
+      let base64: string;
+      if (file.type.startsWith("image/")) {
+        base64 = await compressImage(file);
+      } else {
+        base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            const base64Data = result.split(",")[1];
+            resolve(base64Data);
+          };
+          reader.readAsDataURL(file);
+        });
+      }
 
       newFiles.push({
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,

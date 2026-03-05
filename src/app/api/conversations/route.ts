@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { generateConversationTitle } from "@/lib/ai/generate-title";
 import { createConversationWithMessages, linkOrphanTokenUsage } from "@/lib/conversation-messages";
 import type { Message } from "@/types/message";
 
@@ -41,11 +42,8 @@ export async function GET(req: Request) {
   return NextResponse.json(result);
 }
 
-function generateTitle(messages: Array<{ role: string; content: string }>): string {
-  const firstUserMessage = messages.find((m) => m.role === "user");
-  if (!firstUserMessage) return "New conversation";
-  const content = firstUserMessage.content.trim();
-  return content.length > 50 ? content.slice(0, 50) : content;
+function getFirstUserContent(messages: Array<{ role: string; content: string }>): string | undefined {
+  return messages.find((m) => m.role === "user")?.content;
 }
 
 export async function POST(req: Request) {
@@ -61,7 +59,7 @@ export async function POST(req: Request) {
     return new Response("messages is required", { status: 400 });
   }
 
-  const title = generateTitle(messages);
+  const title = await generateConversationTitle(getFirstUserContent(messages));
 
   const { conversation, assistantMessageIds } = await createConversationWithMessages({
     title,
