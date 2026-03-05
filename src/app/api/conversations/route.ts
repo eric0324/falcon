@@ -26,6 +26,7 @@ export async function GET(req: Request) {
       id: true,
       title: true,
       model: true,
+      starred: true,
       updatedAt: true,
       tool: { select: { id: true } },
     },
@@ -35,6 +36,7 @@ export async function GET(req: Request) {
     id: c.id,
     title: c.title,
     model: c.model,
+    starred: c.starred,
     updatedAt: c.updatedAt,
     hasTool: c.tool !== null,
   }));

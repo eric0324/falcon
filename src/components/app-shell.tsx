@@ -35,6 +35,7 @@ export async function AppShell({ children }: AppShellProps) {
     select: {
       id: true,
       title: true,
+      starred: true,
       updatedAt: true,
       tool: { select: { id: true } },
     },
@@ -43,6 +44,7 @@ export async function AppShell({ children }: AppShellProps) {
   const formattedConversations = conversations.map((conv) => ({
     id: conv.id,
     title: conv.title,
+    starred: conv.starred,
     updatedAt: conv.updatedAt.toISOString(),
     hasTool: !!conv.tool,
   }));

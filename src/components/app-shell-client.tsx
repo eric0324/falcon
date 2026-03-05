@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/sidebar";
 interface ConversationItem {
   id: string;
   title: string | null;
+  starred: boolean;
   updatedAt: string;
   hasTool: boolean;
 }

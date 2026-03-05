@@ -49,6 +49,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   if (body.model !== undefined) data.model = body.model;
   if (body.summary !== undefined) data.summary = body.summary;
   if (body.dataSources !== undefined) data.dataSources = body.dataSources;
+  if (body.starred !== undefined) data.starred = body.starred;
 
   // Update messages in the new table if provided
   if (body.messages) {
