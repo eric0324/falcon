@@ -12,7 +12,7 @@ export async function generateConversationTitle(content?: string): Promise<strin
   const trimmed = content.trim().slice(0, 50);
 
   const truncate = (s: string) => {
-    const chars = [...s];
+    const chars = Array.from(s);
     return chars.length > 15 ? chars.slice(0, 15).join("") + "..." : s;
   };
 
