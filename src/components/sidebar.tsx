@@ -19,6 +19,7 @@ import {
   Check,
   Pencil,
   MoreHorizontal,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -64,6 +65,7 @@ function setLocaleCookie(locale: Locale) {
 interface ConversationItem {
   id: string;
   title: string | null;
+  starred: boolean;
   updatedAt: string;
   hasTool: boolean;
 }
@@ -122,12 +124,6 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
     setHasFetched(false);
   }, [currentConvId]);
 
-  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDeleteConfirmId(id);
-  };
-
   const handleDeleteConfirm = async () => {
     const id = deleteConfirmId;
     if (!id || deletingId) return;
@@ -181,6 +177,25 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
       handleEditSave();
     } else if (e.key === "Escape") {
       setEditingId(null);
+    }
+  };
+
+  const handleStarToggle = async (id: string, currentStarred: boolean) => {
+    const newStarred = !currentStarred;
+    setConversations((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, starred: newStarred } : c))
+    );
+    try {
+      await fetch(`/api/conversations/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ starred: newStarred }),
+      });
+    } catch {
+      // Revert on failure
+      setConversations((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, starred: currentStarred } : c))
+      );
     }
   };
 
@@ -376,79 +391,118 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                 {t("conversation.empty")}
               </p>
             ) : (
-              <div className="space-y-0.5 pb-4">
-                {conversations.map((conv) => {
-                  const isActive = pathname === "/chat" && currentConvId === conv.id;
+              <div className="pb-4">
+                {(() => {
+                  const starredConvs = conversations.filter((c) => c.starred);
+                  const unstarredConvs = conversations.filter((c) => !c.starred);
+
+                  const renderConversation = (conv: ConversationItem) => {
+                    const isActive = pathname === "/chat" && currentConvId === conv.id;
+
+                    return (
+                      <div
+                        key={conv.id}
+                        className={cn(
+                          "group flex items-center rounded-lg text-sm transition-colors",
+                          isActive
+                            ? "bg-neutral-100 text-neutral-900"
+                            : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
+                        )}
+                      >
+                        {editingId === conv.id ? (
+                          <div className="flex-1 px-2 py-1.5">
+                            <input
+                              autoFocus
+                              value={editingTitle}
+                              onChange={(e) => setEditingTitle(e.target.value)}
+                              onKeyDown={handleEditKeyDown}
+                              onBlur={handleEditSave}
+                              placeholder={t("conversation.editTitlePlaceholder")}
+                              className="w-full px-1.5 py-1 text-sm bg-white border border-neutral-300 rounded outline-none focus:border-neutral-500"
+                            />
+                          </div>
+                        ) : (
+                          <Link
+                            href={`/chat?id=${conv.id}`}
+                            onClick={(e) => handleNavClick(e, `/chat?id=${conv.id}`)}
+                            className="flex-1 flex items-center justify-between px-3 py-2.5"
+                          >
+                            <span className="flex items-center gap-1.5 truncate">
+                              {conv.starred && (
+                                <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />
+                              )}
+                              <span className="truncate">
+                                {conv.title || t("conversation.newConversation")}
+                              </span>
+                            </span>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <span
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                  }}
+                                  className={cn(
+                                    "shrink-0 p-1 rounded text-neutral-400 hover:text-neutral-600 hover:bg-neutral-200 cursor-pointer",
+                                    isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                                  )}
+                                >
+                                  {deletingId === conv.id ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <MoreHorizontal className="h-3.5 w-3.5" />
+                                  )}
+                                </span>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start" side="bottom">
+                                <DropdownMenuItem onClick={() => handleStarToggle(conv.id, conv.starred)}>
+                                  <Star className={cn("h-3.5 w-3.5 mr-2", conv.starred && "fill-amber-400 text-amber-400")} />
+                                  {conv.starred ? t("conversation.unstar") : t("conversation.star")}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEditStart(conv.id, conv.title || "")}>
+                                  <Pencil className="h-3.5 w-3.5 mr-2" />
+                                  {t("conversation.rename")}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setDeleteConfirmId(conv.id)}
+                                  className="text-red-600 focus:text-red-600"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                  {t("conversation.delete")}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </Link>
+                        )}
+                      </div>
+                    );
+                  };
 
                   return (
-                    <div
-                      key={conv.id}
-                      className={cn(
-                        "group flex items-center rounded-lg text-sm transition-colors",
-                        isActive
-                          ? "bg-neutral-100 text-neutral-900"
-                          : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
-                      )}
-                    >
-                      {editingId === conv.id ? (
-                        <div className="flex-1 px-2 py-1.5">
-                          <input
-                            autoFocus
-                            value={editingTitle}
-                            onChange={(e) => setEditingTitle(e.target.value)}
-                            onKeyDown={handleEditKeyDown}
-                            onBlur={handleEditSave}
-                            placeholder={t("conversation.editTitlePlaceholder")}
-                            className="w-full px-1.5 py-1 text-sm bg-white border border-neutral-300 rounded outline-none focus:border-neutral-500"
-                          />
+                    <>
+                      {starredConvs.length > 0 && (
+                        <div className="mb-2">
+                          <p className="px-3 py-1.5 text-xs font-medium text-neutral-400">
+                            {t("conversation.starred")}
+                          </p>
+                          <div className="space-y-0.5">
+                            {starredConvs.map(renderConversation)}
+                          </div>
                         </div>
-                      ) : (
-                        <Link
-                          href={`/chat?id=${conv.id}`}
-                          onClick={(e) => handleNavClick(e, `/chat?id=${conv.id}`)}
-                          className="flex-1 flex items-center justify-between px-3 py-2.5"
-                        >
-                          <span className="truncate">
-                            {conv.title || t("conversation.newConversation")}
-                          </span>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <span
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                }}
-                                className={cn(
-                                  "shrink-0 p-1 rounded text-neutral-400 hover:text-neutral-600 hover:bg-neutral-200 cursor-pointer",
-                                  isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                                )}
-                              >
-                                {deletingId === conv.id ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <MoreHorizontal className="h-3.5 w-3.5" />
-                                )}
-                              </span>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" side="bottom">
-                              <DropdownMenuItem onClick={() => handleEditStart(conv.id, conv.title || "")}>
-                                <Pencil className="h-3.5 w-3.5 mr-2" />
-                                {t("conversation.rename")}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => setDeleteConfirmId(conv.id)}
-                                className="text-red-600 focus:text-red-600"
-                              >
-                                <Trash2 className="h-3.5 w-3.5 mr-2" />
-                                {t("conversation.delete")}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </Link>
                       )}
-                    </div>
+                      <div>
+                        {starredConvs.length > 0 && unstarredConvs.length > 0 && (
+                          <div className="px-3 py-1.5">
+                            <div className="border-t border-neutral-200" />
+                          </div>
+                        )}
+                        <div className="space-y-0.5">
+                          {unstarredConvs.map(renderConversation)}
+                        </div>
+                      </div>
+                    </>
                   );
-                })}
+                })()}
               </div>
             )}
           </ScrollArea>
