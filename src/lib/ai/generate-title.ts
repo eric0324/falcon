@@ -9,20 +9,25 @@ import { models } from "./models";
 export async function generateConversationTitle(content?: string): Promise<string> {
   if (!content?.trim()) return "New conversation";
 
-  const fallback = content.trim().slice(0, 50);
+  const trimmed = content.trim().slice(0, 50);
+
+  const truncate = (s: string) => {
+    const chars = [...s];
+    return chars.length > 15 ? chars.slice(0, 15).join("") + "..." : s;
+  };
 
   try {
     const { text } = await generateText({
       model: models["claude-haiku"],
       system:
-        "Generate a short conversation title (max 30 characters). " +
+        "Generate a very short conversation title (max 10 Chinese characters or 20 English characters). " +
         "Use the same language as the user's message. " +
         "Return ONLY the title, no quotes, no punctuation at the end.",
-      prompt: content,
-      maxOutputTokens: 40,
+      prompt: trimmed,
+      maxOutputTokens: 30,
     });
-    return text.trim() || fallback;
+    return truncate(text.trim()) || truncate(trimmed);
   } catch {
-    return fallback;
+    return truncate(trimmed);
   }
 }

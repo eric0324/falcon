@@ -403,14 +403,14 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                       <div
                         key={conv.id}
                         className={cn(
-                          "group flex items-center rounded-lg text-sm transition-colors",
+                          "group relative rounded-lg text-sm transition-colors",
                           isActive
                             ? "bg-neutral-100 text-neutral-900"
                             : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
                         )}
                       >
                         {editingId === conv.id ? (
-                          <div className="flex-1 px-2 py-1.5">
+                          <div className="px-2 py-1.5">
                             <input
                               autoFocus
                               value={editingTitle}
@@ -422,19 +422,19 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                             />
                           </div>
                         ) : (
-                          <Link
-                            href={`/chat?id=${conv.id}`}
-                            onClick={(e) => handleNavClick(e, `/chat?id=${conv.id}`)}
-                            className="flex-1 flex items-center justify-between px-3 py-2.5"
-                          >
-                            <span className="flex items-center gap-1.5 min-w-0 truncate">
+                          <>
+                            <Link
+                              href={`/chat?id=${conv.id}`}
+                              onClick={(e) => handleNavClick(e, `/chat?id=${conv.id}`)}
+                              className="flex items-center gap-1.5 px-3 py-2.5 pr-8"
+                            >
                               {conv.starred && (
                                 <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />
                               )}
                               <span className="truncate">
                                 {conv.title || t("conversation.newConversation")}
                               </span>
-                            </span>
+                            </Link>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <span
@@ -443,7 +443,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                                     e.stopPropagation();
                                   }}
                                   className={cn(
-                                    "shrink-0 p-1 rounded text-neutral-400 hover:text-neutral-600 hover:bg-neutral-200 cursor-pointer",
+                                    "absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded text-neutral-400 hover:text-neutral-600 hover:bg-neutral-200 cursor-pointer",
                                     isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                                   )}
                                 >
@@ -472,7 +472,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          </Link>
+                          </>
                         )}
                       </div>
                     );
