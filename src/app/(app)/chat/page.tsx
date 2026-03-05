@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Send, Loader2, CornerDownLeft } from "lucide-react";
+import { Send, Loader2, CornerDownLeft, ChevronDown, Star, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -16,6 +16,22 @@ import { ModelSelector } from "@/components/model-selector";
 import { DataSourceSelector } from "@/components/data-source-selector";
 import { FileUpload, FileList, UploadedFile } from "@/components/file-upload";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ModelId, defaultModel } from "@/lib/ai/models";
 import { ToolDataSource } from "@/types/data-source";
 
@@ -44,6 +60,7 @@ function StudioContent() {
   const editId = searchParams.get("edit");
   const { toast } = useToast();
   const t = useTranslations("studio");
+  const tc = useTranslations("common");
   const tq = useTranslations("quota");
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -67,6 +84,14 @@ function StudioContent() {
   // Conversation persistence
   const [convId, setConvId] = useState<string | null>(searchParams.get("id"));
   const [convTitle, setConvTitle] = useState<string | null>(null);
+  const [convStarred, setConvStarred] = useState(false);
+
+  // Header dropdown state
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [editingTitleValue, setEditingTitleValue] = useState("");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const ts = useTranslations("sidebar.conversation");
 
   // Auto compact state
   const [compactInfo, setCompactInfo] = useState<CompactInfo | null>(null);
@@ -109,6 +134,7 @@ function StudioContent() {
     setToolVisibility("PRIVATE");
     setConvId(null);
     setConvTitle(null);
+    setConvStarred(false);
     setUploadedFiles([]);
     setSelectedDataSources([]);
     setUsedDataSources([]);
@@ -129,6 +155,16 @@ function StudioContent() {
     window.addEventListener("new-chat", handler);
     return () => window.removeEventListener("new-chat", handler);
   }, [resetState]);
+
+  // Sync title when sidebar renames the current conversation
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { id, title } = (e as CustomEvent).detail;
+      if (id === convId) setConvTitle(title);
+    };
+    window.addEventListener("conversation-renamed", handler);
+    return () => window.removeEventListener("conversation-renamed", handler);
+  }, [convId]);
 
   // Load existing tool for editing
   useEffect(() => {
@@ -173,6 +209,7 @@ function StudioContent() {
         setMessages(conv.messages || []);
         if (conv.title) setConvTitle(conv.title);
         if (conv.model) setSelectedModel(conv.model);
+        setConvStarred(conv.starred ?? false);
         setSelectedDataSources(conv.dataSources || []);
 
         // Extract code from messages - check tool calls first, then content
@@ -774,6 +811,64 @@ function StudioContent() {
     }
   };
 
+  // --- Header dropdown handlers ---
+  const handleHeaderStarToggle = async () => {
+    if (!convId) return;
+    const newStarred = !convStarred;
+    setConvStarred(newStarred);
+    try {
+      await fetch(`/api/conversations/${convId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ starred: newStarred }),
+      });
+      window.dispatchEvent(new Event("conversation-updated"));
+    } catch {
+      setConvStarred(!newStarred);
+    }
+  };
+
+  const handleHeaderRenameStart = () => {
+    setEditingTitleValue(convTitle || "");
+    setShowRenameDialog(true);
+  };
+
+  const handleHeaderRenameSave = async () => {
+    setShowRenameDialog(false);
+    const newTitle = editingTitleValue.trim();
+    if (!newTitle || !convId) return;
+    const oldTitle = convTitle;
+    setConvTitle(newTitle);
+    try {
+      await fetch(`/api/conversations/${convId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTitle }),
+      });
+      window.dispatchEvent(new Event("conversation-updated"));
+    } catch {
+      setConvTitle(oldTitle);
+    }
+  };
+
+  const handleHeaderDelete = async () => {
+    if (!convId) return;
+    setShowDeleteDialog(false);
+    try {
+      const res = await fetch(`/api/conversations/${convId}`, { method: "DELETE" });
+      if (res.ok) {
+        window.dispatchEvent(new Event("conversation-updated"));
+        router.push("/chat");
+      }
+    } catch {
+      toast({
+        title: t("toast.error"),
+        description: t("toast.saveError"),
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleRemoveFile = (id: string) => {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== id));
   };
@@ -782,10 +877,83 @@ function StudioContent() {
     <div className="h-full flex flex-col">
       {/* Header */}
       <header className="border-b px-4 py-2 flex items-center shrink-0 bg-background">
-        <h1 className="font-semibold truncate">
-          {editId ? t("title.edit") : convTitle || t("title.new")}
-        </h1>
+        <div className="flex items-center gap-1 min-w-0">
+          <h1 className="font-semibold truncate">
+            {editId ? t("title.edit") : convTitle || t("title.new")}
+          </h1>
+          {convId && !editId && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={handleHeaderStarToggle}>
+                  <Star className={`h-4 w-4 mr-2 ${convStarred ? "fill-yellow-400 text-yellow-400" : ""}`} />
+                  {convStarred ? ts("unstar") : ts("star")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleHeaderRenameStart}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  {t("editTitle")}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {t("deleteConversation")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </header>
+
+      {/* Rename dialog */}
+      <Dialog open={showRenameDialog} onOpenChange={setShowRenameDialog}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("editTitle")}</DialogTitle>
+          </DialogHeader>
+          <Input
+            autoFocus
+            value={editingTitleValue}
+            onChange={(e) => setEditingTitleValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleHeaderRenameSave();
+            }}
+            placeholder={t("editTitlePlaceholder")}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRenameDialog(false)}>
+              {tc("cancel")}
+            </Button>
+            <Button onClick={handleHeaderRenameSave}>
+              {tc("save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("deleteConversation")}</DialogTitle>
+            <DialogDescription>{t("deleteDescription")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              {t("deleteCancel")}
+            </Button>
+            <Button variant="destructive" onClick={handleHeaderDelete}>
+              {t("deleteConfirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Main Content */}
       <div className="flex-1 flex min-h-0">

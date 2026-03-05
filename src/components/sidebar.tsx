@@ -94,7 +94,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
   const [conversations, setConversations] = useState(initialConversations);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [renameDialogId, setRenameDialogId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<"changelog" | "about">("changelog");
@@ -146,37 +146,30 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
   };
 
   const handleEditStart = (id: string, currentTitle: string) => {
-    setEditingId(id);
+    setRenameDialogId(id);
     setEditingTitle(currentTitle);
   };
 
   const handleEditSave = async () => {
-    if (!editingId || !editingTitle.trim()) {
-      setEditingId(null);
+    if (!renameDialogId || !editingTitle.trim()) {
+      setRenameDialogId(null);
       return;
     }
+    const id = renameDialogId;
     const title = editingTitle.trim();
     setConversations((prev) =>
-      prev.map((c) => (c.id === editingId ? { ...c, title } : c))
+      prev.map((c) => (c.id === id ? { ...c, title } : c))
     );
-    setEditingId(null);
+    setRenameDialogId(null);
+    window.dispatchEvent(new CustomEvent("conversation-renamed", { detail: { id, title } }));
     try {
-      await fetch(`/api/conversations/${editingId}`, {
+      await fetch(`/api/conversations/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title }),
       });
     } catch {
       // Silently fail — optimistic update already applied
-    }
-  };
-
-  const handleEditKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleEditSave();
-    } else if (e.key === "Escape") {
-      setEditingId(null);
     }
   };
 
@@ -409,71 +402,55 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                             : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
                         )}
                       >
-                        {editingId === conv.id ? (
-                          <div className="px-2 py-1.5">
-                            <input
-                              autoFocus
-                              value={editingTitle}
-                              onChange={(e) => setEditingTitle(e.target.value)}
-                              onKeyDown={handleEditKeyDown}
-                              onBlur={handleEditSave}
-                              placeholder={t("conversation.editTitlePlaceholder")}
-                              className="w-full px-1.5 py-1 text-sm bg-white border border-neutral-300 rounded outline-none focus:border-neutral-500"
-                            />
-                          </div>
-                        ) : (
-                          <>
-                            <Link
-                              href={`/chat?id=${conv.id}`}
-                              onClick={(e) => handleNavClick(e, `/chat?id=${conv.id}`)}
-                              className="flex items-center gap-1.5 px-3 py-2.5 pr-8"
-                            >
-                              {conv.starred && (
-                                <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />
+                        <Link
+                          href={`/chat?id=${conv.id}`}
+                          onClick={(e) => handleNavClick(e, `/chat?id=${conv.id}`)}
+                          className="flex items-center gap-1.5 px-3 py-2.5 pr-8"
+                        >
+                          {conv.starred && (
+                            <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />
+                          )}
+                          <span className="truncate">
+                            {conv.title || t("conversation.newConversation")}
+                          </span>
+                        </Link>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <span
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                              className={cn(
+                                "absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded text-neutral-400 hover:text-neutral-600 hover:bg-neutral-200 cursor-pointer",
+                                isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                               )}
-                              <span className="truncate">
-                                {conv.title || t("conversation.newConversation")}
-                              </span>
-                            </Link>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <span
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                  }}
-                                  className={cn(
-                                    "absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded text-neutral-400 hover:text-neutral-600 hover:bg-neutral-200 cursor-pointer",
-                                    isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                                  )}
-                                >
-                                  {deletingId === conv.id ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                  ) : (
-                                    <MoreHorizontal className="h-3.5 w-3.5" />
-                                  )}
-                                </span>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start" side="bottom">
-                                <DropdownMenuItem onClick={() => handleStarToggle(conv.id, conv.starred)}>
-                                  <Star className={cn("h-3.5 w-3.5 mr-2", conv.starred && "fill-amber-400 text-amber-400")} />
-                                  {conv.starred ? t("conversation.unstar") : t("conversation.star")}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleEditStart(conv.id, conv.title || "")}>
-                                  <Pencil className="h-3.5 w-3.5 mr-2" />
-                                  {t("conversation.rename")}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => setDeleteConfirmId(conv.id)}
-                                  className="text-red-600 focus:text-red-600"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5 mr-2" />
-                                  {t("conversation.delete")}
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </>
-                        )}
+                            >
+                              {deletingId === conv.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <MoreHorizontal className="h-3.5 w-3.5" />
+                              )}
+                            </span>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" side="bottom">
+                            <DropdownMenuItem onClick={() => handleStarToggle(conv.id, conv.starred)}>
+                              <Star className={cn("h-3.5 w-3.5 mr-2", conv.starred && "fill-amber-400 text-amber-400")} />
+                              {conv.starred ? t("conversation.unstar") : t("conversation.star")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditStart(conv.id, conv.title || "")}>
+                              <Pencil className="h-3.5 w-3.5 mr-2" />
+                              {t("conversation.rename")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setDeleteConfirmId(conv.id)}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-2" />
+                              {t("conversation.delete")}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     );
                   };
@@ -568,6 +545,32 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
           onOpenChange={setSettingsOpen}
           defaultTab={settingsTab}
         />
+        <Dialog open={!!renameDialogId} onOpenChange={(open) => !open && setRenameDialogId(null)}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>{t("conversation.rename")}</DialogTitle>
+            </DialogHeader>
+            <input
+              autoFocus
+              value={editingTitle}
+              onChange={(e) => setEditingTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); handleEditSave(); }
+              }}
+              placeholder={t("conversation.editTitlePlaceholder")}
+              className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-md outline-none focus:border-neutral-500 dark:bg-neutral-900 dark:border-neutral-700"
+            />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRenameDialogId(null)}>
+                {t("conversation.deleteCancel")}
+              </Button>
+
+              <Button onClick={handleEditSave}>
+                {t("conversation.save")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <Dialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>

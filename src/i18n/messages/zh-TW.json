@@ -45,6 +45,7 @@
       "unstar": "取消星號",
       "starred": "已加星號",
       "rename": "重新命名",
+      "save": "儲存",
       "delete": "刪除",
       "deleteTitle": "刪除對話",
       "deleteDescription": "確定要刪除這個對話嗎？此操作無法復原。",
@@ -81,6 +82,12 @@
       "enterToSend": "Enter 送出"
     },
     "thinking": "思考中...",
+    "editTitle": "編輯標題",
+    "editTitlePlaceholder": "輸入標題",
+    "deleteConversation": "刪除對話",
+    "deleteDescription": "確定要刪除這個對話嗎？此操作無法復原。",
+    "deleteCancel": "取消",
+    "deleteConfirm": "刪除",
     "toast": {
       "error": "錯誤",
       "loadToolError": "無法載入工具",
