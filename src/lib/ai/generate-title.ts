@@ -22,7 +22,8 @@ export async function generateConversationTitle(content?: string): Promise<strin
       system:
         "Generate a very short conversation title (max 10 Chinese characters or 20 English characters). " +
         "Use the same language as the user's message. " +
-        "Return ONLY the title, no quotes, no punctuation at the end.",
+        "Return ONLY the title, no quotes, no punctuation at the end. " +
+        "If you cannot determine a good title, return exactly: 新對話",
       prompt: trimmed,
       maxOutputTokens: 30,
     });
