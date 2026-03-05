@@ -427,7 +427,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                             onClick={(e) => handleNavClick(e, `/chat?id=${conv.id}`)}
                             className="flex-1 flex items-center justify-between px-3 py-2.5"
                           >
-                            <span className="flex items-center gap-1.5 truncate">
+                            <span className="flex items-center gap-1.5 min-w-0 truncate">
                               {conv.starred && (
                                 <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />
                               )}
