@@ -123,6 +123,32 @@ function StudioContent() {
   const hasCode = code.length > 0;
   const isQuotaBlocked = quotaStatus?.status === "blocked";
 
+  // Resizable panel
+  const [panelRatio, setPanelRatio] = useState(50);
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const ratio = ((e.clientX - rect.left) / rect.width) * 100;
+      setPanelRatio(Math.min(80, Math.max(20, ratio)));
+    };
+    const handleMouseUp = () => setIsDragging(false);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging]);
+
   const resetState = useCallback(() => {
     setMessages([]);
     setInput("");
@@ -961,9 +987,12 @@ function StudioContent() {
       </Dialog>
 
       {/* Main Content */}
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex min-h-0" ref={containerRef}>
         {/* Chat Panel */}
-        <div className={`${hasCode ? "w-1/2 border-r" : "flex-1"} flex flex-col transition-all duration-300`}>
+        <div
+          className="flex flex-col min-w-0"
+          style={hasCode ? { width: `${panelRatio}%` } : { flex: 1 }}
+        >
           <ScrollArea className="flex-1 p-4" ref={scrollRef}>
             <div className="space-y-4">
               {messages.length === 0 && (
@@ -1126,9 +1155,24 @@ function StudioContent() {
           </div>
         </div>
 
+        {/* Draggable Divider */}
+        {hasCode && (
+          <div
+            className={`group relative w-1.5 cursor-col-resize shrink-0 flex items-center justify-center ${isDragging ? "bg-primary/30" : "bg-transparent hover:bg-primary/15"}`}
+            onMouseDown={(e) => { e.preventDefault(); setIsDragging(true); }}
+          >
+            <div className={`flex flex-col gap-1 ${isDragging ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity`}>
+              <div className="w-1 h-1 rounded-full bg-muted-foreground/50" />
+              <div className="w-1 h-1 rounded-full bg-muted-foreground/50" />
+              <div className="w-1 h-1 rounded-full bg-muted-foreground/50" />
+            </div>
+          </div>
+        )}
+
         {/* Preview Panel - only shown when code exists */}
         {hasCode && (
-          <div className="flex-1 h-full">
+          <div className="flex-1 h-full min-w-0 relative">
+            {isDragging && <div className="absolute inset-0 z-50" />}
             <PreviewPanel
               code={code}
               dataSources={selectedDataSources}

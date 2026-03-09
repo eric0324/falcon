@@ -10,6 +10,15 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.11.0",
+    title: "改善了工具預覽視窗",
+    summary:
+      "對話和預覽之間多了一條可以左右拖拉的分隔線，想看對話多一點、還是預覽大一點，自己拉就好。",
+    items: [
+      "對話與預覽面板之間新增可拖拉的分隔線，自由調整寬度"
+    ],
+  },
+  {
     version: "v0.10.0",
     title: "工具群組可見度",
     summary:
