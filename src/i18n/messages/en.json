@@ -63,6 +63,10 @@
     },
     "userMenu": {
       "language": "Language",
+      "theme": "Theme",
+      "darkMode": "Dark Mode",
+      "lightMode": "Light Mode",
+      "systemMode": "System",
       "changelog": "Changelog",
       "about": "About Falcon",
       "logout": "Logout"

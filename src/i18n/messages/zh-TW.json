@@ -63,6 +63,10 @@
     },
     "userMenu": {
       "language": "介面語言",
+      "theme": "主題",
+      "darkMode": "深色模式",
+      "lightMode": "淺色模式",
+      "systemMode": "跟隨系統",
       "changelog": "開發日記",
       "about": "關於 Falcon",
       "logout": "登出"

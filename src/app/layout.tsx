@@ -24,7 +24,7 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} h-dvh flex flex-col overflow-hidden`}>
         <NextIntlClientProvider messages={messages}>
           <Providers>

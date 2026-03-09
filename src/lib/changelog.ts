@@ -10,13 +10,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.12.0",
+    title: "深色模式登場",
+    summary:
+      "眼睛終於可以休息了！現在正式支援深色模式，而且會自動記住你的偏好。你也可以跟隨系統設定，白天亮、晚上暗，全自動。",
+    items: [
+      "新增深色模式，支援亮色 / 暗色 / 跟隨系統三種模式",
+      "新增主題切換選項",
+    ],
+  },
+  {
     version: "v0.11.0",
     title: "改善了工具預覽視窗",
     summary:
       "對話和預覽之間多了一條可以左右拖拉的分隔線，想看對話多一點、還是預覽大一點，自己拉就好。",
-    items: [
-      "對話與預覽面板之間新增可拖拉的分隔線，自由調整寬度"
-    ],
+    items: ["對話與預覽面板之間新增可拖拉的分隔線，自由調整寬度"],
   },
   {
     version: "v0.10.0",
@@ -31,22 +39,19 @@ export const changelog: ChangelogEntry[] = [
   {
     version: "v0.9.3",
     title: "資料庫掃描修復",
-    summary:
-      "資料庫掃描不會再莫名其妙掉線了，transaction 逾時的問題修好了。",
+    summary: "資料庫掃描不會再莫名其妙掉線了，transaction 逾時的問題修好了。",
     items: ["修正資料庫掃描 transaction 逾時"],
   },
   {
     version: "v0.9.2",
     title: "對話 Token 修復",
-    summary:
-      "聊太久不會再爆炸了，token 超過 200k 限制的問題修好了。",
+    summary: "聊太久不會再爆炸了，token 超過 200k 限制的問題修好了。",
     items: ["修正對話 token 超過 200k 限制的問題"],
   },
   {
     version: "v0.9.1",
     title: "自訂送出快捷鍵",
-    summary:
-      "Enter 送出還是換行？現在你說了算。",
+    summary: "Enter 送出還是換行？現在你說了算。",
     items: ["可自訂訊息送出快捷鍵"],
   },
   {
@@ -133,7 +138,7 @@ export const changelog: ChangelogEntry[] = [
     version: "v0.1.0",
     title: "Falcon 正式上線",
     summary:
-      "Falcon 來了！跟 AI 聊天、建立自己的小工具、逛逛別人做了什麼——你的企業瑞士刀來了！",
+      "Falcon 來了！跟 AI 聊天、建立自己的小工具、逛逛別人做了什麼 - 你的企業瑞士刀來了！",
     items: ["AI 對話功能", "工具建立與部署", "Marketplace 工具市集"],
   },
 ];

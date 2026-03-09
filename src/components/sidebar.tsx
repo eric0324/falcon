@@ -20,6 +20,9 @@ import {
   Pencil,
   MoreHorizontal,
   Star,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -45,6 +48,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { SettingsDialog } from "@/components/settings-dialog";
+import { useTheme } from "next-themes";
 import { locales, Locale } from "@/i18n/config";
 
 const languageNames: Record<Locale, string> = {
@@ -100,6 +104,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
   const [settingsTab, setSettingsTab] = useState<"changelog" | "about">("changelog");
   const [currentLocale, setCurrentLocale] = useState<Locale>("en");
   const t = useTranslations("sidebar");
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     setCurrentLocale(getLocaleFromCookie());
@@ -227,12 +232,12 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
   // Collapsed state
   if (!isOpen) {
     return (
-      <div className="w-16 bg-white border-r border-neutral-200 flex flex-col items-center py-4 shrink-0">
+      <div className="w-16 bg-white dark:bg-neutral-950 border-r border-neutral-200 dark:border-neutral-800 flex flex-col items-center py-4 shrink-0">
         <Button
           variant="ghost"
           size="icon"
           onClick={toggle}
-          className="h-10 w-10 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
+          className="h-10 w-10 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800"
         >
           <PanelLeft className="h-5 w-5" />
         </Button>
@@ -250,7 +255,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
+            className="h-10 w-10 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800"
           >
             <Plus className="h-5 w-5" />
           </Button>
@@ -261,7 +266,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
             <Button variant="ghost" size="icon" className="h-10 w-10">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={user.image || undefined} alt={user.name} />
-                <AvatarFallback className="bg-neutral-200 text-neutral-700 text-xs">
+                <AvatarFallback className="bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 text-xs">
                   {getInitials(user.name)}
                 </AvatarFallback>
               </Avatar>
@@ -284,6 +289,26 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                     {currentLocale === locale && <Check className="h-4 w-4" />}
                   </DropdownMenuItem>
                 ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                {theme === "dark" ? <Moon className="mr-2 h-4 w-4" /> : theme === "light" ? <Sun className="mr-2 h-4 w-4" /> : <Monitor className="mr-2 h-4 w-4" />}
+                {t("userMenu.theme")}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuItem onClick={() => setTheme("light")} className="flex items-center justify-between">
+                  <span className="flex items-center"><Sun className="mr-2 h-4 w-4" />{t("userMenu.lightMode")}</span>
+                  {theme === "light" && <Check className="h-4 w-4" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("dark")} className="flex items-center justify-between">
+                  <span className="flex items-center"><Moon className="mr-2 h-4 w-4" />{t("userMenu.darkMode")}</span>
+                  {theme === "dark" && <Check className="h-4 w-4" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("system")} className="flex items-center justify-between">
+                  <span className="flex items-center"><Monitor className="mr-2 h-4 w-4" />{t("userMenu.systemMode")}</span>
+                  {theme === "system" && <Check className="h-4 w-4" />}
+                </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuSub>
             <DropdownMenuItem onClick={() => openSettings("changelog")}>
@@ -324,19 +349,19 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
 
       <aside
         className={cn(
-          "w-64 bg-white border-r border-neutral-200 text-neutral-900 flex flex-col shrink-0 z-50",
+          "w-64 bg-white dark:bg-neutral-950 border-r border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 flex flex-col shrink-0 z-50",
           isMobile && "fixed inset-y-0 left-0"
         )}
       >
         {/* Header */}
         <div className="p-3 flex items-center gap-2">
-          <Link href="/" className="font-semibold text-neutral-900 hover:text-neutral-700 transition-colors">Falcon</Link>
+          <Link href="/" className="font-semibold text-neutral-900 dark:text-neutral-100 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors">Falcon</Link>
           <div className="flex-1" />
           <Button
             variant="ghost"
             size="icon"
             onClick={toggle}
-            className="h-9 w-9 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
+            className="h-9 w-9 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800"
           >
             <PanelLeft className="h-5 w-5" />
           </Button>
@@ -360,8 +385,8 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
                   isActive
-                    ? "bg-neutral-100 text-neutral-900"
-                    : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
+                    ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
+                    : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100"
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -373,14 +398,14 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
 
         {/* Divider */}
         <div className="px-3 py-3">
-          <div className="border-t border-neutral-200" />
+          <div className="border-t border-neutral-200 dark:border-neutral-800" />
         </div>
 
         {/* Conversations */}
         <div className="flex-1 flex flex-col min-h-0">
           <ScrollArea className="flex-1 px-3">
             {conversations.length === 0 ? (
-              <p className="text-neutral-500 text-sm px-3 py-4">
+              <p className="text-neutral-500 dark:text-neutral-400 text-sm px-3 py-4">
                 {t("conversation.empty")}
               </p>
             ) : (
@@ -422,7 +447,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                                 e.stopPropagation();
                               }}
                               className={cn(
-                                "absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded text-neutral-400 hover:text-neutral-600 hover:bg-neutral-200 cursor-pointer",
+                                "absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 cursor-pointer",
                                 isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                               )}
                             >
@@ -459,7 +484,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                     <>
                       {starredConvs.length > 0 && (
                         <div className="mb-2">
-                          <p className="px-3 py-1.5 text-xs font-medium text-neutral-400">
+                          <p className="px-3 py-1.5 text-xs font-medium text-neutral-400 dark:text-neutral-500">
                             {t("conversation.starred")}
                           </p>
                           <div className="space-y-0.5">
@@ -470,7 +495,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                       <div>
                         {starredConvs.length > 0 && unstarredConvs.length > 0 && (
                           <div className="px-3 py-1.5">
-                            <div className="border-t border-neutral-200" />
+                            <div className="border-t border-neutral-200 dark:border-neutral-800" />
                           </div>
                         )}
                         <div className="space-y-0.5">
@@ -486,20 +511,20 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
         </div>
 
         {/* User Menu */}
-        <div className="p-3 border-t border-neutral-200">
+        <div className="p-3 border-t border-neutral-200 dark:border-neutral-800">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-neutral-100 transition-colors">
+              <button className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={user.image || undefined} alt={user.name} />
-                  <AvatarFallback className="bg-neutral-200 text-neutral-700 text-xs">
+                  <AvatarFallback className="bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 text-xs">
                     {getInitials(user.name)}
                   </AvatarFallback>
                 </Avatar>
-                <span className="flex-1 text-left text-sm font-medium text-neutral-900 truncate">
+                <span className="flex-1 text-left text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
                   {user.name}
                 </span>
-                <ChevronUp className="h-4 w-4 text-neutral-500" />
+                <ChevronUp className="h-4 w-4 text-neutral-500 dark:text-neutral-400" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start" className="w-56">
@@ -519,6 +544,26 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                       {currentLocale === locale && <Check className="h-4 w-4" />}
                     </DropdownMenuItem>
                   ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  {theme === "dark" ? <Moon className="mr-2 h-4 w-4" /> : theme === "light" ? <Sun className="mr-2 h-4 w-4" /> : <Monitor className="mr-2 h-4 w-4" />}
+                  {t("userMenu.theme")}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onClick={() => setTheme("light")} className="flex items-center justify-between">
+                    <span className="flex items-center"><Sun className="mr-2 h-4 w-4" />{t("userMenu.lightMode")}</span>
+                    {theme === "light" && <Check className="h-4 w-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme("dark")} className="flex items-center justify-between">
+                    <span className="flex items-center"><Moon className="mr-2 h-4 w-4" />{t("userMenu.darkMode")}</span>
+                    {theme === "dark" && <Check className="h-4 w-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTheme("system")} className="flex items-center justify-between">
+                    <span className="flex items-center"><Monitor className="mr-2 h-4 w-4" />{t("userMenu.systemMode")}</span>
+                    {theme === "system" && <Check className="h-4 w-4" />}
+                  </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
               <DropdownMenuItem onClick={() => openSettings("changelog")}>
