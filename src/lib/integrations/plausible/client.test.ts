@@ -162,8 +162,8 @@ describe("Plausible API functions", () => {
         ok: true,
         json: async () => ({
           results: [
-            { dimensions: ["2026-02-01"], metrics: [100, 250] },
-            { dimensions: ["2026-02-02"], metrics: [120, 300] },
+            { dimensions: ["2026-02-01"], metrics: [100, 250, 45, 120] },
+            { dimensions: ["2026-02-02"], metrics: [120, 300, 40, 135] },
           ],
         }),
       });
@@ -172,8 +172,8 @@ describe("Plausible API functions", () => {
       const result = await queryTimeseries("7d", "day");
 
       expect(result).toEqual([
-        { date: "2026-02-01", visitors: 100, pageviews: 250 },
-        { date: "2026-02-02", visitors: 120, pageviews: 300 },
+        { date: "2026-02-01", visitors: 100, pageviews: 250, bounceRate: 45, visitDuration: 120 },
+        { date: "2026-02-02", visitors: 120, pageviews: 300, bounceRate: 40, visitDuration: 135 },
       ]);
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
@@ -187,8 +187,8 @@ describe("Plausible API functions", () => {
         ok: true,
         json: async () => ({
           results: [
-            { dimensions: ["Google"], metrics: [500, 1200] },
-            { dimensions: ["Facebook"], metrics: [300, 600] },
+            { dimensions: ["Google"], metrics: [500, 1200, 35, 180] },
+            { dimensions: ["Facebook"], metrics: [300, 600, 55, 90] },
           ],
         }),
       });
@@ -197,8 +197,8 @@ describe("Plausible API functions", () => {
       const result = await queryBreakdown("source", "7d");
 
       expect(result).toEqual([
-        { dimension: "Google", visitors: 500, pageviews: 1200 },
-        { dimension: "Facebook", visitors: 300, pageviews: 600 },
+        { dimension: "Google", visitors: 500, pageviews: 1200, bounceRate: 35, visitDuration: 180 },
+        { dimension: "Facebook", visitors: 300, pageviews: 600, bounceRate: 55, visitDuration: 90 },
       ]);
     });
 
@@ -207,8 +207,8 @@ describe("Plausible API functions", () => {
         ok: true,
         json: async () => ({
           results: [
-            { dimensions: ["Taiwan"], metrics: [800, 2000] },
-            { dimensions: ["United States"], metrics: [200, 500] },
+            { dimensions: ["Taiwan"], metrics: [800, 2000, 30, 200] },
+            { dimensions: ["United States"], metrics: [200, 500, 50, 100] },
           ],
         }),
       });
@@ -227,7 +227,7 @@ describe("Plausible API functions", () => {
         ok: true,
         json: async () => ({
           results: [
-            { dimensions: ["/pricing"], metrics: [50, 80] },
+            { dimensions: ["/pricing"], metrics: [50, 80, 40, 150] },
           ],
         }),
       });

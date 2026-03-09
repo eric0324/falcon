@@ -15,12 +15,16 @@ export interface PlausibleTimeseriesEntry {
   date: string;
   visitors: number;
   pageviews: number;
+  bounceRate: number;
+  visitDuration: number;
 }
 
 export interface PlausibleBreakdownEntry {
   dimension: string;
   visitors: number;
   pageviews: number;
+  bounceRate: number;
+  visitDuration: number;
 }
 
 export interface PlausibleFilters {
@@ -187,7 +191,7 @@ export async function queryTimeseries(
 ): Promise<PlausibleTimeseriesEntry[]> {
   const body: Record<string, unknown> = {
     site_id: getSiteId(),
-    metrics: ["visitors", "pageviews"],
+    metrics: ["visitors", "pageviews", "bounce_rate", "visit_duration"],
     dimensions: [`time:${period}`],
     date_range: dateRange === "custom" && startDate && endDate
       ? [startDate, endDate]
@@ -221,6 +225,8 @@ export async function queryTimeseries(
     date: row.dimensions[0],
     visitors: row.metrics[0],
     pageviews: row.metrics[1],
+    bounceRate: row.metrics[2],
+    visitDuration: row.metrics[3],
   }));
 }
 
@@ -236,7 +242,7 @@ export async function queryBreakdown(
 
   const body: Record<string, unknown> = {
     site_id: getSiteId(),
-    metrics: ["visitors", "pageviews"],
+    metrics: ["visitors", "pageviews", "bounce_rate", "visit_duration"],
     dimensions: [plausibleDimension],
     date_range: dateRange === "custom" && startDate && endDate
       ? [startDate, endDate]
@@ -272,5 +278,7 @@ export async function queryBreakdown(
     dimension: row.dimensions[0],
     visitors: row.metrics[0],
     pageviews: row.metrics[1],
+    bounceRate: row.metrics[2],
+    visitDuration: row.metrics[3],
   }));
 }

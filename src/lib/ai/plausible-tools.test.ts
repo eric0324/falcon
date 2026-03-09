@@ -129,8 +129,8 @@ describe("plausibleQuery tool", () => {
   describe("action: timeseries", () => {
     it("returns time series data", async () => {
       mockTimeseries.mockResolvedValueOnce([
-        { date: "2026-02-01", visitors: 100, pageviews: 250 },
-        { date: "2026-02-02", visitors: 120, pageviews: 300 },
+        { date: "2026-02-01", visitors: 100, pageviews: 250, bounceRate: 45, visitDuration: 120 },
+        { date: "2026-02-02", visitors: 120, pageviews: 300, bounceRate: 40, visitDuration: 135 },
       ]);
 
       const result = await executeTool({
@@ -156,8 +156,8 @@ describe("plausibleQuery tool", () => {
   describe("action: breakdown", () => {
     it("returns breakdown by dimension", async () => {
       mockBreakdown.mockResolvedValueOnce([
-        { dimension: "Google", visitors: 500, pageviews: 1200 },
-        { dimension: "Facebook", visitors: 300, pageviews: 600 },
+        { dimension: "Google", visitors: 500, pageviews: 1200, bounceRate: 35, visitDuration: 180 },
+        { dimension: "Facebook", visitors: 300, pageviews: 600, bounceRate: 55, visitDuration: 90 },
       ]);
 
       const result = await executeTool({
