@@ -12,14 +12,14 @@ export const MODEL_CONTEXT_LIMITS: Record<ModelId, number> = {
   "gemini-pro": 1_048_576,
 };
 
-const COMPACT_THRESHOLD = 0.8;
+const COMPACT_THRESHOLD = 0.7;
 
 // CJK Unicode ranges
 const CJK_REGEX = /[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/;
 
 /**
  * 粗估文字的 token 數量。
- * CJK 字元約 1 token/字，其他字元約 0.25 token/字。
+ * CJK 字元約 1 token/字，其他字元（英文、JSON、code）約 0.4 token/字。
  */
 export function estimateTokens(text: string): number {
   if (!text) return 0;
@@ -29,7 +29,7 @@ export function estimateTokens(text: string): number {
     if (CJK_REGEX.test(char)) {
       tokens += 1;
     } else {
-      tokens += 0.25;
+      tokens += 0.4;
     }
   }
   return Math.ceil(tokens);
@@ -54,17 +54,19 @@ export function estimateMessagesTokens(
 
 /**
  * 判斷是否需要 compact。
- * 當估算 token 超過 model context window 的 80% 時回傳 true。
+ * 當估算 token 超過 model context window 的 70% 時回傳 true。
+ * overhead 參數用來計入 system prompt 和 tool definitions 的 token 數。
  */
 export function shouldCompact(
   messages: Array<{ role: string; content: unknown }>,
-  modelId: ModelId
+  modelId: ModelId,
+  overhead: number = 0
 ): boolean {
   if (messages.length === 0) return false;
 
   const limit = MODEL_CONTEXT_LIMITS[modelId];
   const threshold = limit * COMPACT_THRESHOLD;
-  const estimated = estimateMessagesTokens(messages);
+  const estimated = estimateMessagesTokens(messages) + overhead;
 
   return estimated >= threshold;
 }

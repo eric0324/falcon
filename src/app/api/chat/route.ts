@@ -14,7 +14,7 @@ import { createGitHubTools } from "@/lib/ai/github-tools";
 import { createYouTubeTools } from "@/lib/ai/youtube-tools";
 import { createExternalDbTools } from "@/lib/ai/external-db-tools";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
-import { shouldCompact } from "@/lib/ai/token-utils";
+import { shouldCompact, estimateTokens } from "@/lib/ai/token-utils";
 import { compactMessages } from "@/lib/ai/compact";
 import { generateConversationTitle } from "@/lib/ai/generate-title";
 import { prisma } from "@/lib/prisma";
@@ -250,7 +250,10 @@ export async function POST(req: Request) {
     let compactInfo: { compacted: boolean; originalCount: number; keptCount: number; summary?: string } | null = null;
     let messagesToSend = processedMessages;
 
-    if (shouldCompact(processedMessages, modelName)) {
+    // Estimate overhead from system prompt + tool definitions
+    const promptOverhead = estimateTokens(systemPrompt) + estimateTokens(JSON.stringify(filteredTools));
+
+    if (shouldCompact(processedMessages, modelName, promptOverhead)) {
       console.log(`[Chat API] Conversation exceeds compact threshold, compacting...`);
       try {
         const result = await compactMessages(processedMessages);
