@@ -126,7 +126,7 @@ export async function POST(
         where: { id },
         data: { lastSyncedAt: new Date() },
       });
-    });
+    }, { timeout: 60000 });
 
     // Return fresh data
     const updated = await prisma.externalDatabase.findUnique({
