@@ -62,6 +62,13 @@ export const changelog: ChangelogEntry[] = [
     items: ["標題下拉選單 + sidebar 重新命名改用 Dialog"],
   },
   {
+    version: "v0.8.2",
+    title: "重新整理了大語言模型清單",
+    summary:
+      "現在的太古老了，我們嘗試重新整理新的名單",
+    items: ["現在的太古老了，我們嘗試重新整理新的名單 (Gemini 3.5 還在 Preview ，要再等等)"],
+  },
+  {
     version: "v0.8.1",
     title: "標題顯示修正",
     summary:
