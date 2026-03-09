@@ -41,7 +41,7 @@ export function SettingsDialog({ open, onOpenChange, defaultTab = "changelog" }:
         </DialogHeader>
 
         {defaultTab === "changelog" && (
-          <div className="space-y-5 pt-2 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-5 pt-2 pr-3 max-h-[60vh] overflow-y-auto custom-scrollbar">
             {changelog.map((entry) => (
               <div key={entry.version} className="border-l-2 border-primary pl-4">
                 <p className="font-medium text-sm">{entry.version} — {entry.title}</p>
