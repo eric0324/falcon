@@ -14,7 +14,7 @@ import { createGitHubTools } from "@/lib/ai/github-tools";
 import { createYouTubeTools } from "@/lib/ai/youtube-tools";
 import { createExternalDbTools } from "@/lib/ai/external-db-tools";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
-import { shouldCompact, estimateTokens } from "@/lib/ai/token-utils";
+import { shouldCompact, estimateTokens, trimMessagesToFit } from "@/lib/ai/token-utils";
 import { compactMessages } from "@/lib/ai/compact";
 import { generateConversationTitle } from "@/lib/ai/generate-title";
 import { prisma } from "@/lib/prisma";
@@ -277,6 +277,9 @@ export async function POST(req: Request) {
         console.error(`[Chat API] Compact failed, using full messages:`, e);
       }
     }
+
+    // Safety net: hard trim if still too large after compaction
+    messagesToSend = trimMessagesToFit(messagesToSend, modelName, promptOverhead);
 
     // Create streaming response with tool loop
     const stream = new ReadableStream({

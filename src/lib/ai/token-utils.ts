@@ -70,3 +70,26 @@ export function shouldCompact(
 
   return estimated >= threshold;
 }
+
+/**
+ * 硬性截斷 messages，只保留最後 N 則，確保不超過 token 上限。
+ * 用於 compact 後仍然太大的情況作為最後防線。
+ */
+export function trimMessagesToFit(
+  messages: Array<{ role: string; content: unknown }>,
+  modelId: ModelId,
+  overhead: number = 0
+): Array<{ role: string; content: unknown }> {
+  const limit = MODEL_CONTEXT_LIMITS[modelId];
+  const maxTokens = limit * 0.85; // 留 15% 給 output
+
+  let trimmed = [...messages];
+  while (trimmed.length > 1) {
+    const estimated = estimateMessagesTokens(trimmed) + overhead;
+    if (estimated <= maxTokens) break;
+    // 從最前面移除，但保留至少最後一則
+    trimmed = trimmed.slice(1);
+  }
+
+  return trimmed;
+}
