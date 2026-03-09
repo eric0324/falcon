@@ -2,6 +2,7 @@
 
 import { SidebarProvider } from "@/components/sidebar-provider";
 import { Sidebar } from "@/components/sidebar";
+import { WhatsNewDialog } from "@/components/whats-new-dialog";
 
 interface ConversationItem {
   id: string;
@@ -32,6 +33,7 @@ export function AppShellClient({ conversations, user, children }: AppShellClient
           {children}
         </main>
       </div>
+      <WhatsNewDialog />
     </SidebarProvider>
   );
 }

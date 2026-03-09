@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { changelog } from "@/lib/changelog";
 
 type SettingsTab = "changelog" | "about";
 
@@ -17,12 +18,6 @@ interface SettingsDialogProps {
   onOpenChange: (open: boolean) => void;
   defaultTab?: SettingsTab;
 }
-
-const changelog = [
-  { version: "v0.1.2", description: "Smarter conversation titles with inline editing support" },
-  { version: "v0.1.1", description: "YouTube integration and customizable message submit method" },
-  { version: "v0.1.0", description: "Initial release - AI chat, tool creation, and marketplace features" },
-];
 
 export function SettingsDialog({ open, onOpenChange, defaultTab = "changelog" }: SettingsDialogProps) {
   const t = useTranslations("sidebar.settings");
@@ -46,13 +41,18 @@ export function SettingsDialog({ open, onOpenChange, defaultTab = "changelog" }:
         </DialogHeader>
 
         {defaultTab === "changelog" && (
-          <div className="space-y-4 pt-2 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-5 pt-2 max-h-[60vh] overflow-y-auto">
             {changelog.map((entry) => (
               <div key={entry.version} className="border-l-2 border-primary pl-4">
-                <p className="font-medium text-sm">{entry.version}</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {entry.description}
-                </p>
+                <p className="font-medium text-sm">{entry.version} — {entry.title}</p>
+                <ul className="mt-1.5 space-y-1">
+                  {entry.items.map((item, i) => (
+                    <li key={i} className="text-sm text-muted-foreground flex gap-2">
+                      <span className="text-muted-foreground/40 select-none">-</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
               </div>
             ))}
           </div>
