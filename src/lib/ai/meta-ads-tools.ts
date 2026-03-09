@@ -5,6 +5,8 @@ import {
   parseAccounts,
   queryOverview,
   queryCampaigns,
+  queryAdsets,
+  queryAds,
   queryTimeseries,
   queryBreakdown,
 } from "@/lib/integrations/meta-ads";
@@ -16,12 +18,15 @@ export function createMetaAdsTools() {
 - listAccounts: list all configured ad accounts (name + accountId)
 - overview: account-level summary (spend, impressions, clicks, CTR, CPC, CPM, reach, frequency, conversions)
 - campaigns: campaign-level performance (sorted by spend)
+- adsets: ad set-level performance within campaigns (sorted by spend)
+- ads: individual ad-level performance (sorted by spend)
 - timeseries: daily/monthly spend and engagement trends
 - breakdown: metrics grouped by dimension (age, gender, country, platform, device, placement)
-Use listAccounts first to see available accounts, then pass accountId to other actions.`,
+Use listAccounts first to see available accounts, then pass accountId to other actions.
+Drill-down hierarchy: campaigns → adsets → ads.`,
       inputSchema: z.object({
-        action: z.enum(["listAccounts", "overview", "campaigns", "timeseries", "breakdown"])
-          .describe("listAccounts: see available accounts, overview: account summary, campaigns: per-campaign data, timeseries: trends, breakdown: by dimension"),
+        action: z.enum(["listAccounts", "overview", "campaigns", "adsets", "ads", "timeseries", "breakdown"])
+          .describe("listAccounts: see available accounts, overview: account summary, campaigns: per-campaign data, adsets: per-adset data, ads: per-ad data, timeseries: trends, breakdown: by dimension"),
         accountId: z.string().optional()
           .describe("Ad account ID (e.g. act_123456). Use listAccounts to find available IDs. If omitted, uses the first account."),
         dateRange: z.string().optional()
@@ -87,6 +92,42 @@ Use listAccounts first to see available accounts, then pass accountId to other a
                 data,
                 rowCount: data.length,
                 hint: "Use overview for account totals, or breakdown to analyze by audience.",
+              };
+            }
+
+            case "adsets": {
+              const data = await queryAdsets(
+                params.dateRange || "last_14d",
+                params.accountId,
+                params.limit || 25,
+                params.startDate,
+                params.endDate,
+                params.campaignNameFilter
+              );
+              return {
+                success: true,
+                service: "meta_ads",
+                data,
+                rowCount: data.length,
+                hint: "Use ads to drill down to individual ad performance.",
+              };
+            }
+
+            case "ads": {
+              const data = await queryAds(
+                params.dateRange || "last_14d",
+                params.accountId,
+                params.limit || 25,
+                params.startDate,
+                params.endDate,
+                params.campaignNameFilter
+              );
+              return {
+                success: true,
+                service: "meta_ads",
+                data,
+                rowCount: data.length,
+                hint: "This is the most granular level. Use breakdown to analyze by audience.",
               };
             }
 

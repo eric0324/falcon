@@ -291,6 +291,8 @@ const META_ADS_INSTRUCTIONS = `
 - List ad accounts: metaAdsQuery({ action: "listAccounts" })
 - Get account overview: metaAdsQuery({ action: "overview", accountId: "act_123", dateRange: "last_7d" })
 - Get campaign performance: metaAdsQuery({ action: "campaigns", accountId: "act_123", dateRange: "last_30d" })
+- Get ad set performance: metaAdsQuery({ action: "adsets", accountId: "act_123", dateRange: "last_30d" })
+- Get individual ad performance: metaAdsQuery({ action: "ads", accountId: "act_123", dateRange: "last_30d" })
 - Search campaigns by name: metaAdsQuery({ action: "campaigns", accountId: "act_123", dateRange: "this_month", campaignNameFilter: "28" })
 - Get daily trends: metaAdsQuery({ action: "timeseries", accountId: "act_123", dateRange: "last_30d", period: "day" })
 - Get breakdown by dimension: metaAdsQuery({ action: "breakdown", accountId: "act_123", dimension: "age", dateRange: "last_7d" })
@@ -324,6 +326,7 @@ Use the campaignNameFilter parameter to search campaigns by keyword at the API l
   - Query that single account first. If no useful results, expand to others.
 - **General overview** (e.g., "how is ad performance overall"):
   - Query overview on ALL accounts in parallel and summarize the totals.
+- Drill-down hierarchy: campaigns → adsets → ads. Use adsets/ads to see granular performance within a campaign.
 - Use breakdown to analyze audience performance (e.g., which age group has the best CTR).
 - The actions field is an array of conversion types — explain the most relevant ones to the user.`;
 

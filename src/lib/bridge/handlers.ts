@@ -66,6 +66,8 @@ import {
   parseAccounts,
   queryOverview,
   queryCampaigns,
+  queryAdsets,
+  queryAds,
   queryTimeseries as metaTimeseries,
   queryBreakdown as metaBreakdown,
 } from "@/lib/integrations/meta-ads";
@@ -419,6 +421,10 @@ async function handleMetaAds(action: string, params: Params): Promise<unknown> {
       return await queryOverview(params.dateRange || "last_14d", params.accountId, params.startDate, params.endDate);
     case "campaigns":
       return await queryCampaigns(params.dateRange || "last_14d", params.accountId, params.limit || 25, params.startDate, params.endDate, params.campaignNameFilter);
+    case "adsets":
+      return await queryAdsets(params.dateRange || "last_14d", params.accountId, params.limit || 25, params.startDate, params.endDate, params.campaignNameFilter);
+    case "ads":
+      return await queryAds(params.dateRange || "last_14d", params.accountId, params.limit || 25, params.startDate, params.endDate, params.campaignNameFilter);
     case "timeseries":
       return await metaTimeseries(params.dateRange || "last_14d", params.accountId, params.period || "day", params.startDate, params.endDate);
     case "breakdown":

@@ -39,6 +39,38 @@ export interface MetaAdsCampaignEntry {
   costPerAction: MetaAdsAction[];
 }
 
+export interface MetaAdsAdsetEntry {
+  adsetName: string;
+  adsetId: string;
+  campaignName: string;
+  campaignId: string;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  cpc: number;
+  cpm: number;
+  actions: MetaAdsAction[];
+  costPerAction: MetaAdsAction[];
+}
+
+export interface MetaAdsAdEntry {
+  adName: string;
+  adId: string;
+  adsetName: string;
+  adsetId: string;
+  campaignName: string;
+  campaignId: string;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  cpc: number;
+  cpm: number;
+  actions: MetaAdsAction[];
+  costPerAction: MetaAdsAction[];
+}
+
 export interface MetaAdsTimeseriesEntry {
   date: string;
   spend: number;
@@ -158,6 +190,18 @@ const CAMPAIGN_FIELDS = [
   "actions", "cost_per_action_type",
 ];
 
+const ADSET_FIELDS = [
+  "adset_name", "adset_id", "campaign_name", "campaign_id",
+  "spend", "impressions", "clicks", "ctr", "cpc", "cpm",
+  "actions", "cost_per_action_type",
+];
+
+const AD_FIELDS = [
+  "ad_name", "ad_id", "adset_name", "adset_id", "campaign_name", "campaign_id",
+  "spend", "impressions", "clicks", "ctr", "cpc", "cpm",
+  "actions", "cost_per_action_type",
+];
+
 const TIMESERIES_FIELDS = ["spend", "impressions", "clicks"];
 
 const BREAKDOWN_FIELDS = ["spend", "impressions", "clicks", "ctr"];
@@ -262,6 +306,94 @@ export async function queryCampaigns(
   const data = await fetchInsights(id, params);
 
   return (data.data || []).map((row: Record<string, unknown>) => ({
+    campaignName: (row.campaign_name as string) || "",
+    campaignId: (row.campaign_id as string) || "",
+    spend: parseNum(row.spend as string),
+    impressions: parseNum(row.impressions as string),
+    clicks: parseNum(row.clicks as string),
+    ctr: parseNum(row.ctr as string),
+    cpc: parseNum(row.cpc as string),
+    cpm: parseNum(row.cpm as string),
+    actions: parseActions(row.actions as MetaAdsAction[]),
+    costPerAction: parseActions(row.cost_per_action_type as MetaAdsAction[]),
+  }));
+}
+
+export async function queryAdsets(
+  dateRange: string,
+  accountId?: string,
+  limit: number = 25,
+  startDate?: string,
+  endDate?: string,
+  campaignNameFilter?: string
+): Promise<MetaAdsAdsetEntry[]> {
+  const id = resolveAccountId(accountId);
+  const timeRange = buildTimeRange(dateRange, startDate, endDate);
+
+  const params: Record<string, string> = {
+    fields: ADSET_FIELDS.join(","),
+    time_range: JSON.stringify(timeRange),
+    level: "adset",
+    sort: "spend_descending",
+    limit: String(limit),
+  };
+
+  if (campaignNameFilter) {
+    params.filtering = JSON.stringify([
+      { field: "campaign.name", operator: "CONTAIN", value: campaignNameFilter },
+    ]);
+  }
+
+  const data = await fetchInsights(id, params);
+
+  return (data.data || []).map((row: Record<string, unknown>) => ({
+    adsetName: (row.adset_name as string) || "",
+    adsetId: (row.adset_id as string) || "",
+    campaignName: (row.campaign_name as string) || "",
+    campaignId: (row.campaign_id as string) || "",
+    spend: parseNum(row.spend as string),
+    impressions: parseNum(row.impressions as string),
+    clicks: parseNum(row.clicks as string),
+    ctr: parseNum(row.ctr as string),
+    cpc: parseNum(row.cpc as string),
+    cpm: parseNum(row.cpm as string),
+    actions: parseActions(row.actions as MetaAdsAction[]),
+    costPerAction: parseActions(row.cost_per_action_type as MetaAdsAction[]),
+  }));
+}
+
+export async function queryAds(
+  dateRange: string,
+  accountId?: string,
+  limit: number = 25,
+  startDate?: string,
+  endDate?: string,
+  campaignNameFilter?: string
+): Promise<MetaAdsAdEntry[]> {
+  const id = resolveAccountId(accountId);
+  const timeRange = buildTimeRange(dateRange, startDate, endDate);
+
+  const params: Record<string, string> = {
+    fields: AD_FIELDS.join(","),
+    time_range: JSON.stringify(timeRange),
+    level: "ad",
+    sort: "spend_descending",
+    limit: String(limit),
+  };
+
+  if (campaignNameFilter) {
+    params.filtering = JSON.stringify([
+      { field: "campaign.name", operator: "CONTAIN", value: campaignNameFilter },
+    ]);
+  }
+
+  const data = await fetchInsights(id, params);
+
+  return (data.data || []).map((row: Record<string, unknown>) => ({
+    adName: (row.ad_name as string) || "",
+    adId: (row.ad_id as string) || "",
+    adsetName: (row.adset_name as string) || "",
+    adsetId: (row.adset_id as string) || "",
     campaignName: (row.campaign_name as string) || "",
     campaignId: (row.campaign_id as string) || "",
     spend: parseNum(row.spend as string),
