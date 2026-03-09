@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 /**
  * Build a Prisma where filter for tools visible to a given user.
  * - PRIVATE: only the author (handled separately by caller if needed)
- * - GROUP: author shares at least one Group with the viewer
+ * - GROUP: tool's allowedGroups contains at least one group the viewer belongs to
  * - COMPANY: all authenticated users
  * - PUBLIC: everyone
  */
@@ -15,16 +15,16 @@ export function buildVisibilityFilter(userId: string): Prisma.ToolWhereInput {
       { visibility: Visibility.COMPANY },
       {
         visibility: Visibility.GROUP,
-        author: {
-          groups: {
-            some: {
-              users: {
-                some: { id: userId },
-              },
+        allowedGroups: {
+          some: {
+            users: {
+              some: { id: userId },
             },
           },
         },
       },
+      // Author always sees their own tools
+      { authorId: userId },
     ],
   };
 }
@@ -46,17 +46,15 @@ export async function canUserAccessTool(
       return true;
 
     case Visibility.GROUP: {
-      // Check if viewer and author share at least one Group
-      const sharedGroup = await prisma.group.findFirst({
+      // Check if any of the tool's allowedGroups contains the viewer
+      const matchingGroup = await prisma.group.findFirst({
         where: {
-          users: { some: { id: tool.authorId } },
-          AND: {
-            users: { some: { id: userId } },
-          },
+          tools: { some: { id: tool.id } },
+          users: { some: { id: userId } },
         },
         select: { id: true },
       });
-      return sharedGroup !== null;
+      return matchingGroup !== null;
     }
 
     case Visibility.PRIVATE:

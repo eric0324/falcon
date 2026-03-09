@@ -74,6 +74,7 @@ function StudioContent() {
   const [toolCategory, setToolCategory] = useState("");
   const [toolTags, setToolTags] = useState<string[]>([]);
   const [toolVisibility, setToolVisibility] = useState("PRIVATE");
+  const [toolAllowedGroupIds, setToolAllowedGroupIds] = useState<string[]>([]);
 
   // Enhancement state
   const [selectedModel, setSelectedModel] = useState<ModelId>(defaultModel);
@@ -132,6 +133,7 @@ function StudioContent() {
     setToolCategory("");
     setToolTags([]);
     setToolVisibility("PRIVATE");
+    setToolAllowedGroupIds([]);
     setConvId(null);
     setConvTitle(null);
     setConvStarred(false);
@@ -178,6 +180,7 @@ function StudioContent() {
           setToolCategory(tool.category || "");
           setToolTags(tool.tags || []);
           setToolVisibility(tool.visibility || "PRIVATE");
+          setToolAllowedGroupIds(tool.allowedGroups?.map((g: { id: string }) => g.id) || []);
           setSelectedDataSources(tool.dataSources || []);
           if (tool.conversation?.messages) {
             setMessages(tool.conversation.messages);
@@ -734,6 +737,7 @@ function StudioContent() {
     category: string;
     tags: string[];
     visibility: string;
+    allowedGroupIds: string[];
   }) => {
     try {
       const endpoint = editId ? `/api/tools/${editId}` : "/api/tools";
@@ -748,6 +752,7 @@ function StudioContent() {
           category: data.category,
           tags: data.tags,
           visibility: data.visibility,
+          allowedGroupIds: data.allowedGroupIds,
           code,
           messages,
           conversationId: convId,
@@ -1143,6 +1148,7 @@ function StudioContent() {
         defaultCategory={toolCategory}
         defaultTags={toolTags}
         defaultVisibility={toolVisibility}
+        defaultAllowedGroupIds={toolAllowedGroupIds}
         isEditing={!!editId}
         hasAnyDataSource={selectedDataSources.length > 0}
       />

@@ -21,8 +21,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TOOL_CATEGORIES } from "@/lib/categories";
-import { X, AlertTriangle } from "lucide-react";
+import { X, AlertTriangle, Loader2 } from "lucide-react";
+
+interface GroupOption {
+  id: string;
+  name: string;
+}
 
 interface DeployDialogProps {
   open: boolean;
@@ -33,12 +39,14 @@ interface DeployDialogProps {
     category: string;
     tags: string[];
     visibility: string;
+    allowedGroupIds: string[];
   }) => void;
   defaultName?: string;
   defaultDescription?: string;
   defaultCategory?: string;
   defaultTags?: string[];
   defaultVisibility?: string;
+  defaultAllowedGroupIds?: string[];
   isEditing?: boolean;
   hasAnyDataSource?: boolean;
 }
@@ -52,6 +60,7 @@ export function DeployDialog({
   defaultCategory = "",
   defaultTags = [],
   defaultVisibility = "PRIVATE",
+  defaultAllowedGroupIds = [],
   isEditing = false,
   hasAnyDataSource = false,
 }: DeployDialogProps) {
@@ -64,7 +73,12 @@ export function DeployDialog({
   const [tags, setTags] = useState<string[]>(defaultTags);
   const [tagInput, setTagInput] = useState("");
   const [visibility, setVisibility] = useState(defaultVisibility);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>(defaultAllowedGroupIds);
   const [isDeploying, setIsDeploying] = useState(false);
+
+  // Fetch user's groups when visibility is GROUP
+  const [groups, setGroups] = useState<GroupOption[]>([]);
+  const [groupsLoading, setGroupsLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -73,8 +87,20 @@ export function DeployDialog({
       setCategory(defaultCategory);
       setTags(defaultTags);
       setVisibility(defaultVisibility);
+      setSelectedGroupIds(defaultAllowedGroupIds);
     }
-  }, [open, defaultName, defaultDescription, defaultCategory, defaultTags, defaultVisibility]);
+  }, [open, defaultName, defaultDescription, defaultCategory, defaultTags, defaultVisibility, defaultAllowedGroupIds]);
+
+  useEffect(() => {
+    if (open && visibility === "GROUP" && groups.length === 0) {
+      setGroupsLoading(true);
+      fetch("/api/me/groups")
+        .then((res) => res.json())
+        .then((data) => setGroups(data))
+        .catch(() => setGroups([]))
+        .finally(() => setGroupsLoading(false));
+    }
+  }, [open, visibility, groups.length]);
 
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && tagInput.trim()) {
@@ -91,6 +117,14 @@ export function DeployDialog({
     setTags(tags.filter((t) => t !== tagToRemove));
   };
 
+  const handleGroupToggle = (groupId: string) => {
+    setSelectedGroupIds((prev) =>
+      prev.includes(groupId)
+        ? prev.filter((id) => id !== groupId)
+        : [...prev, groupId]
+    );
+  };
+
   const handleDeploy = async () => {
     if (!name.trim()) return;
 
@@ -102,12 +136,15 @@ export function DeployDialog({
         category,
         tags,
         visibility,
+        allowedGroupIds: visibility === "GROUP" ? selectedGroupIds : [],
       });
       onOpenChange(false);
     } finally {
       setIsDeploying(false);
     }
   };
+
+  const isGroupButNoSelection = visibility === "GROUP" && selectedGroupIds.length === 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -205,6 +242,41 @@ export function DeployDialog({
               </div>
             )}
           </div>
+
+          {/* Group selector — only shown when visibility is GROUP */}
+          {visibility === "GROUP" && (
+            <div className="space-y-2">
+              <Label>可見群組</Label>
+              {groupsLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  載入中...
+                </div>
+              ) : groups.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">
+                  你目前不屬於任何群組，請聯絡管理員。
+                </p>
+              ) : (
+                <div className="space-y-2 rounded-md border p-3 max-h-40 overflow-y-auto">
+                  {groups.map((group) => (
+                    <label
+                      key={group.id}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={selectedGroupIds.includes(group.id)}
+                        onCheckedChange={() => handleGroupToggle(group.id)}
+                      />
+                      <span className="text-sm">{group.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+              {isGroupButNoSelection && (
+                <p className="text-sm text-amber-600">請至少選擇一個群組。</p>
+              )}
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button
@@ -216,7 +288,7 @@ export function DeployDialog({
           </Button>
           <Button
             onClick={handleDeploy}
-            disabled={!name.trim() || isDeploying || (hasAnyDataSource && visibility === "PUBLIC")}
+            disabled={!name.trim() || isDeploying || (hasAnyDataSource && visibility === "PUBLIC") || isGroupButNoSelection}
           >
             {isDeploying
               ? isEditing

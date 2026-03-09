@@ -38,6 +38,9 @@ export async function GET(
             email: true,
           },
         },
+        allowedGroups: {
+          select: { id: true, name: true },
+        },
         conversation: {
           include: {
             conversationMessages: {
@@ -97,7 +100,7 @@ export async function PATCH(
 
   try {
     const { id } = await params;
-    const { name, description, code, category, tags, visibility, conversationId, dataSources } = await req.json();
+    const { name, description, code, category, tags, visibility, conversationId, dataSources, allowedGroupIds } = await req.json();
 
     // Check ownership
     const existingTool = await prisma.tool.findUnique({
@@ -136,6 +139,13 @@ export async function PATCH(
         ...(visibility && { visibility }),
         ...(conversationId && !existingTool.conversationId && { conversationId }),
         ...(dataSources !== undefined && { dataSources }),
+        ...(allowedGroupIds !== undefined && {
+          allowedGroups: {
+            set: Array.isArray(allowedGroupIds)
+              ? allowedGroupIds.map((gid: string) => ({ id: gid }))
+              : [],
+          },
+        }),
       },
     });
 

@@ -59,7 +59,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { name, description, code, category, tags, visibility, conversationId, dataSources } = await req.json();
+    const { name, description, code, category, tags, visibility, conversationId, dataSources, allowedGroupIds } = await req.json();
 
     if (!name || !code) {
       return NextResponse.json(
@@ -89,6 +89,9 @@ export async function POST(req: Request) {
         authorId: userId,
         conversationId: conversationId || undefined,
         dataSources: dataSources || undefined,
+        ...(visibility === "GROUP" && Array.isArray(allowedGroupIds) && allowedGroupIds.length > 0
+          ? { allowedGroups: { connect: allowedGroupIds.map((id: string) => ({ id })) } }
+          : {}),
       },
     });
 
