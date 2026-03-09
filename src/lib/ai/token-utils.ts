@@ -89,6 +89,11 @@ export function trimMessagesToFit(
     if (estimated <= maxTokens) break;
     // 從最前面移除，但保留至少最後一則
     trimmed = trimmed.slice(1);
+    // If the new first message is a "tool" (tool-result), its matching
+    // assistant (tool-call) was just removed — drop it too to keep the pair intact.
+    while (trimmed.length > 1 && trimmed[0]?.role === "tool") {
+      trimmed = trimmed.slice(1);
+    }
   }
 
   return trimmed;

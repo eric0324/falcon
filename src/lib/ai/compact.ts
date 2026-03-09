@@ -26,7 +26,15 @@ export function splitMessages(
     return { oldMessages: [], recentMessages: [...messages] };
   }
 
-  const splitIndex = messages.length - keepCount;
+  let splitIndex = messages.length - keepCount;
+
+  // Ensure we don't split in the middle of a tool-call / tool-result pair.
+  // If the first kept message is a "tool" message (tool-result), move the
+  // split point back so the preceding assistant message (tool-call) is also kept.
+  while (splitIndex > 0 && messages[splitIndex]?.role === "tool") {
+    splitIndex--;
+  }
+
   return {
     oldMessages: messages.slice(0, splitIndex),
     recentMessages: messages.slice(splitIndex),
