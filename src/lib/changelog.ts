@@ -10,6 +10,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.13.1",
+    title: "工具重新發布修正",
+    summary:
+      "之前編輯工具後重新發布會失敗，現在修好了。同一個對話再次發布會直接更新原本的工具，不會再出現錯誤。",
+    items: ["修正工具重新發布時 unique constraint 錯誤"],
+  },
+  {
     version: "v0.13.0",
     title: "Skills 技能系統",
     summary:

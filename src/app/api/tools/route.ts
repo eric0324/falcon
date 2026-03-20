@@ -78,29 +78,62 @@ export async function POST(req: Request) {
       );
     }
 
-    const tool = await prisma.tool.create({
-      data: {
-        name,
-        description,
-        code,
-        category: category || null,
-        tags: tags || [],
-        visibility: visibility || "PRIVATE",
-        authorId: userId,
-        conversationId: conversationId || undefined,
-        dataSources: dataSources || undefined,
-        ...(visibility === "GROUP" && Array.isArray(allowedGroupIds) && allowedGroupIds.length > 0
-          ? { allowedGroups: { connect: allowedGroupIds.map((id: string) => ({ id })) } }
-          : {}),
-      },
-    });
+    const groupConnect = visibility === "GROUP" && Array.isArray(allowedGroupIds) && allowedGroupIds.length > 0
+      ? { allowedGroups: { set: allowedGroupIds.map((id: string) => ({ id })) } }
+      : {};
 
-    // Initialize stats for the tool
-    await prisma.toolStats.create({
-      data: {
-        toolId: tool.id,
-      },
-    });
+    const toolData = {
+      name,
+      description,
+      code,
+      category: category || null,
+      tags: tags || [],
+      visibility: visibility || "PRIVATE",
+      dataSources: dataSources || undefined,
+    };
+
+    let tool;
+    let isNew = false;
+
+    if (conversationId) {
+      tool = await prisma.tool.upsert({
+        where: { conversationId },
+        create: {
+          ...toolData,
+          authorId: userId,
+          conversationId,
+          ...(visibility === "GROUP" && Array.isArray(allowedGroupIds) && allowedGroupIds.length > 0
+            ? { allowedGroups: { connect: allowedGroupIds.map((id: string) => ({ id })) } }
+            : {}),
+        },
+        update: {
+          ...toolData,
+          ...groupConnect,
+        },
+      });
+
+      // Check if this was a new record by comparing createdAt and updatedAt
+      isNew = tool.createdAt.getTime() === tool.updatedAt.getTime();
+    } else {
+      tool = await prisma.tool.create({
+        data: {
+          ...toolData,
+          authorId: userId,
+          ...(visibility === "GROUP" && Array.isArray(allowedGroupIds) && allowedGroupIds.length > 0
+            ? { allowedGroups: { connect: allowedGroupIds.map((id: string) => ({ id })) } }
+            : {}),
+        },
+      });
+      isNew = true;
+    }
+
+    if (isNew) {
+      await prisma.toolStats.create({
+        data: {
+          toolId: tool.id,
+        },
+      });
+    }
 
     // Save scan result + background LLM analysis (pass pre-computed findings)
     scanOnDeploy(tool.id, code, findings).catch(() => {});
