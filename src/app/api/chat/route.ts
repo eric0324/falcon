@@ -18,6 +18,7 @@ import { shouldCompact, estimateTokens, trimMessagesToFit } from "@/lib/ai/token
 import { compactMessages } from "@/lib/ai/compact";
 import { generateConversationTitle } from "@/lib/ai/generate-title";
 import { prisma } from "@/lib/prisma";
+import { getMessages, appendMessages } from "@/lib/conversation-messages";
 import { checkQuota, estimateCost } from "@/lib/quota";
 import { logDataSourceCall, extractDataSourceInfo, sanitizeResponse } from "@/lib/data-source-log";
 
@@ -94,18 +95,23 @@ export async function POST(req: Request) {
       );
     }
 
-    const { messages, model, files, conversationId: incomingConversationId, dataSources, skillPrompt } = await req.json();
+    const { message, model, files, conversationId: incomingConversationId, dataSources, skillPrompt } = await req.json();
 
     // Use specified model or default
     const selectedModel = models[(model as ModelId) || defaultModel];
     const modelName = (model || defaultModel) as ModelId;
 
-    // Ensure conversationId exists for logging — create conversation early if needed
+    // Load conversation history from DB or create new conversation
     let conversationId = incomingConversationId as string | undefined;
     let generatedTitle: string | undefined;
-    if (!conversationId) {
-      const firstUserMsg = messages.find((m: { role: string; content: string }) => m.role === "user");
-      generatedTitle = await generateConversationTitle(firstUserMsg?.content);
+    let historyMessages: Array<{ role: string; content: string; toolCalls?: unknown[] }> = [];
+
+    if (conversationId) {
+      // Existing conversation: load history from DB
+      historyMessages = await getMessages(conversationId);
+    } else {
+      // New conversation: create it
+      generatedTitle = await generateConversationTitle(message);
       const conv = await prisma.conversation.create({
         data: {
           userId,
@@ -116,6 +122,12 @@ export async function POST(req: Request) {
       });
       conversationId = conv.id;
     }
+
+    // Build messages array: history + new user message
+    const messages = [
+      ...historyMessages.map((m) => ({ role: m.role, content: m.content, toolCalls: m.toolCalls })),
+      { role: "user", content: message },
+    ];
 
     // Create tools with user context (non-Google tools created eagerly)
     const notionTools = createNotionTools();
@@ -293,6 +305,8 @@ export async function POST(req: Request) {
         const MAX_STEPS = 15;
         const currentMessages = [...messagesToSend];
         let step = 0;
+        let finalAssistantText = "";
+        const finalToolCalls: import("@/types/message").ToolCall[] = [];
 
         try {
 
@@ -326,6 +340,7 @@ export async function POST(req: Request) {
 
             switch (part.type) {
               case "text-delta":
+                finalAssistantText += part.text;
                 line = `0:${JSON.stringify(part.text)}\n`;
                 break;
               case "tool-call":
@@ -335,6 +350,12 @@ export async function POST(req: Request) {
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
                   args: part.input,
+                });
+                finalToolCalls.push({
+                  id: part.toolCallId,
+                  name: part.toolName,
+                  args: part.input as Record<string, unknown>,
+                  status: "calling" as const,
                 });
                 line = `9:${JSON.stringify({
                   toolCallId: part.toolCallId,
@@ -347,6 +368,12 @@ export async function POST(req: Request) {
                   toolCallId: part.toolCallId,
                   result: part.output,
                 });
+                // Update finalToolCalls with result
+                const ftc = finalToolCalls.find((t) => t.id === part.toolCallId);
+                if (ftc) {
+                  ftc.status = "completed" as const;
+                  ftc.result = part.output;
+                }
                 line = `a:${JSON.stringify({
                   toolCallId: part.toolCallId,
                   result: part.output,
@@ -455,6 +482,23 @@ export async function POST(req: Request) {
             }
           } catch (e) {
             console.error(`[Chat API] Failed to get final usage:`, e);
+          }
+        }
+
+        // Persist new messages (user + assistant) to DB
+        if (conversationId) {
+          try {
+            const newMessages: import("@/types/message").Message[] = [
+              { role: "user", content: message },
+              {
+                role: "assistant",
+                content: finalAssistantText,
+                ...(finalToolCalls.length > 0 ? { toolCalls: finalToolCalls } : {}),
+              },
+            ];
+            await appendMessages(conversationId, newMessages);
+          } catch (e) {
+            console.error(`[Chat API] Failed to append messages:`, e);
           }
         }
 

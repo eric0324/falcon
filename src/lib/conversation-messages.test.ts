@@ -22,6 +22,7 @@ import {
   getMessages,
   getMessageCount,
   replaceMessages,
+  appendMessages,
   createConversationWithMessages,
   linkOrphanTokenUsage,
 } from "./conversation-messages";
@@ -192,6 +193,140 @@ describe("conversation-messages", () => {
         ],
       });
       expect(result).toEqual(["msg-new-2"]);
+    });
+  });
+
+  describe("appendMessages", () => {
+    it("appends messages starting from maxOrderIndex + 1", async () => {
+      const mockAggregate = vi.fn().mockResolvedValue({ _max: { orderIndex: 2 } });
+      const mockCreateMany = vi.fn().mockResolvedValue({ count: 2 });
+      const mockFindMany = vi.fn().mockResolvedValue([{ id: "msg-4" }]);
+
+      prismaMock.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) => {
+          const tx = {
+            conversationMessage: {
+              aggregate: mockAggregate,
+              createMany: mockCreateMany,
+              findMany: mockFindMany,
+            },
+          };
+          return fn(tx);
+        }
+      );
+
+      const messages = [
+        { role: "user" as const, content: "new question" },
+        { role: "assistant" as const, content: "new answer" },
+      ];
+
+      const result = await appendMessages("conv-1", messages);
+
+      expect(mockAggregate).toHaveBeenCalledWith({
+        where: { conversationId: "conv-1" },
+        _max: { orderIndex: true },
+      });
+      expect(mockCreateMany).toHaveBeenCalledWith({
+        data: [
+          {
+            conversationId: "conv-1",
+            orderIndex: 3,
+            role: "user",
+            content: "new question",
+            toolCalls: undefined,
+          },
+          {
+            conversationId: "conv-1",
+            orderIndex: 4,
+            role: "assistant",
+            content: "new answer",
+            toolCalls: undefined,
+          },
+        ],
+      });
+      expect(result).toEqual(["msg-4"]);
+    });
+
+    it("starts from orderIndex 0 when conversation has no messages", async () => {
+      const mockAggregate = vi.fn().mockResolvedValue({ _max: { orderIndex: null } });
+      const mockCreateMany = vi.fn().mockResolvedValue({ count: 1 });
+      const mockFindMany = vi.fn().mockResolvedValue([{ id: "msg-1" }]);
+
+      prismaMock.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) => {
+          const tx = {
+            conversationMessage: {
+              aggregate: mockAggregate,
+              createMany: mockCreateMany,
+              findMany: mockFindMany,
+            },
+          };
+          return fn(tx);
+        }
+      );
+
+      const messages = [
+        { role: "user" as const, content: "first message" },
+        { role: "assistant" as const, content: "first reply" },
+      ];
+
+      const result = await appendMessages("conv-1", messages);
+
+      expect(mockCreateMany).toHaveBeenCalledWith({
+        data: [
+          {
+            conversationId: "conv-1",
+            orderIndex: 0,
+            role: "user",
+            content: "first message",
+            toolCalls: undefined,
+          },
+          {
+            conversationId: "conv-1",
+            orderIndex: 1,
+            role: "assistant",
+            content: "first reply",
+            toolCalls: undefined,
+          },
+        ],
+      });
+      expect(result).toEqual(["msg-1"]);
+    });
+
+    it("includes toolCalls when present", async () => {
+      const toolCalls = [{ id: "tc-1", name: "search", args: { q: "test" }, status: "completed" as const }];
+      const mockAggregate = vi.fn().mockResolvedValue({ _max: { orderIndex: 0 } });
+      const mockCreateMany = vi.fn().mockResolvedValue({ count: 1 });
+      const mockFindMany = vi.fn().mockResolvedValue([{ id: "msg-2" }]);
+
+      prismaMock.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) => {
+          const tx = {
+            conversationMessage: {
+              aggregate: mockAggregate,
+              createMany: mockCreateMany,
+              findMany: mockFindMany,
+            },
+          };
+          return fn(tx);
+        }
+      );
+
+      await appendMessages("conv-1", [
+        { role: "assistant", content: "result", toolCalls },
+      ]);
+
+      expect(mockCreateMany).toHaveBeenCalledWith({
+        data: [
+          {
+            conversationId: "conv-1",
+            orderIndex: 1,
+            role: "assistant",
+            content: "result",
+            toolCalls: toolCalls,
+          },
+        ],
+      });
     });
   });
 

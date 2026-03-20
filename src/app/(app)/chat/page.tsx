@@ -360,7 +360,7 @@ function StudioContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...messages, { role: "user", content: userMessage }],
+          message: userMessage,
           model: selectedModel,
           files: filesToSend.length > 0 ? filesToSend : undefined,
           conversationId: convId || undefined,
@@ -532,57 +532,11 @@ function StudioContent() {
         }
       }
 
-      // Auto-save conversation
-      if (assistantMessage || toolCallsMap.size > 0) {
-        const finalMessages: Message[] = [
-          ...messages,
-          { role: "user", content: userMessage },
-          {
-            role: "assistant",
-            content: assistantMessage,
-            ...(toolCallsMap.size > 0
-              ? { toolCalls: Array.from(toolCallsMap.values()) }
-              : {}),
-          },
-        ];
-
-        try {
-          if (!savedConvId && !editId) {
-            const createRes = await fetch("/api/conversations", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                messages: finalMessages,
-                model: selectedModel,
-                dataSources: selectedDataSources,
-              }),
-            });
-            if (createRes.ok) {
-              const conv = await createRes.json();
-              savedConvId = conv.id;
-              savedTitle = conv.title || savedTitle;
-            }
-          } else if (savedConvId) {
-            await fetch(`/api/conversations/${savedConvId}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                messages: finalMessages,
-                model: selectedModel,
-                dataSources: selectedDataSources,
-              }),
-            });
-          }
-
-          // Update state and URL only after messages are persisted
-          if (savedConvId && savedConvId !== convId) {
-            setConvId(savedConvId);
-            if (savedTitle) setConvTitle(savedTitle);
-            window.history.replaceState(null, "", `/chat?id=${savedConvId}`);
-          }
-        } catch {
-          // Auto-save failure is non-critical
-        }
+      // Update URL if server returned a new conversationId
+      if (savedConvId && savedConvId !== convId) {
+        setConvId(savedConvId);
+        if (savedTitle) setConvTitle(savedTitle);
+        window.history.replaceState(null, "", `/chat?id=${savedConvId}`);
       }
     } catch {
       toast({

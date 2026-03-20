@@ -10,6 +10,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.14.0",
+    title: "對話更穩定了",
+    summary:
+      "之前聊太久會出現 413 錯誤，因為每次都把整段對話歷史送出去。現在改成由伺服器從資料庫載入歷史，你的訊息只傳新的那一則，再長的對話都不會爆了。",
+    items: [
+      "Chat API 改為 server 端從資料庫載入對話歷史，解決長對話 413 錯誤",
+      "新增 appendMessages 機制，訊息直接在 server 端寫入資料庫",
+      "移除客戶端 auto-save，減少不必要的 API 呼叫",
+    ],
+  },
+  {
     version: "v0.13.1",
     title: "工具重新發布修正",
     summary:

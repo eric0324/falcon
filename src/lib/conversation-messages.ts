@@ -45,6 +45,36 @@ function toToolCallsJson(
   return toolCalls as unknown as Prisma.InputJsonValue;
 }
 
+/** 在既有 conversation 末尾追加訊息，回傳新增的 assistant message IDs */
+export async function appendMessages(
+  conversationId: string,
+  messages: Message[]
+): Promise<string[]> {
+  return prisma.$transaction(async (tx) => {
+    const agg = await tx.conversationMessage.aggregate({
+      where: { conversationId },
+      _max: { orderIndex: true },
+    });
+    const startIndex = (agg._max.orderIndex ?? -1) + 1;
+
+    await tx.conversationMessage.createMany({
+      data: messages.map((m, i) => ({
+        conversationId,
+        orderIndex: startIndex + i,
+        role: m.role,
+        content: m.content,
+        toolCalls: toToolCallsJson(m.toolCalls),
+      })),
+    });
+
+    const assistantMessages = await tx.conversationMessage.findMany({
+      where: { conversationId, role: "assistant", orderIndex: { gte: startIndex } },
+      select: { id: true },
+    });
+    return assistantMessages.map((m) => m.id);
+  });
+}
+
 /** 整批取代 conversation 的訊息（delete + createMany in transaction），回傳 assistant message IDs */
 export async function replaceMessages(
   conversationId: string,
