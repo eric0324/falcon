@@ -34,6 +34,7 @@
   "sidebar": {
     "nav": {
       "chat": "Chat",
+      "skills": "Skills",
       "tools": "Tools",
       "explore": "Explore"
     },
@@ -388,5 +389,33 @@
     "notConnected": "Not configured",
     "configure": "Configure",
     "adminOnly": "Admin only"
+  },
+  "skills": {
+    "title": "My Skills",
+    "create": "New Skill",
+    "edit": "Edit Skill",
+    "delete": "Delete Skill",
+    "deleteConfirm": "Are you sure you want to delete this skill?",
+    "name": "Name",
+    "description": "Description",
+    "prompt": "Prompt",
+    "category": "Category",
+    "visibility": "Visibility",
+    "private": "Private",
+    "public": "Public",
+    "requiredDataSources": "Required Data Sources",
+    "usageCount": "Usage Count",
+    "mySkills": "My Skills",
+    "publicSkills": "Public Skills",
+    "search": "Search Skills...",
+    "empty": "No skills yet",
+    "selectHint": "AI will follow the role and instructions defined by the active skill",
+    "categories": {
+      "analytics": "Analytics",
+      "marketing": "Marketing",
+      "project-management": "Project Management",
+      "writing": "Writing",
+      "other": "Other"
+    }
   }
 }

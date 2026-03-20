@@ -14,6 +14,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { ToolCallDisplay, ToolCall } from "@/components/tool-call-display";
 import { ModelSelector } from "@/components/model-selector";
 import { DataSourceSelector } from "@/components/data-source-selector";
+import { SkillSelector } from "@/components/skill-selector";
 import { FileUpload, FileList, UploadedFile } from "@/components/file-upload";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -80,6 +81,7 @@ function StudioContent() {
   const [selectedModel, setSelectedModel] = useState<ModelId>(defaultModel);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [selectedDataSources, setSelectedDataSources] = useState<string[]>([]);
+  const [selectedSkill, setSelectedSkill] = useState<{ id: string; name: string; prompt: string; requiredDataSources: string[] } | null>(null);
   const [, setUsedDataSources] = useState<ToolDataSource[]>([]);
 
   // Conversation persistence
@@ -363,6 +365,7 @@ function StudioContent() {
           files: filesToSend.length > 0 ? filesToSend : undefined,
           conversationId: convId || undefined,
           dataSources: selectedDataSources.length > 0 ? selectedDataSources : undefined,
+          skillPrompt: selectedSkill?.prompt || undefined,
         }),
       });
 
@@ -1126,6 +1129,18 @@ function StudioContent() {
               {/* Toolbar */}
               <div className="flex items-center gap-2 mt-2">
                 <ModelSelector value={selectedModel} onChange={setSelectedModel} />
+                <SkillSelector
+                  value={selectedSkill}
+                  onSelect={(skill) => {
+                    setSelectedSkill(skill);
+                    if (skill && skill.requiredDataSources.length > 0) {
+                      setSelectedDataSources((prev) =>
+                        Array.from(new Set([...prev, ...skill.requiredDataSources]))
+                      );
+                    }
+                  }}
+                  disabled={isLoading || isQuotaBlocked}
+                />
                 <DataSourceSelector
                   value={selectedDataSources}
                   onChange={setSelectedDataSources}

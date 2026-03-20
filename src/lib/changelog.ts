@@ -10,6 +10,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.13.0",
+    title: "Skills 技能系統",
+    summary:
+      "想讓 AI 變身後端工程師、行銷顧問、或數據分析師？現在你可以建立自己的 Skill，定義 AI 的角色和行為，還能公開分享給其他人使用。",
+    items: [
+      "新增 Skill 系統：建立、編輯、刪除自定義 AI 技能",
+      "在聊天工具列一鍵啟用 Skill，AI 會依照指定角色回應",
+      "支援公開分享 Skill，瀏覽其他人建立的技能",
+      "Skill 可綁定所需的資料來源，啟用時自動開啟",
+    ],
+  },
+  {
     version: "v0.12.0",
     title: "深色模式登場",
     summary:

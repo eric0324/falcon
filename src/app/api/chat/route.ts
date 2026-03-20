@@ -94,7 +94,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { messages, model, files, conversationId: incomingConversationId, dataSources } = await req.json();
+    const { messages, model, files, conversationId: incomingConversationId, dataSources, skillPrompt } = await req.json();
 
     // Use specified model or default
     const selectedModel = models[(model as ModelId) || defaultModel];
@@ -198,7 +198,12 @@ export async function POST(req: Request) {
     // If no data sources selected, only use studioTools (no external data access)
 
     // Build dynamic system prompt based on selected data sources
-    const systemPrompt = buildSystemPrompt(dataSources);
+    let systemPrompt = buildSystemPrompt(dataSources);
+
+    // Append skill prompt if provided
+    if (skillPrompt && typeof skillPrompt === "string") {
+      systemPrompt += `\n\n--- Skill ---\n${skillPrompt}`;
+    }
 
     // Process messages to include files and reconstruct tool call history
     const processedMessages: CoreMessage[] = [];

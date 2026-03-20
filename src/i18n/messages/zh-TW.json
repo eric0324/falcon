@@ -34,6 +34,7 @@
   "sidebar": {
     "nav": {
       "chat": "對話",
+      "skills": "Skills",
       "tools": "工具",
       "explore": "探索"
     },
@@ -388,5 +389,33 @@
     "notConnected": "未設定",
     "configure": "設定",
     "adminOnly": "僅管理員可設定"
+  },
+  "skills": {
+    "title": "我的 Skills",
+    "create": "新增 Skill",
+    "edit": "編輯 Skill",
+    "delete": "刪除 Skill",
+    "deleteConfirm": "確定要刪除此 Skill？",
+    "name": "名稱",
+    "description": "描述",
+    "prompt": "Prompt",
+    "category": "分類",
+    "visibility": "可見度",
+    "private": "私人",
+    "public": "公開",
+    "requiredDataSources": "需要的資料來源",
+    "usageCount": "使用次數",
+    "mySkills": "我的 Skills",
+    "publicSkills": "公開 Skills",
+    "search": "搜尋 Skills...",
+    "empty": "尚未建立任何 Skill",
+    "selectHint": "啟用 Skill 後，AI 會依照指定的角色和指令回應",
+    "categories": {
+      "analytics": "數據分析",
+      "marketing": "行銷",
+      "project-management": "專案管理",
+      "writing": "寫作",
+      "other": "其他"
+    }
   }
 }
