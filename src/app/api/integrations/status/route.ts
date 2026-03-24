@@ -8,6 +8,7 @@ import { isPlausibleConfigured } from "@/lib/integrations/plausible";
 import { isGA4Configured } from "@/lib/integrations/ga4";
 import { isMetaAdsConfigured } from "@/lib/integrations/meta-ads";
 import { isGitHubConfigured } from "@/lib/integrations/github";
+import { isVimeoConfigured } from "@/lib/integrations/vimeo";
 
 // GET /api/integrations/status - Check which integrations are configured
 export async function GET() {
@@ -25,5 +26,6 @@ export async function GET() {
     ga4: isGA4Configured(),
     meta_ads: isMetaAdsConfigured(),
     github: isGitHubConfigured(),
+    vimeo: isVimeoConfigured(),
   });
 }

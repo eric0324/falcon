@@ -12,6 +12,7 @@ import { createGA4Tools } from "@/lib/ai/ga4-tools";
 import { createMetaAdsTools } from "@/lib/ai/meta-ads-tools";
 import { createGitHubTools } from "@/lib/ai/github-tools";
 import { createYouTubeTools } from "@/lib/ai/youtube-tools";
+import { createVimeoTools } from "@/lib/ai/vimeo-tools";
 import { createExternalDbTools } from "@/lib/ai/external-db-tools";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 import { shouldCompact, estimateTokens, trimMessagesToFit } from "@/lib/ai/token-utils";
@@ -196,6 +197,12 @@ export async function POST(req: Request) {
       if (selectedSources.has("google_youtube")) {
         const youtubeTools = createYouTubeTools(userId);
         filteredTools = { ...filteredTools, ...youtubeTools };
+      }
+
+      // Vimeo - only if explicitly selected
+      if (selectedSources.has("vimeo")) {
+        const vimeoTools = createVimeoTools();
+        filteredTools = { ...filteredTools, ...vimeoTools };
       }
 
       // External databases - match extdb_ prefix

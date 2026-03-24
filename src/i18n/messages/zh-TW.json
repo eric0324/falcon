@@ -385,6 +385,11 @@
       "name": "GitHub",
       "description": "存取 GitHub 儲存庫和議題"
     },
+    "vimeo": {
+      "name": "Vimeo",
+      "description": "查詢 Vimeo 影片資料與觀看分析"
+    },
+    "videoPlatform": "影音平台",
     "connected": "已連接",
     "notConnected": "未設定",
     "configure": "設定",

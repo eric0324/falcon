@@ -10,6 +10,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.16.0",
+    title: "Vimeo 資料來源",
+    summary:
+      "現在可以在聊天室串接 Vimeo，查詢影片清單、資料夾、影片詳情，還能查看觀看分析。讓 AI 幫你整理影片表現！",
+    items: [
+      "新增 Vimeo 資料來源，支援查詢影片、資料夾、影片詳情",
+      "支援 Vimeo Analytics：觀看次數、觀眾國家分布、裝置類型、嵌入網域等",
+      "已發布的工具也能透過 bridge 存取 Vimeo 資料",
+    ],
+  },
+  {
     version: "v0.15.0",
     title: "手機版大改版",
     summary:

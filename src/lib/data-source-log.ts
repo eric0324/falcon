@@ -116,6 +116,12 @@ export function extractDataSourceInfo(
         action: args.action as string,
         params: { query: args.query, channelId: args.channelId, videoId: args.videoId },
       };
+    case "vimeoQuery":
+      return {
+        dataSourceId: "vimeo",
+        action: args.action as string,
+        params: { videoId: args.videoId, folderId: args.folderId, startDate: args.startDate, endDate: args.endDate },
+      };
     default:
       return null;
   }

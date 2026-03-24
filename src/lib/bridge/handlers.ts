@@ -71,6 +71,14 @@ import {
   queryTimeseries as metaTimeseries,
   queryBreakdown as metaBreakdown,
 } from "@/lib/integrations/meta-ads";
+import {
+  isVimeoConfigured,
+  listVideos as vimeoListVideos,
+  getVideo as vimeoGetVideo,
+  listFolders as vimeoListFolders,
+  getFolderVideos as vimeoGetFolderVideos,
+  getAnalytics as vimeoGetAnalytics,
+} from "@/lib/integrations/vimeo";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Params = Record<string, any>;
@@ -434,6 +442,34 @@ async function handleMetaAds(action: string, params: Params): Promise<unknown> {
   }
 }
 
+// ===== Vimeo =====
+
+async function handleVimeo(action: string, params: Params): Promise<unknown> {
+  if (!isVimeoConfigured()) throw new Error("Vimeo is not configured");
+
+  switch (action) {
+    case "videos":
+      return await vimeoListVideos(params.maxResults || 25);
+    case "video":
+      return await vimeoGetVideo(params.videoId);
+    case "folders":
+      return await vimeoListFolders(params.maxResults || 25);
+    case "folder_videos":
+      return await vimeoGetFolderVideos(params.folderId, params.maxResults || 25);
+    case "analytics":
+      return await vimeoGetAnalytics({
+        startDate: params.startDate,
+        endDate: params.endDate,
+        dimension: params.dimension,
+        timeInterval: params.timeInterval,
+        videoUri: params.videoUri,
+        folderUri: params.folderUri,
+      });
+    default:
+      throw new Error(`Unknown Vimeo action: ${action}`);
+  }
+}
+
 // ===== Main Dispatcher =====
 
 export async function dispatchBridge(
@@ -463,6 +499,7 @@ export async function dispatchBridge(
     plausible: handlePlausible,
     ga4: handleGA4,
     meta_ads: handleMetaAds,
+    vimeo: handleVimeo,
   };
 
   const handler = handlers[dataSourceId];

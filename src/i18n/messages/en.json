@@ -385,6 +385,11 @@
       "name": "GitHub",
       "description": "Access GitHub repositories and issues"
     },
+    "vimeo": {
+      "name": "Vimeo",
+      "description": "Query Vimeo video data and view analytics"
+    },
+    "videoPlatform": "Video Platform",
     "connected": "Connected",
     "notConnected": "Not configured",
     "configure": "Configure",

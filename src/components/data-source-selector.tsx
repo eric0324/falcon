@@ -32,6 +32,7 @@ import {
   Megaphone,
   Github,
   Youtube,
+  Video,
 } from "lucide-react";
 
 type GoogleServiceType = "sheets" | "drive" | "calendar" | "gmail" | "youtube";
@@ -75,6 +76,7 @@ type IntegrationStatus = {
   ga4: boolean;
   meta_ads: boolean;
   github: boolean;
+  vimeo: boolean;
 };
 
 export function DataSourceSelector({
@@ -101,6 +103,7 @@ export function DataSourceSelector({
     ga4: false,
     meta_ads: false,
     github: false,
+    vimeo: false,
   });
   const [externalDbs, setExternalDbs] = useState<ExternalDb[]>([]);
   const [connectingService, setConnectingService] = useState<string | null>(null);
@@ -201,6 +204,9 @@ export function DataSourceSelector({
     }
     if (value.includes("github")) {
       names.push(tIntegrations("github.name"));
+    }
+    if (value.includes("vimeo")) {
+      names.push(tIntegrations("vimeo.name"));
     }
 
     // External databases
@@ -538,6 +544,47 @@ export function DataSourceSelector({
               </div>
               <div className="w-14 flex justify-end shrink-0 mt-0.5">
                 {!integrationStatus.meta_ads && (
+                  <span className="text-xs text-muted-foreground">
+                    {tIntegrations("notConnected")}
+                  </span>
+                )}
+              </div>
+            </DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        {/* Video Platform - Vimeo */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="flex items-center gap-2.5 py-2.5 cursor-pointer">
+            <div className="w-4 flex items-center justify-center shrink-0">
+              {value.includes("vimeo") && <Check className="h-4 w-4" />}
+            </div>
+            <span className="font-medium text-sm">{tIntegrations("videoPlatform")}</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-80">
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.preventDefault();
+                if (integrationStatus.vimeo) {
+                  handleToggle("vimeo");
+                }
+              }}
+              className="flex items-start gap-2 py-2.5 cursor-pointer"
+            >
+              <div className="w-4 flex items-center justify-center shrink-0 mt-0.5">
+                {value.includes("vimeo") && integrationStatus.vimeo && <Check className="h-4 w-4" />}
+              </div>
+              <Video className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <span className="font-medium text-sm block">
+                  {tIntegrations("vimeo.name")}
+                </span>
+                <p className="text-xs text-muted-foreground">
+                  {tIntegrations("vimeo.description")}
+                </p>
+              </div>
+              <div className="w-14 flex justify-end shrink-0 mt-0.5">
+                {!integrationStatus.vimeo && (
                   <span className="text-xs text-muted-foreground">
                     {tIntegrations("notConnected")}
                   </span>
