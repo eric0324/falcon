@@ -87,7 +87,7 @@ export default async function AdminDatabaseDetailPage({
   if (!db) notFound();
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <Link
         href="/admin/databases"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"

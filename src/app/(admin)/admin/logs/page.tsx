@@ -74,9 +74,9 @@ export default async function AdminLogsPage({
   const basePath = `/admin/logs${qs ? `?${qs}` : ""}`;
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">稽核日誌</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">稽核日誌</h1>
         <p className="text-muted-foreground mt-1">
           共 {totalCount} 筆紀錄
         </p>

@@ -119,11 +119,11 @@ export default async function HomePage() {
   const tCategories = await getTranslations("categories");
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Hero Section */}
-      <div className="text-center mt-16 mb-8">
+      <div className="text-center mt-8 sm:mt-16 mb-8">
         <HeroGreeting userName={session.user.name || ""} />
-        <p className="text-muted-foreground text-lg">
+        <p className="text-muted-foreground text-sm sm:text-lg">
           {t("hero.description")}
         </p>
       </div>
@@ -136,8 +136,8 @@ export default async function HomePage() {
       {/* Leaderboard Tabs */}
       <section className="mb-12">
         <Tabs defaultValue="trending" className="w-full">
-          <div className="flex justify-center mb-6">
-          <TabsList>
+          <div className="mb-6 overflow-x-auto scrollbar-hide px-4 sm:px-0">
+          <TabsList className="flex w-max mx-auto">
             <TabsTrigger value="trending" className="gap-1">
               <TrendingUp className="h-4 w-4" />
               {t("tabs.trending")}
@@ -184,7 +184,7 @@ export default async function HomePage() {
       {/* Categories */}
       <section className="mb-12">
         <div className="overflow-x-auto scrollbar-hide">
-          <div className="flex justify-center gap-3">
+          <div className="flex sm:justify-center gap-3 pb-2">
             {TOOL_CATEGORIES.map((category) => (
               <Link
                 key={category.id}

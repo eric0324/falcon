@@ -52,10 +52,10 @@ export default async function AdminDatabasesPage({
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">資料庫管理</h1>
+    <div className="p-4 sm:p-6">
+      <div className="flex items-center justify-between mb-6 gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold">資料庫管理</h1>
           <p className="text-muted-foreground mt-1">
             共 {totalCount} 個外部資料庫連線
           </p>
@@ -68,8 +68,8 @@ export default async function AdminDatabasesPage({
           尚未新增任何外部資料庫連線
         </div>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <table className="w-full">
+        <div className="border rounded-lg overflow-x-auto">
+          <table className="w-full min-w-[500px]">
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="text-left p-3 font-medium">名稱</th>

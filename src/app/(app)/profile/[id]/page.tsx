@@ -56,7 +56,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const t = await getTranslations("profile");
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* User Info */}
       <div className="flex items-center gap-4 mb-8">
         <UserAvatar src={user.image} name={user.name} size="lg" />

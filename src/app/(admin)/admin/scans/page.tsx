@@ -68,9 +68,9 @@ export default async function AdminScansPage({
   }));
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">弱點掃描</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">弱點掃描</h1>
         <p className="text-muted-foreground mt-1">共 {totalCount} 筆掃描紀錄</p>
       </div>
 

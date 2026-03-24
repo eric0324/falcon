@@ -10,6 +10,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.15.0",
+    title: "手機版大改版",
+    summary:
+      "用手機開 Falcon 不會再跑版了！側邊欄、首頁、聊天室、工具頁全部重新調整過，小螢幕上也能順暢使用。",
+    items: [
+      "手機版側邊欄改為 overlay 模式，不再擠壓內容空間",
+      "新增手機版頂部導覽列，一鍵開啟側邊欄",
+      "首頁分類頁籤支援水平捲動，不再被裁切",
+      "聊天室預覽面板在手機上改為上下堆疊顯示",
+      "工具列在手機上自動換行，不再溢出畫面",
+      "所有頁面的間距與文字大小針對小螢幕最佳化",
+    ],
+  },
+  {
     version: "v0.14.0",
     title: "對話更穩定了",
     summary:

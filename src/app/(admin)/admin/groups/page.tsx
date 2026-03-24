@@ -22,9 +22,9 @@ export default async function AdminGroupsPage() {
   }));
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">群組管理</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">群組管理</h1>
         <p className="text-muted-foreground mt-1">
           管理群組，用於控制外部資料庫的存取權限
         </p>

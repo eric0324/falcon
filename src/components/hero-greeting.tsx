@@ -34,7 +34,7 @@ export function HeroGreeting({ userName }: { userName: string }) {
   }, [userName, t]);
 
   return (
-    <h1 className="text-4xl font-bold mb-2">
+    <h1 className="text-2xl sm:text-4xl font-bold mb-2">
       {greeting || "\u00A0"}
       {greeting && <span className="inline-block animate-wave">👋</span>}
     </h1>

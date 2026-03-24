@@ -85,7 +85,7 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
   const tCommon = await getTranslations("common");
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto">
         {/* Breadcrumb */}
         <div className="mb-6">
           <Button variant="ghost" size="sm" asChild className="-ml-2">

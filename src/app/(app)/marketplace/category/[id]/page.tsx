@@ -68,7 +68,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   const tCategories = await getTranslations("categories");
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
         {/* Breadcrumb */}
         <div className="mb-6">
           <Button variant="ghost" size="sm" asChild className="-ml-2">

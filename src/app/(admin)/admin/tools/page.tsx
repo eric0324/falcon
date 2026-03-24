@@ -71,10 +71,10 @@ export default async function AdminToolsPage({
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">工具管理</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-xl sm:text-2xl font-bold">工具管理</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
           共 {totalCount} 個工具
         </p>
       </div>
@@ -84,8 +84,8 @@ export default async function AdminToolsPage({
           目前沒有任何工具
         </div>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <table className="w-full">
+        <div className="border rounded-lg overflow-x-auto">
+          <table className="w-full min-w-[600px]">
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="text-left p-3 font-medium">工具名稱</th>

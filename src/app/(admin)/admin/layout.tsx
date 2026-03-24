@@ -25,7 +25,7 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="h-full flex">
+    <div className="h-full flex flex-col md:flex-row">
       <AdminSidebar />
       <main className="flex-1 min-w-0 overflow-auto">
         {children}

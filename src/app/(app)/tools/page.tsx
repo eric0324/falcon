@@ -34,16 +34,17 @@ export default async function ToolsPage() {
   const t = await getTranslations("myTools");
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-2xl font-bold">{t("title")}</h2>
-          <p className="text-muted-foreground">{t("description")}</p>
+    <div className="p-4 sm:p-6">
+      <div className="flex items-center justify-between mb-6 sm:mb-8 gap-4">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-2xl font-bold">{t("title")}</h2>
+          <p className="text-muted-foreground text-sm sm:text-base">{t("description")}</p>
         </div>
-        <Button asChild>
+        <Button asChild className="shrink-0">
           <Link href="/chat">
             <Plus className="mr-2 h-4 w-4" />
-            {t("newChat")}
+            <span className="hidden sm:inline">{t("newChat")}</span>
+            <span className="sm:hidden">新增</span>
           </Link>
         </Button>
       </div>

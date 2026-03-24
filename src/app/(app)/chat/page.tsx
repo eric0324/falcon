@@ -55,6 +55,17 @@ interface QuotaStatus {
   remainingUsd: number;
 }
 
+function useIsMobileChat() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return isMobile;
+}
+
 function StudioContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -63,6 +74,7 @@ function StudioContent() {
   const t = useTranslations("studio");
   const tc = useTranslations("common");
   const tq = useTranslations("quota");
+  const isMobileChat = useIsMobileChat();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -944,11 +956,11 @@ function StudioContent() {
       </Dialog>
 
       {/* Main Content */}
-      <div className="flex-1 flex min-h-0" ref={containerRef}>
+      <div className={`flex-1 flex min-h-0 ${isMobileChat ? "flex-col" : "flex-row"}`} ref={containerRef}>
         {/* Chat Panel */}
         <div
-          className="flex flex-col min-w-0"
-          style={hasCode ? { width: `${panelRatio}%` } : { flex: 1 }}
+          className="flex flex-col min-w-0 min-h-0"
+          style={hasCode && !isMobileChat ? { width: `${panelRatio}%` } : { flex: 1 }}
         >
           <ScrollArea className="flex-1 p-4" ref={scrollRef}>
             <div className="space-y-4">
@@ -990,7 +1002,7 @@ function StudioContent() {
 
                 // Assistant messages - tool calls then content, no avatar
                 return (
-                  <div key={index} className="space-y-3 max-w-[85%] pl-8">
+                  <div key={index} className="space-y-3 max-w-full sm:max-w-[85%] pl-2 sm:pl-8">
                     {/* Tool calls (thinking steps) */}
                     {hasToolCalls && (
                       <div className="space-y-2">
@@ -1081,7 +1093,7 @@ function StudioContent() {
               </div>
 
               {/* Toolbar */}
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <ModelSelector value={selectedModel} onChange={setSelectedModel} />
                 <SkillSelector
                   value={selectedSkill}
@@ -1113,7 +1125,7 @@ function StudioContent() {
                   />
                   <label
                     htmlFor="enter-to-send"
-                    className="text-xs text-muted-foreground cursor-pointer select-none flex items-center gap-1"
+                    className="text-xs text-muted-foreground cursor-pointer select-none hidden sm:flex items-center gap-1"
                   >
                     <CornerDownLeft className="h-3 w-3" />
                     {t("input.enterToSend")}
@@ -1124,8 +1136,8 @@ function StudioContent() {
           </div>
         </div>
 
-        {/* Draggable Divider */}
-        {hasCode && (
+        {/* Draggable Divider — hidden on mobile */}
+        {hasCode && !isMobileChat && (
           <div
             className={`group relative w-1.5 cursor-col-resize shrink-0 flex items-center justify-center ${isDragging ? "bg-primary/30" : "bg-transparent hover:bg-primary/15"}`}
             onMouseDown={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -1140,7 +1152,7 @@ function StudioContent() {
 
         {/* Preview Panel - only shown when code exists */}
         {hasCode && (
-          <div className="flex-1 h-full min-w-0 relative">
+          <div className={`min-w-0 relative ${isMobileChat ? "h-[50vh] border-t" : "flex-1 h-full"}`}>
             {isDragging && <div className="absolute inset-0 z-50" />}
             <PreviewPanel
               code={code}

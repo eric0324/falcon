@@ -231,8 +231,9 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
       .slice(0, 2);
   };
 
-  // Collapsed state
+  // Collapsed state — hide entirely on mobile
   if (!isOpen) {
+    if (isMobile) return null;
     return (
       <div className="w-16 bg-white dark:bg-neutral-950 border-r border-neutral-200 dark:border-neutral-800 flex flex-col items-center py-4 shrink-0">
         <Button

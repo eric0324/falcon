@@ -100,16 +100,16 @@ export default async function AdminMembersPage({
   });
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">成員管理</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-xl sm:text-2xl font-bold">成員管理</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
           共 {totalCount} 位成員
         </p>
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
-        <table className="w-full">
+      <div className="border rounded-lg overflow-x-auto">
+        <table className="w-full min-w-[600px]">
           <thead>
             <tr className="border-b bg-muted/50">
               <th className="text-left p-3 font-medium">成員</th>
