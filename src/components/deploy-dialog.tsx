@@ -49,6 +49,7 @@ interface DeployDialogProps {
   defaultAllowedGroupIds?: string[];
   isEditing?: boolean;
   hasAnyDataSource?: boolean;
+  usesLLM?: boolean;
 }
 
 export function DeployDialog({
@@ -63,6 +64,7 @@ export function DeployDialog({
   defaultAllowedGroupIds = [],
   isEditing = false,
   hasAnyDataSource = false,
+  usesLLM = false,
 }: DeployDialogProps) {
   const t = useTranslations("deploy");
   const tCategories = useTranslations("categories");
@@ -241,6 +243,12 @@ export function DeployDialog({
                 <p>公開工具無法使用資料來源，請移除資料來源或調整為其他權限。</p>
               </div>
             )}
+            {usesLLM && visibility === "PUBLIC" && (
+              <div className="flex gap-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 text-sm">
+                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                <p>此工具使用了 AI 文字處理功能，無法設為公開。請調整為其他權限。</p>
+              </div>
+            )}
           </div>
 
           {/* Group selector — only shown when visibility is GROUP */}
@@ -288,7 +296,7 @@ export function DeployDialog({
           </Button>
           <Button
             onClick={handleDeploy}
-            disabled={!name.trim() || isDeploying || (hasAnyDataSource && visibility === "PUBLIC") || isGroupButNoSelection}
+            disabled={!name.trim() || isDeploying || (hasAnyDataSource && visibility === "PUBLIC") || (usesLLM && visibility === "PUBLIC") || isGroupButNoSelection}
           >
             {isDeploying
               ? isEditing

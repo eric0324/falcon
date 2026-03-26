@@ -1176,6 +1176,7 @@ function StudioContent() {
         defaultAllowedGroupIds={toolAllowedGroupIds}
         isEditing={!!editId}
         hasAnyDataSource={selectedDataSources.length > 0}
+        usesLLM={/execute\(["']llm["']/.test(code)}
       />
     </div>
   );
