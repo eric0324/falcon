@@ -235,53 +235,122 @@ describe("notionSearch tool - list with pagination", () => {
   });
 });
 
-describe("notionSearch tool - searchAll across all databases", () => {
-  it("searches all databases in parallel and returns combined results", async () => {
-    mockListDatabases.mockResolvedValueOnce([
-      { id: "db-hr", title: [{ plain_text: "人事制度" }], description: [], url: "https://notion.so/db-hr" },
-      { id: "db-admin", title: [{ plain_text: "行政組" }], description: [], url: "https://notion.so/db-admin" },
-      { id: "db-eng", title: [{ plain_text: "工程部" }], description: [], url: "https://notion.so/db-eng" },
-    ]);
+describe("notionSearch tool - searchAll across all databases and pages", () => {
+  function setupSearchAll(options: {
+    databases?: Array<{ id: string; title: string }>;
+    dbResults?: Record<string, Array<{ id: string; title: string }>>;
+    dbErrors?: string[];
+    standalonePages?: Array<{ id: string; title: string; parentType: string }>;
+  }) {
+    const { databases = [], dbResults = {}, dbErrors = [], standalonePages = [] } = options;
 
-    // HR database has the result
+    mockListDatabases.mockResolvedValueOnce(
+      databases.map((db) => ({
+        id: db.id,
+        title: [{ plain_text: db.title }],
+        description: [],
+        url: `https://notion.so/${db.id}`,
+      }))
+    );
+
     mockQueryDatabaseAll.mockImplementation(async (dbId) => {
-      if (dbId === "db-hr") {
-        return {
-          results: [makePage("p1", "請假流程說明"), makePage("p2", "請假申請表")],
-          hasMore: false,
-        };
-      }
-      return { results: [], hasMore: false };
+      if (dbErrors.includes(dbId)) throw new Error("API error");
+      const pages = dbResults[dbId] || [];
+      return { results: pages.map((p) => makePage(p.id, p.title)), hasMore: false };
     });
 
-    const result = await executeNotionTool({
-      action: "searchAll",
-      search: "請假",
+    // notionSearch returns standalone pages
+    mockNotionSearch.mockResolvedValueOnce({
+      object: "list",
+      results: standalonePages.map((p) => makePage(p.id, p.title, p.parentType)),
+      next_cursor: null,
+      has_more: false,
     });
+  }
+
+  it("finds pages in databases via title filter", async () => {
+    setupSearchAll({
+      databases: [
+        { id: "db-hr", title: "人事制度" },
+        { id: "db-admin", title: "行政組" },
+      ],
+      dbResults: {
+        "db-hr": [
+          { id: "p1", title: "請假流程說明" },
+          { id: "p2", title: "請假申請表" },
+        ],
+      },
+    });
+
+    const result = await executeNotionTool({ action: "searchAll", search: "請假" });
 
     expect(result.success).toBe(true);
     expect(result.data).toHaveLength(2);
-    expect(result.data[0].title).toBe("請假流程說明");
-    expect(result.data[0].database).toBe("人事制度");
-    expect(result.data[1].database).toBe("人事制度");
-    expect(result.metadata.databasesSearched).toBe(3);
+    expect(result.data[0].source).toBe("📊 人事制度");
+    expect(result.metadata.databasesSearched).toBe(2);
+  });
+
+  it("finds standalone pages by title match", async () => {
+    setupSearchAll({
+      databases: [],
+      standalonePages: [
+        { id: "p1", title: "請假流程", parentType: "workspace" },
+        { id: "p2", title: "公司簡介", parentType: "workspace" },
+      ],
+    });
+
+    const result = await executeNotionTool({ action: "searchAll", search: "請假" });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0].title).toBe("請假流程");
+    expect(result.data[0].source).toBe("📄 獨立頁面");
+  });
+
+  it("combines database results and standalone page results", async () => {
+    setupSearchAll({
+      databases: [{ id: "db-1", title: "人事" }],
+      dbResults: { "db-1": [{ id: "p1", title: "請假規定" }] },
+      standalonePages: [
+        { id: "p2", title: "請假流程總覽", parentType: "workspace" },
+      ],
+    });
+
+    const result = await executeNotionTool({ action: "searchAll", search: "請假" });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toHaveLength(2);
+    const titles = result.data.map((d: { title: string }) => d.title);
+    expect(titles).toContain("請假規定");
+    expect(titles).toContain("請假流程總覽");
+  });
+
+  it("deduplicates results across databases and pages", async () => {
+    setupSearchAll({
+      databases: [{ id: "db-1", title: "人事" }],
+      dbResults: { "db-1": [{ id: "same-id", title: "請假流程" }] },
+      standalonePages: [
+        { id: "same-id", title: "請假流程", parentType: "database_id" },
+      ],
+    });
+
+    const result = await executeNotionTool({ action: "searchAll", search: "請假" });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toHaveLength(1);
   });
 
   it("handles database query errors gracefully", async () => {
-    mockListDatabases.mockResolvedValueOnce([
-      { id: "db-ok", title: [{ plain_text: "正常" }], description: [], url: "https://notion.so/db-ok" },
-      { id: "db-err", title: [{ plain_text: "壞掉" }], description: [], url: "https://notion.so/db-err" },
-    ]);
-
-    mockQueryDatabaseAll.mockImplementation(async (dbId) => {
-      if (dbId === "db-err") throw new Error("API error");
-      return { results: [makePage("p1", "請假規定")], hasMore: false };
+    setupSearchAll({
+      databases: [
+        { id: "db-ok", title: "正常" },
+        { id: "db-err", title: "壞掉" },
+      ],
+      dbResults: { "db-ok": [{ id: "p1", title: "請假規定" }] },
+      dbErrors: ["db-err"],
     });
 
-    const result = await executeNotionTool({
-      action: "searchAll",
-      search: "請假",
-    });
+    const result = await executeNotionTool({ action: "searchAll", search: "請假" });
 
     expect(result.success).toBe(true);
     expect(result.data).toHaveLength(1);
@@ -289,18 +358,13 @@ describe("notionSearch tool - searchAll across all databases", () => {
   });
 
   it("respects limit parameter", async () => {
-    mockListDatabases.mockResolvedValueOnce([
-      { id: "db-1", title: [{ plain_text: "DB1" }], description: [], url: "https://notion.so/db-1" },
-    ]);
-
-    const pages = Array.from({ length: 10 }, (_, i) => makePage(`p${i}`, `請假文件 ${i}`));
-    mockQueryDatabaseAll.mockResolvedValueOnce({ results: pages, hasMore: false });
-
-    const result = await executeNotionTool({
-      action: "searchAll",
-      search: "請假",
-      limit: 3,
+    const pages = Array.from({ length: 10 }, (_, i) => ({ id: `p${i}`, title: `請假文件 ${i}` }));
+    setupSearchAll({
+      databases: [{ id: "db-1", title: "DB1" }],
+      dbResults: { "db-1": pages },
     });
+
+    const result = await executeNotionTool({ action: "searchAll", search: "請假", limit: 3 });
 
     expect(result.success).toBe(true);
     expect(result.data).toHaveLength(3);

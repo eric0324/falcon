@@ -136,32 +136,30 @@ const NOTION_INSTRUCTIONS = `
 - notionSearch: Search and read Notion data
 
 ### Actions
-- **Search across all databases**: notionSearch({ action: "searchAll", search: "keyword" }) — searches ALL databases at once, no need to pick one
-- List all databases and pages: notionSearch({ action: "list" })
-- Query a specific database: notionSearch({ action: "query", databaseId: "xxx", search: "keyword" })
-- Read full page content: notionSearch({ action: "read", pageId: "xxx" })
-- Full-text search: notionSearch({ action: "search", search: "keyword" }) — inaccurate for Chinese, avoid
+- **searchAll**: notionSearch({ action: "searchAll", search: "keyword" }) — 一次搜遍所有資料庫頁面 + 獨立頁面的標題
+- **read**: notionSearch({ action: "read", pageId: "xxx" }) — 讀取頁面完整正文和子頁面
+- **list**: notionSearch({ action: "list" }) — 列出所有資料庫和頁面
+- **query**: notionSearch({ action: "query", databaseId: "xxx" }) — 查詢特定資料庫
 
-### Search strategy
+### Search strategy — STRICT 2-step process
 
-You have limited tool calls. Each call must have a clear purpose. Use **parallel calls** to minimize steps.
+**Step 1: searchAll (only ONE call)**
+- Use searchAll with a SHORT keyword (1-2 words, e.g. "請假" not "請假申請流程")
+- This already searches ALL databases AND standalone pages — do NOT repeat with different keywords
+- If results are empty, go to Step 1b
 
-**Step 1: Search across all databases**
-- Use action: "searchAll" with search keyword — this searches ALL databases simultaneously and returns matching pages with their source database name
-- Try multiple keywords in parallel: searchAll("請假流程") and searchAll("請假") at the same time
+**Step 1b: (Only if searchAll returns 0 results) Browse structure**
+- Use list to see all databases and pages
+- Read the most likely pages — the answer may be inside a page body or sub-page, not in the title
 
 **Step 2: Read full content**
-- searchAll results do not include page body — use read(pageId) for full content
-- Sub-pages found in read results can be explored further with their pageId
-
-**Step 3: (Only if needed) Explore structure**
-- Use action: "list" to browse all databases and pages
-- Use action: "query" to browse a specific database
+- Use read(pageId) to get the full text of matching pages
+- Sub-pages found in read results can be explored further
 
 ### Important
-- **Always start with searchAll**: Do NOT use "list" first then guess which database to query. Use searchAll to find relevant pages across ALL databases at once.
+- **ONE searchAll call is enough** — it already covers everything. Do NOT call searchAll multiple times with different keywords.
 - **Do not use the search action**: Notion search is extremely inaccurate for Chinese text.
-- **Try shorter keywords**: If a full phrase returns no results, break it into shorter terms and search again
+- **Use short keywords**: "請假" is better than "請假申請流程". Shorter = more results.
 - Always read the full page body — never answer based on titles alone`;
 
 // Slack-specific instructions

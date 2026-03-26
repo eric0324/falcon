@@ -97,31 +97,83 @@ export function createNotionTools() {
             };
           }
 
-          // Search across ALL databases for pages matching the keyword
+          // Search across ALL databases AND standalone pages for the keyword
           if (action === "searchAll" && search) {
+            const keyword = search.toLowerCase();
+
+            // 1. List all databases
             const databases = await listDatabases();
-            const filter = buildTitleContainsFilter(search);
-            const queryPromises = databases.map(async (db) => {
+
+            // 2. Three parallel searches:
+            //    a) Query each database with native title filter
+            //    b) Scan standalone/child pages from workspace (title match)
+            //    c) Use Notion search API as fallback (may catch some results)
+            const dbQueryPromises = databases.map(async (db) => {
               try {
+                const filter = buildTitleContainsFilter(search);
                 const { results } = await queryDatabaseAll(db.id, { filter }, 10);
                 return results.map((page) => ({
                   id: page.id,
                   title: extractPageTitle(page),
                   icon: page.icon?.type === "emoji" ? page.icon.emoji : undefined,
-                  database: extractPlainText(db.title),
+                  source: `📊 ${extractPlainText(db.title)}`,
                 }));
               } catch {
                 return [];
               }
             });
-            const allResults = (await Promise.all(queryPromises)).flat();
+
+            const standalonePagePromise = (async () => {
+              // Scan workspace pages (up to 3 rounds) and filter by title
+              const matched: Array<{ id: string; title: string; icon?: string; source: string }> = [];
+              let cursor: string | undefined;
+              for (let round = 0; round < 3; round++) {
+                const result = await notionSearch({
+                  page_size: 100,
+                  ...(cursor ? { start_cursor: cursor } : {}),
+                });
+                for (const item of result.results) {
+                  if ("title" in item && Array.isArray((item as NotionDatabase).title)) continue;
+                  const page = item as NotionPage;
+                  const title = extractPageTitle(page);
+                  if (title.toLowerCase().includes(keyword)) {
+                    matched.push({
+                      id: page.id,
+                      title,
+                      icon: page.icon?.type === "emoji" ? page.icon.emoji : undefined,
+                      source: "📄 獨立頁面",
+                    });
+                  }
+                }
+                if (!result.has_more || !result.next_cursor) break;
+                cursor = result.next_cursor;
+              }
+              return matched;
+            })();
+
+            const [dbResults, pageResults] = await Promise.all([
+              Promise.all(dbQueryPromises).then((r) => r.flat()),
+              standalonePagePromise,
+            ]);
+
+            // Deduplicate by id
+            const seen = new Set<string>();
+            const allResults: Array<{ id: string; title: string; icon?: string; source: string }> = [];
+            for (const item of [...pageResults, ...dbResults]) {
+              if (seen.has(item.id)) continue;
+              seen.add(item.id);
+              allResults.push(item);
+            }
+
             return {
               success: true,
               service: "notion",
               data: allResults.slice(0, limit),
               rowCount: allResults.length,
               metadata: { databasesSearched: databases.length },
-              hint: "用 read(pageId) 讀取感興趣的頁面正文。",
+              hint: allResults.length > 0
+                ? "用 read(pageId) 讀取感興趣的頁面正文和子頁面。"
+                : "找不到結果。試試用 list 瀏覽結構，或用 read 讀取可能相關的頁面查看子頁面。",
             };
           }
 
