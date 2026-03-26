@@ -3,6 +3,8 @@ import { z } from "zod";
 import {
   isNotionConfigured,
   queryDatabase,
+  queryDatabaseAll,
+  buildTitleContainsFilter,
   getPage,
   getBlockChildrenDeep,
   blocksToText,
@@ -95,21 +97,32 @@ export function createNotionTools() {
 
           // Query specific database - return lightweight list (id + title only)
           if (databaseId) {
-            // When filtering by search, fetch max 100 to increase hit rate
-            const fetchSize = search ? Math.max(limit, 100) : limit;
-            const result = await queryDatabase(databaseId, { page_size: fetchSize });
-            let data = result.results.map((page) => ({
+            if (search) {
+              // Use Notion native title filter for server-side search across ALL pages
+              const filter = buildTitleContainsFilter(search);
+              const { results, hasMore } = await queryDatabaseAll(databaseId, { filter }, limit);
+              const data = results.slice(0, limit).map((page) => ({
+                id: page.id,
+                title: extractPageTitle(page),
+                icon: page.icon?.type === "emoji" ? page.icon.emoji : undefined,
+              }));
+              return {
+                success: true,
+                service: "notion",
+                data,
+                rowCount: data.length,
+                metadata: { has_more: hasMore || results.length > limit },
+                hint: "用 read(pageId) 讀取感興趣的頁面正文。",
+              };
+            }
+
+            // No search filter - just fetch the requested amount
+            const result = await queryDatabase(databaseId, { page_size: limit });
+            const data = result.results.map((page) => ({
               id: page.id,
               title: extractPageTitle(page),
               icon: page.icon?.type === "emoji" ? page.icon.emoji : undefined,
             }));
-
-            // Filter by title keyword if search is provided
-            if (search) {
-              const keyword = search.toLowerCase();
-              data = data.filter((item) => item.title.toLowerCase().includes(keyword));
-            }
-
             return {
               success: true,
               service: "notion",
@@ -151,39 +164,48 @@ export function createNotionTools() {
             };
           }
 
-          // List workspace structure: only top-level databases + standalone pages
-          // Returns minimal data (id, title, type) to save tokens
-          const result = await notionSearch({ page_size: 100 });
+          // List workspace structure: all top-level databases + standalone pages
+          // Paginates up to 5 rounds (500 raw items) to avoid infinite loops
           const seen = new Set<string>();
           const data: Array<{ id: string; title: string; icon?: string; objectType: string }> = [];
+          let cursor: string | undefined;
+          const maxRounds = 5;
 
-          for (const item of result.results) {
-            // Database
-            if ("title" in item && Array.isArray((item as NotionDatabase).title)) {
-              const db = item as NotionDatabase;
-              if (seen.has(db.id)) continue;
-              seen.add(db.id);
+          for (let round = 0; round < maxRounds; round++) {
+            const result = await notionSearch({
+              page_size: 100,
+              ...(cursor ? { start_cursor: cursor } : {}),
+            });
+
+            for (const item of result.results) {
+              if ("title" in item && Array.isArray((item as NotionDatabase).title)) {
+                const db = item as NotionDatabase;
+                if (seen.has(db.id)) continue;
+                seen.add(db.id);
+                data.push({
+                  id: db.id,
+                  title: extractPlainText(db.title),
+                  icon: db.icon?.type === "emoji" ? db.icon.emoji : undefined,
+                  objectType: "database",
+                });
+                continue;
+              }
+
+              const page = item as NotionPage;
+              const parentType = page.parent?.type;
+              if (parentType !== "workspace" && parentType !== "page_id") continue;
+              if (seen.has(page.id)) continue;
+              seen.add(page.id);
               data.push({
-                id: db.id,
-                title: extractPlainText(db.title),
-                icon: db.icon?.type === "emoji" ? db.icon.emoji : undefined,
-                objectType: "database",
+                id: page.id,
+                title: extractPageTitle(page),
+                icon: page.icon?.type === "emoji" ? page.icon.emoji : undefined,
+                objectType: "page",
               });
-              continue;
             }
 
-            // Page: only keep workspace-level or page-child (not database entries)
-            const page = item as NotionPage;
-            const parentType = page.parent?.type;
-            if (parentType !== "workspace" && parentType !== "page_id") continue;
-            if (seen.has(page.id)) continue;
-            seen.add(page.id);
-            data.push({
-              id: page.id,
-              title: extractPageTitle(page),
-              icon: page.icon?.type === "emoji" ? page.icon.emoji : undefined,
-              objectType: "page",
-            });
+            if (!result.has_more || !result.next_cursor) break;
+            cursor = result.next_cursor;
           }
 
           return {

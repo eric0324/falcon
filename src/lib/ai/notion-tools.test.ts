@@ -4,6 +4,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/lib/integrations/notion", () => ({
   isNotionConfigured: vi.fn(() => true),
   queryDatabase: vi.fn(),
+  queryDatabaseAll: vi.fn(),
+  buildTitleContainsFilter: vi.fn(),
   getPage: vi.fn(),
   getBlockChildrenDeep: vi.fn(),
   blocksToText: vi.fn(),
@@ -11,12 +13,24 @@ vi.mock("@/lib/integrations/notion", () => ({
 }));
 
 import { createNotionTools } from "./notion-tools";
-import { queryDatabase } from "@/lib/integrations/notion";
+import {
+  queryDatabase,
+  queryDatabaseAll,
+  buildTitleContainsFilter,
+  notionSearch,
+} from "@/lib/integrations/notion";
 
 const mockQueryDatabase = vi.mocked(queryDatabase);
+const mockQueryDatabaseAll = vi.mocked(queryDatabaseAll);
+const mockBuildTitleContainsFilter = vi.mocked(buildTitleContainsFilter);
+const mockNotionSearch = vi.mocked(notionSearch);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockBuildTitleContainsFilter.mockImplementation((keyword: string) => ({
+    property: "Name",
+    title: { contains: keyword },
+  }));
 });
 
 function makePage(id: string, title: string, parentType = "database_id") {
@@ -44,29 +58,36 @@ async function executeNotionTool(params: Record<string, unknown>): Promise<any> 
 }
 
 describe("notionSearch tool - query with search filter", () => {
-  it("filters query results by title keyword", async () => {
-    mockQueryDatabase.mockResolvedValueOnce({
-      object: "list",
+  it("uses native title filter via queryDatabaseAll when search is provided", async () => {
+    mockQueryDatabaseAll.mockResolvedValueOnce({
       results: [
-        makePage("p1", "第 30 次會議記錄 - 合購機制調整"),
-        makePage("p2", "第 29 次會議記錄 - 績效制度"),
-        makePage("p3", "第 28 次會議記錄 - 合購方案討論"),
+        makePage("p1", "請假流程說明"),
+        makePage("p2", "請假申請表"),
       ],
-      next_cursor: null,
-      has_more: false,
+      hasMore: false,
     });
 
     const result = await executeNotionTool({
       action: "query",
       databaseId: "db-1",
-      search: "合購",
+      search: "請假",
       limit: 20,
     });
 
     expect(result.success).toBe(true);
     expect(result.data).toHaveLength(2);
-    expect(result.data[0].title).toContain("合購機制調整");
-    expect(result.data[1].title).toContain("合購方案討論");
+    expect(result.data[0].title).toBe("請假流程說明");
+    expect(result.data[1].title).toBe("請假申請表");
+
+    // Should use native filter, not client-side filtering
+    expect(mockBuildTitleContainsFilter).toHaveBeenCalledWith("請假");
+    expect(mockQueryDatabaseAll).toHaveBeenCalledWith(
+      "db-1",
+      { filter: { property: "Name", title: { contains: "請假" } } },
+      20
+    );
+    // Should NOT call queryDatabase directly
+    expect(mockQueryDatabase).not.toHaveBeenCalled();
   });
 
   it("returns all results when search is not provided", async () => {
@@ -88,65 +109,125 @@ describe("notionSearch tool - query with search filter", () => {
 
     expect(result.success).toBe(true);
     expect(result.data).toHaveLength(2);
+    // Should use simple queryDatabase, not queryDatabaseAll
+    expect(mockQueryDatabase).toHaveBeenCalledWith("db-1", { page_size: 20 });
+    expect(mockQueryDatabaseAll).not.toHaveBeenCalled();
   });
 
-  it("title filter is case-insensitive", async () => {
-    mockQueryDatabase.mockResolvedValueOnce({
-      object: "list",
-      results: [
-        makePage("p1", "Q1 Report Summary"),
-        makePage("p2", "Weekly report"),
-        makePage("p3", "Meeting Notes"),
-      ],
-      next_cursor: null,
-      has_more: false,
+  it("respects limit when search returns more results", async () => {
+    const pages = Array.from({ length: 30 }, (_, i) =>
+      makePage(`p${i}`, `請假文件 ${i}`)
+    );
+    mockQueryDatabaseAll.mockResolvedValueOnce({
+      results: pages,
+      hasMore: true,
     });
 
     const result = await executeNotionTool({
       action: "query",
       databaseId: "db-1",
-      search: "report",
-      limit: 20,
+      search: "請假",
+      limit: 10,
     });
 
     expect(result.success).toBe(true);
-    expect(result.data).toHaveLength(2);
-    expect(result.data[0].title).toBe("Q1 Report Summary");
-    expect(result.data[1].title).toBe("Weekly report");
+    expect(result.data).toHaveLength(10);
+    expect(result.metadata.has_more).toBe(true);
   });
+});
 
-  it("uses page_size=100 when search filter is provided", async () => {
-    mockQueryDatabase.mockResolvedValueOnce({
+describe("notionSearch tool - list with pagination", () => {
+  it("paginates through multiple pages of results", async () => {
+    // First page
+    mockNotionSearch.mockResolvedValueOnce({
       object: "list",
-      results: [],
+      results: [
+        { id: "db-1", title: [{ plain_text: "知識庫" }], description: [], url: "https://notion.so/db-1" },
+        makePage("p1", "公司簡介", "workspace"),
+      ],
+      next_cursor: "cursor-1",
+      has_more: true,
+    });
+    // Second page
+    mockNotionSearch.mockResolvedValueOnce({
+      object: "list",
+      results: [
+        { id: "db-2", title: [{ plain_text: "會議記錄" }], description: [], url: "https://notion.so/db-2" },
+        makePage("p2", "請假流程", "workspace"),
+      ],
       next_cursor: null,
       has_more: false,
     });
 
-    await executeNotionTool({
-      action: "query",
-      databaseId: "db-1",
-      search: "合購",
-      limit: 20,
-    });
+    const result = await executeNotionTool({ action: "list" });
 
-    expect(mockQueryDatabase).toHaveBeenCalledWith("db-1", { page_size: 100 });
+    expect(result.success).toBe(true);
+    expect(result.data).toHaveLength(4);
+    expect(result.data.map((d: { title: string }) => d.title)).toEqual([
+      "知識庫", "公司簡介", "會議記錄", "請假流程",
+    ]);
+
+    // Should have called notionSearch twice (pagination)
+    expect(mockNotionSearch).toHaveBeenCalledTimes(2);
+    expect(mockNotionSearch).toHaveBeenNthCalledWith(1, { page_size: 100 });
+    expect(mockNotionSearch).toHaveBeenNthCalledWith(2, { page_size: 100, start_cursor: "cursor-1" });
   });
 
-  it("uses user-specified limit when no search filter", async () => {
-    mockQueryDatabase.mockResolvedValueOnce({
+  it("deduplicates results across pages", async () => {
+    const db = { id: "db-1", title: [{ plain_text: "知識庫" }], description: [], url: "https://notion.so/db-1" };
+    mockNotionSearch.mockResolvedValueOnce({
       object: "list",
-      results: [],
+      results: [db],
+      next_cursor: "cursor-1",
+      has_more: true,
+    });
+    mockNotionSearch.mockResolvedValueOnce({
+      object: "list",
+      results: [db], // duplicate
       next_cursor: null,
       has_more: false,
     });
 
-    await executeNotionTool({
-      action: "query",
-      databaseId: "db-1",
-      limit: 30,
+    const result = await executeNotionTool({ action: "list" });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toHaveLength(1);
+  });
+
+  it("stops after maxRounds to avoid infinite loops", async () => {
+    // Simulate a workspace where every result is a database-child page (gets filtered out)
+    // The loop should still stop after 5 rounds
+    for (let i = 0; i < 5; i++) {
+      mockNotionSearch.mockResolvedValueOnce({
+        object: "list",
+        results: [makePage(`p${i}`, `DB 內頁面 ${i}`, "database_id")],
+        next_cursor: `cursor-${i + 1}`,
+        has_more: true,
+      });
+    }
+
+    const result = await executeNotionTool({ action: "list" });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toHaveLength(0); // all filtered out
+    expect(mockNotionSearch).toHaveBeenCalledTimes(5); // stopped at 5 rounds
+  });
+
+  it("skips pages that belong to databases", async () => {
+    mockNotionSearch.mockResolvedValueOnce({
+      object: "list",
+      results: [
+        makePage("p1", "獨立頁面", "workspace"),
+        makePage("p2", "資料庫內頁面", "database_id"), // should be skipped
+      ],
+      next_cursor: null,
+      has_more: false,
     });
 
-    expect(mockQueryDatabase).toHaveBeenCalledWith("db-1", { page_size: 30 });
+    const result = await executeNotionTool({ action: "list" });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0].title).toBe("獨立頁面");
   });
 });

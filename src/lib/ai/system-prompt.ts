@@ -146,10 +146,11 @@ const NOTION_INSTRUCTIONS = `
 You have limited tool calls. Each call must have a clear purpose. Use **parallel calls** to minimize steps.
 
 **Step 1: Understand structure**
-- Use action: "list" to see all databases and pages
+- Use action: "list" to see all databases and pages (automatically paginates to get everything)
 
 **Step 2: Search from multiple angles (use parallel calls)**
-- Query relevant **databases** with query(databaseId, search: "keyword") to filter by title
+- Query relevant **databases** with query(databaseId, search: "keyword") — this uses Notion's native title filter and paginates automatically, so it searches ALL pages in the database, not just the first page
+- Try multiple keywords: if "請假流程" returns nothing, also try "請假", "假" etc.
 - Simultaneously read the most likely **pages** to find sub-pages
 - These can run in parallel — do not wait for one to finish before starting the other
 
@@ -160,6 +161,7 @@ You have limited tool calls. Each call must have a clear purpose. Use **parallel
 ### Important
 - **Do not use the search action**: Notion search is extremely inaccurate for Chinese text. Use list + query + read instead.
 - **Use parallel calls**: Query databases and read pages simultaneously in the same step
+- **Try shorter keywords**: If a full phrase returns no results, break it into shorter terms and search again
 - Always read the full page body — never answer based on titles alone`;
 
 // Slack-specific instructions

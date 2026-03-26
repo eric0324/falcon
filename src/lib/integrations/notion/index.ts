@@ -3,6 +3,8 @@ export {
   notionSearch,
   listDatabases,
   queryDatabase,
+  queryDatabaseAll,
+  buildTitleContainsFilter,
   getPage,
   getBlockChildren,
   getBlockChildrenDeep,

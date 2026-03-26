@@ -86,6 +86,7 @@ export async function notionSearch(params: {
   query?: string;
   filter?: { property: "object"; value: "page" | "database" };
   page_size?: number;
+  start_cursor?: string;
 }): Promise<NotionSearchResult> {
   return notionFetch<NotionSearchResult>("/search", {
     method: "POST",
@@ -105,7 +106,7 @@ export async function listDatabases(): Promise<NotionDatabase[]> {
 }
 
 /**
- * Query a database
+ * Query a database (single page)
  */
 export async function queryDatabase(
   databaseId: string,
@@ -113,12 +114,59 @@ export async function queryDatabase(
     filter?: Record<string, unknown>;
     sorts?: Array<{ property: string; direction: "ascending" | "descending" }>;
     page_size?: number;
+    start_cursor?: string;
   } = {}
 ): Promise<NotionQueryResult> {
   return notionFetch<NotionQueryResult>(`/databases/${databaseId}/query`, {
     method: "POST",
     body: JSON.stringify(params),
   });
+}
+
+/**
+ * Query a database with automatic pagination.
+ * Fetches all pages up to maxResults, following next_cursor automatically.
+ */
+export async function queryDatabaseAll(
+  databaseId: string,
+  params: {
+    filter?: Record<string, unknown>;
+    sorts?: Array<{ property: string; direction: "ascending" | "descending" }>;
+  } = {},
+  maxResults: number = 500
+): Promise<{ results: NotionPage[]; hasMore: boolean }> {
+  const allResults: NotionPage[] = [];
+  let cursor: string | undefined;
+
+  while (allResults.length < maxResults) {
+    const pageSize = Math.min(100, maxResults - allResults.length);
+    const result = await queryDatabase(databaseId, {
+      ...params,
+      page_size: pageSize,
+      start_cursor: cursor,
+    });
+    allResults.push(...result.results);
+    if (!result.has_more || !result.next_cursor) {
+      return { results: allResults, hasMore: false };
+    }
+    cursor = result.next_cursor;
+  }
+
+  return { results: allResults, hasMore: true };
+}
+
+/**
+ * Build a Notion database filter that matches page titles containing the keyword.
+ * Uses the "Title" property type — Notion always has exactly one title property per database.
+ */
+export function buildTitleContainsFilter(
+  keyword: string,
+  titlePropertyName: string = "Name"
+): Record<string, unknown> {
+  return {
+    property: titlePropertyName,
+    title: { contains: keyword },
+  };
 }
 
 /**
