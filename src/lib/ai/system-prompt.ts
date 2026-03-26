@@ -136,31 +136,31 @@ const NOTION_INSTRUCTIONS = `
 - notionSearch: Search and read Notion data
 
 ### Actions
+- **Search across all databases**: notionSearch({ action: "searchAll", search: "keyword" }) — searches ALL databases at once, no need to pick one
 - List all databases and pages: notionSearch({ action: "list" })
-- Query a database (filter by title): notionSearch({ action: "query", databaseId: "xxx", search: "keyword" })
-- Full-text search: notionSearch({ action: "search", search: "keyword" })
+- Query a specific database: notionSearch({ action: "query", databaseId: "xxx", search: "keyword" })
 - Read full page content: notionSearch({ action: "read", pageId: "xxx" })
+- Full-text search: notionSearch({ action: "search", search: "keyword" }) — inaccurate for Chinese, avoid
 
 ### Search strategy
 
 You have limited tool calls. Each call must have a clear purpose. Use **parallel calls** to minimize steps.
 
-**Step 1: Understand structure**
-- Use action: "list" to see all databases and pages (automatically paginates to get everything)
+**Step 1: Search across all databases**
+- Use action: "searchAll" with search keyword — this searches ALL databases simultaneously and returns matching pages with their source database name
+- Try multiple keywords in parallel: searchAll("請假流程") and searchAll("請假") at the same time
 
-**Step 2: Search from multiple angles (use parallel calls)**
-- Query relevant **databases** with query(databaseId, search: "keyword") — this uses Notion's native title filter and paginates automatically, so it searches ALL pages in the database, not just the first page
-- Try multiple keywords: if "請假流程" returns nothing, also try "請假", "假" etc.
-- Simultaneously read the most likely **pages** to find sub-pages
-- These can run in parallel — do not wait for one to finish before starting the other
-
-**Step 3: Read full content**
-- Query results do not include page body — use read(pageId) for full content
+**Step 2: Read full content**
+- searchAll results do not include page body — use read(pageId) for full content
 - Sub-pages found in read results can be explored further with their pageId
 
+**Step 3: (Only if needed) Explore structure**
+- Use action: "list" to browse all databases and pages
+- Use action: "query" to browse a specific database
+
 ### Important
-- **Do not use the search action**: Notion search is extremely inaccurate for Chinese text. Use list + query + read instead.
-- **Use parallel calls**: Query databases and read pages simultaneously in the same step
+- **Always start with searchAll**: Do NOT use "list" first then guess which database to query. Use searchAll to find relevant pages across ALL databases at once.
+- **Do not use the search action**: Notion search is extremely inaccurate for Chinese text.
 - **Try shorter keywords**: If a full phrase returns no results, break it into shorter terms and search again
 - Always read the full page body — never answer based on titles alone`;
 

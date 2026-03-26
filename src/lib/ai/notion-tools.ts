@@ -9,6 +9,7 @@ import {
   getBlockChildrenDeep,
   blocksToText,
   notionSearch,
+  listDatabases,
   NotionDatabase,
   NotionPage,
 } from "@/lib/integrations/notion";
@@ -45,18 +46,19 @@ export function createNotionTools() {
 
 操作：
 - list：列出所有資料庫和頁面（永遠先做這步）
-- query：查詢資料庫的頁面（用 databaseId，可加 search 過濾標題）
+- searchAll：跨所有資料庫搜尋標題含關鍵字的頁面（找資料優先用這個）
+- query：查詢特定資料庫的頁面（用 databaseId，可加 search 過濾標題）
 - read：讀取頁面完整正文和子頁面（用 pageId）
 - search：全文搜尋（中文不準確，盡量不用）`,
       inputSchema: z.object({
-        action: z.enum(["list", "query", "search", "read"]).optional().describe("list: 列出所有資料庫和頁面, query: 查詢資料庫（可搭配 search 過濾標題）, search: 全文搜尋, read: 讀取頁面完整內容（含正文和子頁面）。預設為 list"),
+        action: z.enum(["list", "searchAll", "query", "search", "read"]).optional().describe("list: 列出所有資料庫和頁面, searchAll: 跨所有資料庫搜尋（推薦）, query: 查詢特定資料庫（可搭配 search 過濾標題）, search: 全文搜尋, read: 讀取頁面完整內容（含正文和子頁面）。預設為 list"),
         databaseId: z.string().optional().describe("資料庫 ID (用於 query)"),
         pageId: z.string().optional().describe("頁面 ID (用於 read 讀取頁面正文)"),
         search: z.string().optional().describe("搜尋關鍵字"),
         limit: z.number().optional().describe("最多返回幾筆結果，預設 20"),
       }),
       execute: async (params) => {
-        const { databaseId, pageId, search, limit = 20 } = params;
+        const { action, databaseId, pageId, search, limit = 20 } = params;
 
         try {
           // Check if Notion is configured
@@ -92,6 +94,34 @@ export function createNotionTools() {
               service: "notion",
               data: pageData,
               rowCount: 1,
+            };
+          }
+
+          // Search across ALL databases for pages matching the keyword
+          if (action === "searchAll" && search) {
+            const databases = await listDatabases();
+            const filter = buildTitleContainsFilter(search);
+            const queryPromises = databases.map(async (db) => {
+              try {
+                const { results } = await queryDatabaseAll(db.id, { filter }, 10);
+                return results.map((page) => ({
+                  id: page.id,
+                  title: extractPageTitle(page),
+                  icon: page.icon?.type === "emoji" ? page.icon.emoji : undefined,
+                  database: extractPlainText(db.title),
+                }));
+              } catch {
+                return [];
+              }
+            });
+            const allResults = (await Promise.all(queryPromises)).flat();
+            return {
+              success: true,
+              service: "notion",
+              data: allResults.slice(0, limit),
+              rowCount: allResults.length,
+              metadata: { databasesSearched: databases.length },
+              hint: "用 read(pageId) 讀取感興趣的頁面正文。",
             };
           }
 
