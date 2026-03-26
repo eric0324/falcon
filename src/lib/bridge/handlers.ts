@@ -79,6 +79,8 @@ import {
   getFolderVideos as vimeoGetFolderVideos,
   getAnalytics as vimeoGetAnalytics,
 } from "@/lib/integrations/vimeo";
+import { generateText } from "ai";
+import { models, defaultModel, type ModelId } from "@/lib/ai/models";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Params = Record<string, any>;
@@ -470,6 +472,67 @@ async function handleVimeo(action: string, params: Params): Promise<unknown> {
   }
 }
 
+// ===== LLM =====
+
+const MAX_INPUT_CHARS = 12000; // ~4000 tokens for Chinese text
+
+const LLM_SYSTEM_PROMPTS: Record<string, (params: Params) => string> = {
+  summarize: (p) =>
+    `你是摘要助手。請用繁體中文簡潔地摘要以下內容。${p.maxLength ? `摘要長度不超過 ${p.maxLength} 字。` : ""}只輸出摘要結果，不要加前綴或解釋。`,
+  translate: (p) =>
+    `你是翻譯助手。請將以下內容翻譯成${p.targetLanguage || "English"}。只輸出翻譯結果，不要加任何解釋或前綴。`,
+  extract: (p) =>
+    `你是資訊萃取助手。從以下內容中萃取這些欄位：${(p.fields as string[])?.join(", ") || "所有重要欄位"}。以 JSON 格式回傳，不要加任何解釋。`,
+  classify: (p) =>
+    `你是分類助手。將以下內容分到最適合的類別。可用類別：${(p.categories as string[])?.join(", ") || "正面, 負面, 中性"}。只輸出類別名稱，不要加任何解釋。`,
+};
+
+function truncateText(text: string): { text: string; truncated: boolean } {
+  if (text.length <= MAX_INPUT_CHARS) return { text, truncated: false };
+  return { text: text.slice(0, MAX_INPUT_CHARS), truncated: true };
+}
+
+async function handleLLM(action: string, params: Params): Promise<unknown> {
+  const buildPrompt = LLM_SYSTEM_PROMPTS[action];
+  if (!buildPrompt) {
+    throw new Error(`不支援的 LLM 操作: ${action}`);
+  }
+
+  const rawText = params.text;
+  if (!rawText || typeof rawText !== "string") {
+    throw new Error("LLM 呼叫需要 text 參數");
+  }
+
+  // Validate model
+  const modelId = (params.model || defaultModel) as ModelId;
+  const model = models[modelId];
+  if (!model) {
+    throw new Error(`不支援的模型: ${params.model}`);
+  }
+
+  // Truncate if needed
+  const { text, truncated } = truncateText(rawText);
+
+  // Build fixed system prompt (ignore any user-supplied systemPrompt)
+  const systemPrompt = buildPrompt(params);
+
+  const result = await generateText({
+    model,
+    system: systemPrompt,
+    prompt: text,
+  });
+
+  return {
+    text: result.text,
+    model: modelId,
+    truncated,
+    tokenUsage: {
+      input: result.usage?.inputTokens ?? 0,
+      output: result.usage?.outputTokens ?? 0,
+    },
+  };
+}
+
 // ===== Main Dispatcher =====
 
 export async function dispatchBridge(
@@ -500,6 +563,7 @@ export async function dispatchBridge(
     ga4: handleGA4,
     meta_ads: handleMetaAds,
     vimeo: handleVimeo,
+    llm: handleLLM,
   };
 
   const handler = handlers[dataSourceId];

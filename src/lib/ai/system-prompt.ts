@@ -425,6 +425,48 @@ const NO_DATA_SOURCE_INSTRUCTIONS = `
 ## Important
 No external data sources are currently enabled. If the user needs to search Google, Notion, Slack, or Asana data, remind them to select the desired service in the "Data Sources" menu first.`;
 
+const LLM_BRIDGE_INSTRUCTIONS = `
+
+## LLM Text Processing (built-in, always available)
+
+Tools can call LLM via \`window.companyAPI.execute("llm", action, params)\` to process text at runtime. This is a built-in platform capability — no data source selection needed. Users do NOT need an API key.
+
+\`\`\`js
+// Summarize
+const result = await window.companyAPI.execute("llm", "summarize", {
+  text: "long text to summarize...",
+  model: "claude-haiku",       // optional, defaults to claude-haiku
+  maxLength: 100,              // optional, max summary length in characters
+});
+// result = { text: "summary", model: "claude-haiku", tokenUsage: { input, output } }
+
+// Translate
+const result = await window.companyAPI.execute("llm", "translate", {
+  text: "text to translate...",
+  targetLanguage: "English",   // required
+});
+
+// Extract structured data (returns JSON string)
+const result = await window.companyAPI.execute("llm", "extract", {
+  text: "text containing contact info...",
+  fields: ["name", "email", "phone"],  // fields to extract
+});
+
+// Classify
+const result = await window.companyAPI.execute("llm", "classify", {
+  text: "This product is amazing!",
+  categories: ["positive", "negative", "neutral"],  // category options
+});
+\`\`\`
+
+Available models: claude-sonnet, claude-haiku, gpt-5-mini, gpt-5-nano, gemini-flash, gemini-pro.
+
+Important:
+- LLM calls take 2-10 seconds — always show a loading state while waiting
+- Max input ~6000 Chinese characters per call; longer text will be truncated
+- Use for button-triggered actions (e.g. "Generate summary", "Translate"). Do NOT call LLM inside useEffect or in loops
+- The result object has \`result.text\` for the LLM response text`;
+
 // companyAPI instructions for tool building
 function buildCompanyApiInstructions(dataSources: string[]): string {
   const sourceDescriptions: string[] = [];
@@ -646,7 +688,9 @@ useEffect(() => {
     .then(r => setData(r))
     .finally(() => setLoading(false));
 }, [page]);
-\`\`\``;
+\`\`\`
+
+`;
 }
 
 /**
@@ -672,6 +716,7 @@ export function buildSystemPrompt(dataSources?: string[]): string {
 
   if (!dataSources || dataSources.length === 0) {
     prompt += NO_DATA_SOURCE_INSTRUCTIONS;
+    prompt += LLM_BRIDGE_INSTRUCTIONS;
     return prompt;
   }
 
@@ -736,6 +781,9 @@ export function buildSystemPrompt(dataSources?: string[]): string {
 
   // companyAPI instructions for tool building with live data
   prompt += buildCompanyApiInstructions(dataSources);
+
+  // LLM bridge — always available regardless of data source selection
+  prompt += LLM_BRIDGE_INSTRUCTIONS;
 
   return prompt;
 }

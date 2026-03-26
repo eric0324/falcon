@@ -50,17 +50,9 @@ export function ToolRunner({ code, toolId, dataSources }: ToolRunnerProps) {
   const [key, setKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const hasBridge = !!(toolId || (dataSources && dataSources.length > 0));
-  const apiClientCode = hasBridge ? generateSandboxApiClient() : `
-window.companyAPI = {
-  execute: async (ds, action, params) => { console.log('[Mock] execute:', ds, action, params); return {}; },
-  query: async (ds, sql) => { console.log('[Mock] query:', ds, sql); return []; },
-  list: async (ds, params) => { console.log('[Mock] list:', ds, params); return []; },
-  read: async (ds, params) => { console.log('[Mock] read:', ds, params); return {}; },
-  search: async (ds, params) => { console.log('[Mock] search:', ds, params); return []; }
-};
-console.log('[Falcon] Mock API ready');
-`;
+  const hasDataSources = !!(toolId || (dataSources && dataSources.length > 0));
+  // Always use real API client — LLM bridge is a platform capability available to all tools
+  const apiClientCode = generateSandboxApiClient();
 
   // Handle API bridge messages from the sandbox
   const handleMessage = useCallback(
@@ -71,7 +63,8 @@ console.log('[Falcon] Mock API ready');
       }
 
       if (!event.data || event.data.type !== "api-bridge") return;
-      if (!hasBridge) return;
+      const isLLM = event.data.dataSourceId === "llm";
+      if (!isLLM && !hasDataSources) return;
 
       const { id, dataSourceId, action, params } = event.data;
 
@@ -115,7 +108,7 @@ console.log('[Falcon] Mock API ready');
         }
       }
     },
-    [toolId, dataSources, hasBridge]
+    [toolId, dataSources, hasDataSources]
   );
 
   useEffect(() => {

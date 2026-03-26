@@ -10,6 +10,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.17.0",
+    title: "工具也能用 AI 了",
+    summary:
+      "現在你做的工具可以呼叫 AI 來處理文字了！摘要、翻譯、資訊萃取、分類，全部內建，不用額外設定。",
+    items: [
+      "工具內建 AI 文字處理：摘要、翻譯、萃取、分類四種操作",
+      "所有 AI 模型皆可選用，預設使用 Claude Haiku",
+      "平台內建能力，所有工具直接可用，不需要選擇資料來源",
+    ],
+  },
+  {
     version: "v0.16.0",
     title: "Vimeo 資料來源",
     summary:

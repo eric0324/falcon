@@ -66,17 +66,9 @@ export function PreviewPanel({ code, dataSources, onError, onShare }: PreviewPan
   const [, setError] = useState<string | null>(null);
   const displayCode = code || DEFAULT_CODE;
 
-  const hasBridge = dataSources && dataSources.length > 0;
-  const apiClientCode = hasBridge ? generateSandboxApiClient() : `
-window.companyAPI = {
-  execute: async function(ds, action, params) { console.log('[Mock] execute:', ds, action, params); return {}; },
-  query: async function(ds, sql) { console.log('[Mock] query:', ds, sql); return []; },
-  list: async function(ds, params) { console.log('[Mock] list:', ds, params); return []; },
-  read: async function(ds, params) { console.log('[Mock] read:', ds, params); return {}; },
-  search: async function(ds, params) { console.log('[Mock] search:', ds, params); return []; }
-};
-console.log('[Falcon] Mock API ready');
-`;
+  const hasDataSources = dataSources && dataSources.length > 0;
+  // Always use real API client — LLM bridge is a platform capability available to all tools
+  const apiClientCode = generateSandboxApiClient();
 
   // Handle bridge messages from iframe (preview mode)
   const handleMessage = useCallback(
@@ -94,8 +86,9 @@ console.log('[Falcon] Mock API ready');
 
       // Bridge message handling
       if (event.data?.type !== "api-bridge") return;
-      console.log("[PreviewPanel Bridge] received:", event.data, "hasBridge:", hasBridge, "dataSources:", dataSources);
-      if (!hasBridge) return;
+      const isLLM = event.data.dataSourceId === "llm";
+      // Allow LLM calls always; other data sources require explicit selection
+      if (!isLLM && !hasDataSources) return;
 
       const { id, dataSourceId, action, params } = event.data;
 
@@ -137,7 +130,7 @@ console.log('[Falcon] Mock API ready');
         }
       }
     },
-    [onError, hasBridge, dataSources]
+    [onError, hasDataSources, dataSources]
   );
 
   useEffect(() => {

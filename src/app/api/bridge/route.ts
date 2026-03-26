@@ -32,48 +32,49 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2. Determine allowed data sources
-    let allowedSources: string[];
+    // 2. Platform capabilities (always allowed, skip permission check)
+    const isPlatformCapability = dataSourceId === "llm";
 
+    // 3. For non-platform calls, check data source permissions
     let toolName: string | undefined;
 
-    if (toolId) {
-      // Published mode: look up from Tool.dataSources
-      const tool = await prisma.tool.findUnique({
-        where: { id: toolId },
-        select: { dataSources: true, name: true },
-      });
-      if (!tool) {
-        return NextResponse.json({ error: "Tool not found" }, { status: 404 });
-      }
-      allowedSources = (tool.dataSources as string[]) || [];
-      toolName = tool.name;
-    } else if (previewDataSources && Array.isArray(previewDataSources)) {
-      // Preview mode: use the provided list
-      allowedSources = previewDataSources;
-    } else {
-      return NextResponse.json(
-        { error: "Either toolId or dataSources is required" },
-        { status: 400 }
-      );
-    }
+    if (!isPlatformCapability) {
+      let allowedSources: string[];
 
-    // 3. Check dataSourceId is allowed
-    // For extdb_*, check if any extdb_ source is in the allowed list
-    // For google_*, check exact match
-    const isAllowed = allowedSources.some((src) => {
-      if (dataSourceId.startsWith("extdb_") && src.startsWith("extdb_")) {
-        // extdb sources: exact match on the database ID
+      if (toolId) {
+        // Published mode: look up from Tool.dataSources
+        const tool = await prisma.tool.findUnique({
+          where: { id: toolId },
+          select: { dataSources: true, name: true },
+        });
+        if (!tool) {
+          return NextResponse.json({ error: "Tool not found" }, { status: 404 });
+        }
+        allowedSources = (tool.dataSources as string[]) || [];
+        toolName = tool.name;
+      } else if (previewDataSources && Array.isArray(previewDataSources)) {
+        // Preview mode: use the provided list
+        allowedSources = previewDataSources;
+      } else {
+        return NextResponse.json(
+          { error: "Either toolId or dataSources is required" },
+          { status: 400 }
+        );
+      }
+
+      const isAllowed = allowedSources.some((src) => {
+        if (dataSourceId.startsWith("extdb_") && src.startsWith("extdb_")) {
+          return src === dataSourceId;
+        }
         return src === dataSourceId;
-      }
-      return src === dataSourceId;
-    });
+      });
 
-    if (!isAllowed) {
-      return NextResponse.json(
-        { error: `Data source "${dataSourceId}" is not authorized for this tool` },
-        { status: 403 }
-      );
+      if (!isAllowed) {
+        return NextResponse.json(
+          { error: `Data source "${dataSourceId}" is not authorized for this tool` },
+          { status: 403 }
+        );
+      }
     }
 
     // 4. Dispatch to handler with logging
