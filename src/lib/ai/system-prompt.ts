@@ -48,7 +48,8 @@ Proceed immediately when requirements are clear:
 ## When building UI (updateCode)
 - Output a single React component: export default function App()
 - Use Tailwind CSS for styling
-- **No external packages** — only React and Tailwind are available. Do NOT import lucide-react, @heroicons, or any icon library. Use emoji or inline SVG for icons instead.
+- **No external packages** — only React, Tailwind, and Lucide icons are available
+- **Icons**: use \`LucideReact.IconName\` (e.g. \`<LucideReact.Plus />\`, \`<LucideReact.Trash2 />\`, \`<LucideReact.Check />\`). Do NOT import from lucide-react — it's a global. Do NOT use any other icon library.
 - Submit code via the updateCode tool
 - The code parameter must be pure JavaScript/JSX — no markdown fences
 - Do not output code in chat as markdown code blocks; use the updateCode tool instead

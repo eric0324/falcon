@@ -163,7 +163,6 @@ export function WhatsNewDialog() {
 
   // Find the latest entry that should show the dialog
   const latest = changelog.find((e) => e.showDialog !== false);
-  const latestVersion = latest?.version ?? CURRENT_VERSION;
 
   useEffect(() => {
     const lastSeen = localStorage.getItem(LS_KEY);
