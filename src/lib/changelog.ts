@@ -17,7 +17,7 @@ export const changelog: ChangelogEntry[] = [
     items: [
       "工具自動草稿：AI 產生程式碼時自動建立草稿，預覽階段就能完整使用所有功能",
       "Notion 搜尋大升級：新增 searchAll 跨所有資料庫搜尋，改用原生 filter API，不再漏找",
-      "Notion 搜尋策略優化：同時搜尋資料庫頁面和獨立頁面，一次找齊",
+      "Notion 搜尋策略改善：同時搜尋資料庫頁面和獨立頁面，一次找齊",
     ],
   },
   {
