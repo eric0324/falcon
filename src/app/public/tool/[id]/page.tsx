@@ -24,11 +24,12 @@ export default async function PublicToolPage({ params }: PublicToolPageProps) {
       description: true,
       code: true,
       visibility: true,
+      status: true,
       dataSources: true,
     },
   });
 
-  if (!tool || tool.visibility !== "PUBLIC") {
+  if (!tool || tool.visibility !== "PUBLIC" || tool.status === "DRAFT") {
     notFound();
   }
 

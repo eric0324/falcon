@@ -100,7 +100,7 @@ export async function PATCH(
 
   try {
     const { id } = await params;
-    const { name, description, code, category, tags, visibility, conversationId, dataSources, allowedGroupIds } = await req.json();
+    const { name, description, code, category, tags, visibility, status, conversationId, dataSources, allowedGroupIds, messages } = await req.json();
 
     // Check ownership
     const existingTool = await prisma.tool.findUnique({
@@ -138,6 +138,7 @@ export async function PATCH(
         ...(tags !== undefined && { tags }),
         ...(visibility && { visibility }),
         ...(conversationId && !existingTool.conversationId && { conversationId }),
+        ...(status && { status }),
         ...(dataSources !== undefined && { dataSources }),
         ...(allowedGroupIds !== undefined && {
           allowedGroups: {

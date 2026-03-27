@@ -7,6 +7,7 @@ import { generateSandboxApiClient } from "@/lib/sandbox-api-client";
 
 interface PreviewPanelProps {
   code: string;
+  toolId?: string | null;
   dataSources?: string[];
   onError?: (error: string | null) => void;
   onShare?: () => void;
@@ -61,7 +62,7 @@ function buildPreviewHtml(code: string, apiClientCode?: string): string {
 </html>`;
 }
 
-export function PreviewPanel({ code, dataSources, onError, onShare }: PreviewPanelProps) {
+export function PreviewPanel({ code, toolId, dataSources, onError, onShare }: PreviewPanelProps) {
   const [key, setKey] = useState(0);
   const [, setError] = useState<string | null>(null);
   const displayCode = code || DEFAULT_CODE;
@@ -97,7 +98,12 @@ export function PreviewPanel({ code, dataSources, onError, onShare }: PreviewPan
         const response = await fetch("/api/bridge", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ dataSources, dataSourceId, action, params }),
+          body: JSON.stringify({
+            ...(toolId ? { toolId } : { dataSources }),
+            dataSourceId,
+            action,
+            params,
+          }),
         });
 
         const result = await response.json();
@@ -130,7 +136,7 @@ export function PreviewPanel({ code, dataSources, onError, onShare }: PreviewPan
         }
       }
     },
-    [onError, hasDataSources, dataSources]
+    [onError, hasDataSources, toolId, dataSources]
   );
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { Prisma, Visibility } from "@prisma/client";
+import { Prisma, Visibility, ToolStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
  */
 export function buildVisibilityFilter(userId: string): Prisma.ToolWhereInput {
   return {
+    status: ToolStatus.PUBLISHED,
     OR: [
       { visibility: Visibility.PUBLIC },
       { visibility: Visibility.COMPANY },
@@ -34,11 +35,14 @@ export function buildVisibilityFilter(userId: string): Prisma.ToolWhereInput {
  * Returns true if the user is the author or the tool's visibility allows access.
  */
 export async function canUserAccessTool(
-  tool: { id: string; authorId: string; visibility: Visibility },
+  tool: { id: string; authorId: string; visibility: Visibility; status?: string },
   userId: string
 ): Promise<boolean> {
   // Author always has access
   if (tool.authorId === userId) return true;
+
+  // DRAFT tools are only accessible by author
+  if (tool.status === "DRAFT") return false;
 
   switch (tool.visibility) {
     case Visibility.PUBLIC:

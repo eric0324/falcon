@@ -80,6 +80,7 @@ function StudioContent() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [code, setCode] = useState("");
+  const [draftToolId, setDraftToolId] = useState<string | null>(null);
   const [currentToolCalls, setCurrentToolCalls] = useState<ToolCall[]>([]);
   const [showDeployDialog, setShowDeployDialog] = useState(false);
   const [toolName, setToolName] = useState("");
@@ -167,6 +168,7 @@ function StudioContent() {
     setMessages([]);
     setInput("");
     setCode("");
+    setDraftToolId(null);
     setCurrentToolCalls([]);
     setToolName("");
     setToolDescription("");
@@ -182,6 +184,26 @@ function StudioContent() {
     setUsedDataSources([]);
     setCompactInfo(null);
   }, []);
+
+  // Save or update draft tool when code changes via AI
+  const saveDraft = useCallback(async (newCode: string) => {
+    // Skip if editing a published tool, or no conversation yet
+    if (editId || !convId) return;
+
+    try {
+      const res = await fetch("/api/tools/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: newCode, conversationId: convId }),
+      });
+      if (res.ok) {
+        const { toolId } = await res.json();
+        setDraftToolId(toolId);
+      }
+    } catch {
+      // Silent fail — draft saving is best-effort
+    }
+  }, [editId, convId]);
 
   // Reset state when navigating to /chat without id (new conversation)
   useEffect(() => {
@@ -283,6 +305,11 @@ function StudioContent() {
 
         setCode(foundCode || "");
         setConvId(loadId);
+
+        // Restore draft toolId if conversation has a linked tool
+        if (conv.tool?.id) {
+          setDraftToolId(conv.tool.id);
+        }
       })
       .catch(() => {
         toast({
@@ -474,6 +501,7 @@ function StudioContent() {
                       console.log("[Debug] Final code length:", finalCode.length);
                       console.log("[Debug] Final code preview:", finalCode.substring(0, 200));
                       setCode(finalCode);
+                      saveDraft(finalCode);
                     }
                   }
 
@@ -690,6 +718,7 @@ function StudioContent() {
                         const extracted = extractCode(result.code);
                         const finalCode = extracted || result.code;
                         setCode(finalCode);
+                        saveDraft(finalCode);
                       }
                     }
                   }
@@ -735,8 +764,10 @@ function StudioContent() {
     allowedGroupIds: string[];
   }) => {
     try {
-      const endpoint = editId ? `/api/tools/${editId}` : "/api/tools";
-      const method = editId ? "PATCH" : "POST";
+      // If editing a published tool, or publishing a draft, use PATCH
+      const targetId = editId || draftToolId;
+      const endpoint = targetId ? `/api/tools/${targetId}` : "/api/tools";
+      const method = targetId ? "PATCH" : "POST";
 
       const res = await fetch(endpoint, {
         method,
@@ -747,6 +778,7 @@ function StudioContent() {
           category: data.category,
           tags: data.tags,
           visibility: data.visibility,
+          status: "PUBLISHED",
           allowedGroupIds: data.allowedGroupIds,
           code,
           messages,
@@ -1156,6 +1188,7 @@ function StudioContent() {
             {isDragging && <div className="absolute inset-0 z-50" />}
             <PreviewPanel
               code={code}
+              toolId={editId || draftToolId}
               dataSources={selectedDataSources}
               onError={handlePreviewError}
               onShare={() => setShowDeployDialog(true)}

@@ -12,6 +12,7 @@ interface RouteContext {
 async function getConversationIfOwned(conversationId: string, userId: string) {
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },
+    include: { tool: { select: { id: true, status: true } } },
   });
   if (!conversation || conversation.deletedAt) return { error: 404 as const, conversation: null };
   if (conversation.userId !== userId) return { error: 403 as const, conversation: null };

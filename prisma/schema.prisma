@@ -19,6 +19,11 @@ enum Visibility {
   PUBLIC
 }
 
+enum ToolStatus {
+  DRAFT
+  PUBLISHED
+}
+
 model UserAccount {
   id                String  @id @default(cuid())
   userId            String
@@ -68,6 +73,7 @@ model Tool {
   description String?
   code        String     @db.Text
   visibility  Visibility @default(PRIVATE)
+  status      ToolStatus @default(DRAFT)
   category    String?
   tags        String[]
   dataSources Json?
@@ -90,6 +96,7 @@ model Tool {
 
   @@index([category])
   @@index([visibility])
+  @@index([status])
   @@index([createdAt])
 }
 
