@@ -36,7 +36,7 @@ export async function POST(req: Request) {
   // Create a new draft tool
   const tool = await prisma.tool.create({
     data: {
-      name: "",
+      name: "未命名工具",
       code,
       status: "DRAFT",
       authorId: session.user.id,

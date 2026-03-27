@@ -94,6 +94,62 @@ window.__bridgeCall = function(payload) {
   });
 };
 
+// ===== Tool Database SDK =====
+
+// Retry wrapper for tooldb — draft tool may not be ready yet when iframe loads
+window.__tooldbCall = function(payload) {
+  var maxRetries = 5;
+  var delay = 800;
+  function attempt(n) {
+    return window.__bridgeCall(payload).catch(function(err) {
+      if (n < maxRetries && err.message && err.message.indexOf('toolId') !== -1) {
+        return new Promise(function(resolve) {
+          setTimeout(function() { resolve(attempt(n + 1)); }, delay);
+        });
+      }
+      throw err;
+    });
+  }
+  return attempt(0);
+};
+
+window.tooldb = {
+  createTable: function(name, columns) {
+    return window.__tooldbCall({ dataSourceId: 'tooldb', action: 'createTable', params: { name: name, columns: columns } });
+  },
+  updateSchema: function(tableId, columns) {
+    return window.__tooldbCall({ dataSourceId: 'tooldb', action: 'updateSchema', params: { tableId: tableId, columns: columns } });
+  },
+  deleteTable: function(tableId) {
+    return window.__tooldbCall({ dataSourceId: 'tooldb', action: 'deleteTable', params: { tableId: tableId } });
+  },
+  listTables: function() {
+    return window.__tooldbCall({ dataSourceId: 'tooldb', action: 'listTables', params: {} });
+  },
+  insert: function(tableId, data) {
+    return window.__tooldbCall({ dataSourceId: 'tooldb', action: 'insert', params: { tableId: tableId, data: data } });
+  },
+  list: function(tableId, options) {
+    var params = { tableId: tableId };
+    if (options) {
+      if (options.filter) params.filter = options.filter;
+      if (options.sort) params.sort = options.sort;
+      if (typeof options.limit === 'number') params.limit = options.limit;
+      if (typeof options.offset === 'number') params.offset = options.offset;
+    }
+    return window.__tooldbCall({ dataSourceId: 'tooldb', action: 'list', params: params });
+  },
+  get: function(tableId, rowId) {
+    return window.__tooldbCall({ dataSourceId: 'tooldb', action: 'get', params: { tableId: tableId, rowId: rowId } });
+  },
+  update: function(tableId, rowId, data) {
+    return window.__tooldbCall({ dataSourceId: 'tooldb', action: 'update', params: { tableId: tableId, rowId: rowId, data: data } });
+  },
+  delete: function(tableId, rowId) {
+    return window.__tooldbCall({ dataSourceId: 'tooldb', action: 'delete', params: { tableId: tableId, rowId: rowId } });
+  }
+};
+
 console.log('[Falcon] Company API Bridge ready');
 `;
 }

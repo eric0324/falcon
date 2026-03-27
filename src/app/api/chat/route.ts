@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { streamText } from "ai";
 import { models, ModelId, defaultModel } from "@/lib/ai/models";
-import { studioTools } from "@/lib/ai/tools";
+import { createStudioTools } from "@/lib/ai/tools";
 import { createGoogleTools } from "@/lib/ai/google-tools";
 import { createNotionTools } from "@/lib/ai/notion-tools";
 import { createSlackTools } from "@/lib/ai/slack-tools";
@@ -141,7 +141,7 @@ export async function POST(req: Request) {
 
     // Filter tools based on selected data sources
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let filteredTools: Record<string, any> = { ...studioTools };
+    let filteredTools: Record<string, any> = { ...createStudioTools(userId, conversationId) };
 
     // Only add external tools for explicitly selected data sources
     if (dataSources && dataSources.length > 0) {

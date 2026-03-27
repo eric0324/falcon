@@ -93,11 +93,39 @@ model Tool {
   reviews ToolReview[]
   stats   ToolStats?
   scans   CodeScan[]
+  tables  ToolTable[]
 
   @@index([category])
   @@index([visibility])
   @@index([status])
   @@index([createdAt])
+}
+
+model ToolTable {
+  id      String @id @default(cuid())
+  tool    Tool   @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  toolId  String
+  name    String
+  columns Json   // [{ name, type, options? }]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  rows      ToolRow[]
+
+  @@unique([toolId, name])
+}
+
+model ToolRow {
+  id        String    @id @default(cuid())
+  table     ToolTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  tableId   String
+  data      Json
+  createdBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tableId, createdAt])
 }
 
 model Conversation {

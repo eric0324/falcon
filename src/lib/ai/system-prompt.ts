@@ -41,13 +41,14 @@ Proceed immediately when requirements are clear:
 ## Response Language
 - Always respond in **Traditional Chinese (Taiwan)**. Never use Mainland Chinese (Simplified Chinese) expressions.
 - Be concise and clear.
-- Vocabulary guide (left = DO NOT use, right = correct):
+- **STRICTLY FORBIDDEN vocabulary** (left = BANNED, right = must use instead):
   優化→改善/改進、信息→資訊、視頻→影片、數據→資料、用戶→使用者、反饋→回饋、激活→啟用、默認→預設、鏈接→連結、文檔→文件、終端→終端機、交互→互動、響應→回應、場景→情境、方案→方式/做法
+- This is a hard rule. Using any banned word is considered a critical error.
 
 ## When building UI (updateCode)
 - Output a single React component: export default function App()
 - Use Tailwind CSS for styling
-- No external packages (except React)
+- **No external packages** — only React and Tailwind are available. Do NOT import lucide-react, @heroicons, or any icon library. Use emoji or inline SVG for icons instead.
 - Submit code via the updateCode tool
 - The code parameter must be pure JavaScript/JSX — no markdown fences
 - Do not output code in chat as markdown code blocks; use the updateCode tool instead
@@ -467,6 +468,128 @@ Important:
 - Use for button-triggered actions (e.g. "Generate summary", "Translate"). Do NOT call LLM inside useEffect or in loops
 - The result object has \`result.text\` for the LLM response text`;
 
+const TOOLDB_INSTRUCTIONS = `
+
+## Tool Database (built-in, always available)
+
+Tools can use \`window.tooldb\` to read/write their own data tables for persistent storage. This is a built-in platform capability — no data source selection needed.
+
+### Create Table (call on tool initialization)
+
+\`\`\`js
+// In useEffect — idempotent: returns existing table if already created
+const { table } = await window.tooldb.createTable("leave_requests", [
+  { name: "employee", type: "text" },
+  { name: "date", type: "date" },
+  { name: "type", type: "select", options: ["annual", "sick", "personal"] },
+  { name: "reason", type: "text" },
+  { name: "status", type: "select", options: ["pending", "approved", "rejected"] },
+]);
+const tableId = table.id; // use this id for all CRUD operations
+\`\`\`
+
+### CRUD Operations
+
+\`\`\`js
+// Insert
+const { row } = await window.tooldb.insert(tableId, {
+  employee: "Alice", date: "2026-03-20", type: "annual", reason: "Family trip", status: "pending"
+});
+
+// List with filter, sort, pagination
+const { rows, total } = await window.tooldb.list(tableId, {
+  filter: { status: "pending" },           // exact match
+  sort: { field: "date", order: "desc" },  // sort
+  limit: 20, offset: 0,                    // pagination
+  mine: true,                              // only show current user's data (optional)
+});
+
+// Get single row
+const { row } = await window.tooldb.get(tableId, rowId);
+
+// Update (shallow merge — only send changed fields)
+await window.tooldb.update(tableId, rowId, { status: "approved" });
+
+// Delete
+await window.tooldb.delete(tableId, rowId);
+\`\`\`
+
+### Column Types
+- \`text\`: string
+- \`number\`: number
+- \`date\`: date (use ISO format string)
+- \`boolean\`: true/false
+- \`select\`: enum (with options array)
+
+### Complete Example Pattern
+
+Always follow this pattern when building tools with persistent data:
+
+\`\`\`jsx
+export default function App() {
+  const [tableId, setTableId] = useState(null);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Step 1: Init table + load data (run once on mount)
+  useEffect(() => {
+    async function init() {
+      const { table } = await window.tooldb.createTable("todos", [
+        { name: "text", type: "text" },
+        { name: "done", type: "boolean" },
+      ]);
+      setTableId(table.id);
+      const { rows } = await window.tooldb.list(table.id);
+      setItems(rows);
+      setLoading(false);
+    }
+    init();
+  }, []);
+
+  // Step 2: CRUD functions that update both DB and local state
+  async function addItem(text) {
+    const { row } = await window.tooldb.insert(tableId, { text, done: false });
+    setItems(prev => [...prev, row]);
+  }
+
+  async function toggleItem(id, currentDone) {
+    const { row } = await window.tooldb.update(tableId, id, { done: !currentDone });
+    setItems(prev => prev.map(r => r.id === id ? row : r));
+  }
+
+  async function deleteItem(id) {
+    await window.tooldb.delete(tableId, id);
+    setItems(prev => prev.filter(r => r.id !== id));
+  }
+
+  if (loading) return <div className="p-8 text-center">Loading...</div>;
+
+  // Step 3: Render using items state — access fields via row.data.fieldName
+  return (
+    <div>
+      {items.map(row => (
+        <div key={row.id}>
+          <span>{row.data.text}</span>
+          <button onClick={() => toggleItem(row.id, row.data.done)}>
+            {row.data.done ? "Undo" : "Done"}
+          </button>
+          <button onClick={() => deleteItem(row.id)}>Delete</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+\`\`\`
+
+### Key Rules
+- **Always use \`row.data.fieldName\`** to access field values — the row object has \`{ id, data: { ...fields }, createdAt }\`
+- **Always update local state after DB operations** — don't re-fetch the entire list
+- **Init table in useEffect with empty deps \`[]\`** — createTable is idempotent, safe to call every mount
+- **Show a loading state** while init is running — the table won't be ready immediately
+- **Use \`table.id\` from createTable result** as the tableId for all subsequent calls
+- **Shared vs personal data**: by default all users see the same data. Pass \`mine: true\` in list options to only show the current user's own entries
+- Max 10,000 rows per table, max 10KB per row`;
+
 // companyAPI instructions for tool building
 function buildCompanyApiInstructions(dataSources: string[]): string {
   const sourceDescriptions: string[] = [];
@@ -717,6 +840,7 @@ export function buildSystemPrompt(dataSources?: string[]): string {
   if (!dataSources || dataSources.length === 0) {
     prompt += NO_DATA_SOURCE_INSTRUCTIONS;
     prompt += LLM_BRIDGE_INSTRUCTIONS;
+    prompt += TOOLDB_INSTRUCTIONS;
     return prompt;
   }
 
@@ -784,6 +908,9 @@ export function buildSystemPrompt(dataSources?: string[]): string {
 
   // LLM bridge — always available regardless of data source selection
   prompt += LLM_BRIDGE_INSTRUCTIONS;
+
+  // Tool database — always available
+  prompt += TOOLDB_INSTRUCTIONS;
 
   return prompt;
 }

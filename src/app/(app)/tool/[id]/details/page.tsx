@@ -9,7 +9,7 @@ import { canUserAccessTool } from "@/lib/tool-visibility";
 import { getCategoryById } from "@/lib/categories";
 import { formatDistanceToNow } from "date-fns";
 import { zhTW } from "date-fns/locale";
-import { ArrowLeft, Pencil, Play } from "lucide-react";
+import { ArrowLeft, Pencil, Play, Database } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import { ToolStats } from "@/components/tool-stats";
@@ -114,6 +114,12 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
             </div>
             <div className="flex gap-2 shrink-0">
               <ShareButton toolId={tool.id} visibility={tool.visibility} label={tCommon("share")} />
+              <Button variant="outline" size="sm" asChild>
+                <a href={`/tool/${tool.id}/data`} target="_blank" rel="noopener noreferrer">
+                  <Database className="h-4 w-4 mr-1" />
+                  查看資料
+                </a>
+              </Button>
               {isOwner && (
                 <Button variant="outline" size="sm" asChild>
                   <Link href={`/chat?edit=${tool.id}`}>
@@ -179,6 +185,7 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
           />
         </div>
 
+        {/* Database Tables — only visible to tool owner */}
         {/* Reviews Section */}
         {/* TODO: 上線前改回 canReview={!isOwner} */}
         <ReviewSection

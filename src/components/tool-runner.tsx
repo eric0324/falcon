@@ -11,10 +11,19 @@ interface ToolRunnerProps {
   dataSources?: string[]; // Preview mode: allowed data sources from conversation
 }
 
+function detectComponentName(code: string): string {
+  const m = code.match(/export\s+default\s+function\s+([A-Z]\w*)/) ||
+    code.match(/export\s+default\s+([A-Z]\w*)\s*;?\s*$/) ||
+    Array.from(code.matchAll(/^(?:function|const)\s+([A-Z]\w*)/gm)).pop();
+  return m?.[1] || "App";
+}
+
 function buildToolHtml(code: string, apiClientCode: string): string {
-  const cleanCode = code
+  const componentName = detectComponentName(code);
+  let cleanCode = code
     .replace(/^import\s+.*?from\s+['"][^'"]+['"];?\s*\n?/gm, "")
     .replace(/export\s+default\s+/, "");
+  if (componentName !== "App") cleanCode += `\nconst App = ${componentName};`;
 
   return `<!DOCTYPE html>
 <html>

@@ -6,9 +6,22 @@ export interface ChangelogEntry {
   summary: string;
   /** Settings changelog 用：條列式項目 */
   items: string[];
+  /** 是否在 What's New dialog 顯示，預設 true */
+  showDialog?: boolean;
 }
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: "v0.19.0",
+    title: "工具資料庫上線",
+    summary:
+      "工具終於能存資料了！做表單、記錄、清單類的工具，資料會自動保存到資料庫，重新整理也不會消失。",
+    items: [
+      "工具資料庫：工具可以建立自己的資料表，支援新增、查詢、修改、刪除",
+      "個人/共用資料：預設全部人共用資料，也可以切換為只看自己的資料",
+      "資料表檢視：在工具詳情頁可以查看資料表內容，支援分頁瀏覽",
+    ],
+  },
   {
     version: "v0.18.0",
     title: "工具自動儲存草稿",
@@ -16,8 +29,7 @@ export const changelog: ChangelogEntry[] = [
       "AI 幫你寫工具的時候，系統會自動建立草稿，不用等到部署才存。Notion 搜尋也變聰明了，不再找不到東西。",
     items: [
       "工具自動草稿：AI 產生程式碼時自動建立草稿，預覽階段就能完整使用所有功能",
-      "Notion 搜尋大升級：新增 searchAll 跨所有資料庫搜尋，改用原生 filter API，不再漏找",
-      "Notion 搜尋策略改善：同時搜尋資料庫頁面和獨立頁面，一次找齊",
+      "Notion 搜尋改善：新增跨所有資料庫搜尋，同時搜尋資料庫頁面和獨立頁面",
     ],
   },
   {

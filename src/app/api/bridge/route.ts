@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     }
 
     // 2. Platform capabilities (always allowed, skip permission check)
-    const isPlatformCapability = dataSourceId === "llm";
+    const isPlatformCapability = dataSourceId === "llm" || dataSourceId === "tooldb";
 
     // 3. For non-platform calls, check data source permissions
     let toolName: string | undefined;
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
     // 4. Dispatch to handler with logging
     const start = Date.now();
     try {
-      const data = await dispatchBridge(user.id, dataSourceId, action, params || {});
+      const data = await dispatchBridge(user.id, dataSourceId, action, params || {}, { toolId });
       logDataSourceCall({
         userId: user.id,
         toolId: toolId ?? undefined,

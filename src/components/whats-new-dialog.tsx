@@ -161,12 +161,22 @@ function AnimatedVisual() {
 export function WhatsNewDialog() {
   const [open, setOpen] = useState(false);
 
+  // Find the latest entry that should show the dialog
+  const latest = changelog.find((e) => e.showDialog !== false);
+  const latestVersion = latest?.version ?? CURRENT_VERSION;
+
   useEffect(() => {
     const lastSeen = localStorage.getItem(LS_KEY);
     if (lastSeen !== CURRENT_VERSION) {
-      const timer = setTimeout(() => setOpen(true), 800);
-      return () => clearTimeout(timer);
+      // Only open dialog if the latest displayable entry is newer than last seen
+      if (latest && latest.showDialog !== false) {
+        const timer = setTimeout(() => setOpen(true), 800);
+        return () => clearTimeout(timer);
+      }
+      // Still update the stored version so we don't re-check
+      localStorage.setItem(LS_KEY, CURRENT_VERSION);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleClose = () => {
@@ -174,7 +184,6 @@ export function WhatsNewDialog() {
     setOpen(false);
   };
 
-  const latest = changelog[0];
   if (!latest) return null;
 
   return (

@@ -81,6 +81,7 @@ import {
 } from "@/lib/integrations/vimeo";
 import { generateText } from "ai";
 import { models, defaultModel, type ModelId } from "@/lib/ai/models";
+import { handleToolDB } from "@/lib/bridge/tooldb-handler";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Params = Record<string, any>;
@@ -539,7 +540,8 @@ export async function dispatchBridge(
   userId: string,
   dataSourceId: string,
   action: string,
-  params: Params
+  params: Params,
+  context?: { toolId?: string }
 ): Promise<unknown> {
   // External database: extdb_{databaseId}
   if (dataSourceId.startsWith("extdb_")) {
@@ -551,6 +553,12 @@ export async function dispatchBridge(
   if (dataSourceId.startsWith("google_")) {
     const service = dataSourceId.replace("google_", "");
     return handleGoogle(userId, service, action, params);
+  }
+
+  // Tool database
+  if (dataSourceId === "tooldb") {
+    if (!context?.toolId) throw new Error("tooldb requires toolId");
+    return handleToolDB(action, params, { toolId: context.toolId, userId });
   }
 
   // Simple prefix-to-handler mapping

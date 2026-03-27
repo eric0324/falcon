@@ -27,7 +27,7 @@ export default async function ToolsPage() {
   }
 
   const tools = await prisma.tool.findMany({
-    where: { authorId: user.id },
+    where: { authorId: user.id, status: "PUBLISHED" },
     orderBy: { updatedAt: "desc" },
   });
 

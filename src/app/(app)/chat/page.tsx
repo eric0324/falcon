@@ -185,26 +185,6 @@ function StudioContent() {
     setCompactInfo(null);
   }, []);
 
-  // Save or update draft tool when code changes via AI
-  const saveDraft = useCallback(async (newCode: string) => {
-    // Skip if editing a published tool, or no conversation yet
-    if (editId || !convId) return;
-
-    try {
-      const res = await fetch("/api/tools/draft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: newCode, conversationId: convId }),
-      });
-      if (res.ok) {
-        const { toolId } = await res.json();
-        setDraftToolId(toolId);
-      }
-    } catch {
-      // Silent fail — draft saving is best-effort
-    }
-  }, [editId, convId]);
-
   // Reset state when navigating to /chat without id (new conversation)
   useEffect(() => {
     if (isSubmittingRef.current) return;
@@ -492,16 +472,13 @@ function StudioContent() {
 
                   // Handle updateCode tool result
                   if (existing.name === "updateCode" && typeof resultData.result === "object" && resultData.result) {
-                    const result = resultData.result as { code?: string };
+                    const result = resultData.result as { code?: string; toolId?: string };
                     console.log("[Debug] updateCode result:", result);
+                    if (result.toolId) setDraftToolId(result.toolId);
                     if (result.code) {
-                      // Extract code from markdown if present
                       const extracted = extractCode(result.code);
                       const finalCode = extracted || result.code;
-                      console.log("[Debug] Final code length:", finalCode.length);
-                      console.log("[Debug] Final code preview:", finalCode.substring(0, 200));
                       setCode(finalCode);
-                      saveDraft(finalCode);
                     }
                   }
 
@@ -713,12 +690,12 @@ function StudioContent() {
                     setCurrentToolCalls(Array.from(toolCallsMap.values()));
 
                     if (existing.name === "updateCode" && typeof resultData.result === "object" && resultData.result) {
-                      const result = resultData.result as { code?: string };
+                      const result = resultData.result as { code?: string; toolId?: string };
+                      if (result.toolId) setDraftToolId(result.toolId);
                       if (result.code) {
                         const extracted = extractCode(result.code);
                         const finalCode = extracted || result.code;
                         setCode(finalCode);
-                        saveDraft(finalCode);
                       }
                     }
                   }

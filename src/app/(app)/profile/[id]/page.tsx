@@ -48,6 +48,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const tools = await prisma.tool.findMany({
     where: {
       authorId: user.id,
+      status: "PUBLISHED",
       ...(isOwner ? {} : buildVisibilityFilter(session.user.id)),
     },
     orderBy: { updatedAt: "desc" },
