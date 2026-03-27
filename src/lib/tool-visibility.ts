@@ -1,4 +1,4 @@
-import { Prisma, Visibility, ToolStatus } from "@prisma/client";
+import { Prisma, Visibility } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma";
  */
 export function buildVisibilityFilter(userId: string): Prisma.ToolWhereInput {
   return {
-    status: ToolStatus.PUBLISHED,
+    status: "PUBLISHED",
     OR: [
       { visibility: Visibility.PUBLIC },
       { visibility: Visibility.COMPANY },
