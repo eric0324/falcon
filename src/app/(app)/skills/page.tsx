@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Plus, Pencil, Trash2, Loader2, Wand2, Eye, EyeOff, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Wand2, Eye, EyeOff, Users, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -40,6 +40,7 @@ export default function SkillsPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
   const [saving, setSaving] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -143,8 +144,14 @@ export default function SkillsPage() {
   return (
     <div className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6 sm:mb-8 gap-4">
-        <div className="min-w-0">
+        <div className="min-w-0 flex items-center gap-2">
           <h2 className="text-xl sm:text-2xl font-bold">{t("title")}</h2>
+          <button
+            onClick={() => setHelpOpen(true)}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <HelpCircle className="h-5 w-5" />
+          </button>
         </div>
         <Button onClick={openCreate} className="shrink-0">
           <Plus className="mr-2 h-4 w-4" />
@@ -280,6 +287,40 @@ export default function SkillsPage() {
             <Button variant="destructive" onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}>
               {t("delete")}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Help Dialog */}
+      <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wand2 className="h-5 w-5" />
+              {t("helpTitle")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm text-muted-foreground">
+            <p>{t("helpIntro")}</p>
+            <div>
+              <p className="font-medium text-foreground mb-2">{t("helpExamplesTitle")}</p>
+              <ul className="space-y-1.5 list-disc list-inside">
+                <li>{t("helpExample1")}</li>
+                <li>{t("helpExample2")}</li>
+                <li>{t("helpExample3")}</li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium text-foreground mb-2">{t("helpHowTitle")}</p>
+              <ol className="space-y-1.5 list-decimal list-inside">
+                <li>{t("helpStep1")}</li>
+                <li>{t("helpStep2")}</li>
+                <li>{t("helpStep3")}</li>
+              </ol>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setHelpOpen(false)}>{t("helpGotIt")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
