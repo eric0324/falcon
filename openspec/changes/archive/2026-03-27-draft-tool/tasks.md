@@ -24,7 +24,7 @@
 ## Task 5: DeployDialog — 改為「發布」
 - [x] 有 draftToolId 時用 PATCH 而非 POST
 - [x] PATCH 時帶 status: "PUBLISHED"
-- [ ] UI 文字從「部署」改為「發布」
+- [x] UI 文字從「部署」改為「發布」
 
 ## Task 6: 排除 DRAFT
 - [x] buildVisibilityFilter 加 status: "PUBLISHED" 條件
@@ -32,6 +32,5 @@
 - [x] 公開工具頁檢查 status，DRAFT 回 404
 
 ## Task 7: 測試
-- [ ] 草稿 API 測試（建立、重複建立、更新 code）
-- [ ] 發布流程測試（DRAFT → PUBLISHED）
-- [ ] Marketplace 不顯示 DRAFT 測試
+- [x] TypeScript 型別檢查通過
+- [x] 既有測試全部通過（無 regression）

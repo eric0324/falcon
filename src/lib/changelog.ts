@@ -10,6 +10,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.18.0",
+    title: "工具自動儲存草稿",
+    summary:
+      "AI 幫你寫工具的時候，系統會自動建立草稿，不用等到部署才存。Notion 搜尋也變聰明了，不再找不到東西。",
+    items: [
+      "工具自動草稿：AI 產生程式碼時自動建立草稿，預覽階段就能完整使用所有功能",
+      "Notion 搜尋大升級：新增 searchAll 跨所有資料庫搜尋，改用原生 filter API，不再漏找",
+      "Notion 搜尋策略優化：同時搜尋資料庫頁面和獨立頁面，一次找齊",
+    ],
+  },
+  {
     version: "v0.17.0",
     title: "工具也能用 AI 了",
     summary:
