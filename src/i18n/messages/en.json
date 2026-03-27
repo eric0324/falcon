@@ -422,5 +422,26 @@
       "writing": "Writing",
       "other": "Other"
     }
+  },
+  "tokenBurners": {
+    "title": "Token Burners of the Week",
+    "subtitle": "Burn it. Let AI work for you.",
+    "tokens": "tokens",
+    "jensenQuote1": "If that $500,000 engineer did not consume at least $250,000 worth of tokens, I am going to be deeply alarmed.",
+    "jensenQuote2": "This is no different than one of our chip designers who says guess what, I'm just going to use paper and pencil.",
+    "jensenSource": "Jensen Huang, All-In Podcast"
+  },
+  "toolDatabase": {
+    "title": "Data Tables",
+    "columns": "Column Definitions",
+    "columnName": "Column",
+    "columnType": "Type",
+    "columnOptions": "Options",
+    "preview": "Data Preview",
+    "rows": "rows",
+    "backTo": "Back to",
+    "tableTitle": "Data Tables",
+    "noData": "—",
+    "viewData": "View Data"
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { Database, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 
 interface ColumnDef {
@@ -25,6 +26,7 @@ interface RowsResponse {
 }
 
 export function ToolDatabaseSection({ toolId }: { toolId: string }) {
+  const t = useTranslations("toolDatabase");
   const [tables, setTables] = useState<TableInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +56,7 @@ export function ToolDatabaseSection({ toolId }: { toolId: string }) {
     <div className="mb-8">
       <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
         <Database className="h-5 w-5" />
-        資料表
+        {t("title")}
       </h2>
       <div className="space-y-3">
         {tables.map((table) => (
@@ -66,6 +68,7 @@ export function ToolDatabaseSection({ toolId }: { toolId: string }) {
 }
 
 function TableCard({ table, toolId }: { table: TableInfo; toolId: string }) {
+  const t = useTranslations("toolDatabase");
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -77,19 +80,19 @@ function TableCard({ table, toolId }: { table: TableInfo; toolId: string }) {
         <div className="flex items-center gap-2">
           {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
           <span className="font-medium">{table.name}</span>
-          <span className="text-sm text-muted-foreground">({table.rowCount.toLocaleString()} 筆)</span>
+          <span className="text-sm text-muted-foreground">({table.rowCount.toLocaleString()} {t("rows")})</span>
         </div>
       </button>
       {expanded && (
         <div className="border-t px-4 py-3 space-y-4">
           <div>
-            <h4 className="text-sm font-medium text-muted-foreground mb-2">欄位定義</h4>
+            <h4 className="text-sm font-medium text-muted-foreground mb-2">{t("columns")}</h4>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-1.5 pr-4 font-medium">欄位名稱</th>
-                  <th className="text-left py-1.5 pr-4 font-medium">型別</th>
-                  <th className="text-left py-1.5 font-medium">選項</th>
+                  <th className="text-left py-1.5 pr-4 font-medium">{t("columnName")}</th>
+                  <th className="text-left py-1.5 pr-4 font-medium">{t("columnType")}</th>
+                  <th className="text-left py-1.5 font-medium">{t("columnOptions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -111,6 +114,7 @@ function TableCard({ table, toolId }: { table: TableInfo; toolId: string }) {
 }
 
 function DataPreview({ tableId, toolId, columns }: { tableId: string; toolId: string; columns: ColumnDef[] }) {
+  const t = useTranslations("toolDatabase");
   const [data, setData] = useState<RowsResponse | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -132,7 +136,7 @@ function DataPreview({ tableId, toolId, columns }: { tableId: string; toolId: st
 
   return (
     <div>
-      <h4 className="text-sm font-medium text-muted-foreground mb-2">資料預覽</h4>
+      <h4 className="text-sm font-medium text-muted-foreground mb-2">{t("preview")}</h4>
       <div className="overflow-x-auto border rounded">
         <table className="w-full text-sm">
           <thead>

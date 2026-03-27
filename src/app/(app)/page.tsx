@@ -10,8 +10,9 @@ import { TOOL_CATEGORIES } from "@/lib/categories";
 import { MarketplaceToolCard } from "@/components/marketplace-tool-card";
 import { SearchBar } from "@/components/search-bar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, Star, Eye, Sparkles, Clock } from "lucide-react";
+import { TrendingUp, Star, Eye, Sparkles, Clock, Flame } from "lucide-react";
 import { HeroGreeting } from "@/components/hero-greeting";
+import { UserAvatar } from "@/components/user-avatar";
 
 export const metadata = { title: "首頁" };
 
@@ -23,6 +24,36 @@ export default async function HomePage() {
   }
 
   const visibilityFilter: Prisma.ToolWhereInput = buildVisibilityFilter(session.user.id);
+
+  // Token burning leaderboard — this week's top users
+  const startOfWeek = new Date();
+  const day = startOfWeek.getDay();
+  startOfWeek.setDate(startOfWeek.getDate() - (day === 0 ? 6 : day - 1)); // Monday
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const tokenLeaderboard = await prisma.tokenUsage.groupBy({
+    by: ["userId"],
+    where: { createdAt: { gte: startOfWeek } },
+    _sum: { totalTokens: true },
+    orderBy: { _sum: { totalTokens: "desc" } },
+    take: 10,
+  });
+
+  const leaderboardUsers = tokenLeaderboard.length > 0
+    ? await prisma.user.findMany({
+        where: { id: { in: tokenLeaderboard.map((t) => t.userId) } },
+        select: { id: true, name: true, image: true },
+      })
+    : [];
+
+  const tokenBurners = tokenLeaderboard.map((entry) => {
+    const user = leaderboardUsers.find((u) => u.id === entry.userId);
+    return {
+      name: user?.name || "Anonymous",
+      image: user?.image,
+      tokens: entry._sum.totalTokens || 0,
+    };
+  });
 
   const [trendingTools, topRatedTools, mostUsedTools, risingStarsTools, newestTools] = await Promise.all([
     // 本週熱門
@@ -117,6 +148,7 @@ export default async function HomePage() {
 
   const t = await getTranslations("marketplace");
   const tCategories = await getTranslations("categories");
+  const tBurners = await getTranslations("tokenBurners");
 
   return (
     <div className="p-4 sm:p-6">
@@ -198,6 +230,60 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Token Burning Leaderboard */}
+      {tokenBurners.length > 0 && (
+        <section className="mb-12">
+          <hr className="border-border mb-12 mx-auto w-1/3" />
+
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-bold flex items-center justify-center gap-2">
+                <Flame className="h-5 w-5 text-orange-500" />
+                {tBurners("title")}
+                <Flame className="h-5 w-5 text-orange-500" />
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                {tBurners("subtitle")}
+              </p>
+            </div>
+
+            <div className="space-y-2 mb-8">
+              {tokenBurners.map((burner, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg ${
+                    i === 0
+                      ? "bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800"
+                      : i < 3
+                      ? "bg-muted/50"
+                      : ""
+                  }`}
+                >
+                  <span className={`text-sm font-bold w-6 text-center ${
+                    i === 0 ? "text-amber-500" : i < 3 ? "text-muted-foreground" : "text-muted-foreground/60"
+                  }`}>
+                    {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`}
+                  </span>
+                  <UserAvatar src={burner.image} name={burner.name} size="sm" />
+                  <span className="font-medium flex-1 truncate">{burner.name}</span>
+                  <span className="text-sm text-muted-foreground font-mono">
+                    {(burner.tokens / 1000).toFixed(0)}K {tBurners("tokens")}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <blockquote className="border-l-4 border-orange-300 dark:border-orange-700 pl-4 py-2 space-y-3 text-sm text-muted-foreground italic">
+              <p>&ldquo;{tBurners("jensenQuote1")}&rdquo;</p>
+              <p>&ldquo;{tBurners("jensenQuote2")}&rdquo;</p>
+              <footer className="text-xs not-italic text-muted-foreground/70">
+                — {tBurners("jensenSource")}
+              </footer>
+            </blockquote>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

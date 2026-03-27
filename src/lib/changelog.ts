@@ -1,5 +1,7 @@
 export interface ChangelogEntry {
   version: string;
+  /** 發布日期 YYYY-MM-DD */
+  date: string;
   /** 一句話標題，兩邊共用 */
   title: string;
   /** What's New dialog 用：一段話總結這版有什麼新功能 */
@@ -13,6 +15,7 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     version: "v0.19.0",
+    date: "2026-03-27",
     title: "工具資料庫上線",
     summary:
       "工具終於能存資料了！做表單、記錄、清單類的工具，資料會自動保存到資料庫，重新整理也不會消失。",
@@ -24,6 +27,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.18.0",
+    date: "2026-03-27",
     title: "工具自動儲存草稿",
     summary:
       "AI 幫你寫工具的時候，系統會自動建立草稿，不用等到部署才存。Notion 搜尋也變聰明了，不再找不到東西。",
@@ -34,6 +38,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.17.0",
+    date: "2026-03-26",
     title: "工具也能用 AI 了",
     summary:
       "現在你做的工具可以呼叫 AI 來處理文字了！摘要、翻譯、資訊萃取、分類，全部內建，不用額外設定。",
@@ -45,6 +50,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.16.0",
+    date: "2026-03-24",
     title: "Vimeo 資料來源",
     summary:
       "現在可以在聊天室串接 Vimeo，查詢影片清單、資料夾、影片詳情，還能查看觀看分析。讓 AI 幫你整理影片表現！",
@@ -56,6 +62,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.15.0",
+    date: "2026-03-24",
     title: "手機版大改版",
     summary:
       "用手機開 Falcon 不會再跑版了！側邊欄、首頁、聊天室、工具頁全部重新調整過，小螢幕上也能順暢使用。",
@@ -70,6 +77,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.14.0",
+    date: "2026-03-20",
     title: "對話更穩定了",
     summary:
       "之前聊太久會出現 413 錯誤，因為每次都把整段對話歷史送出去。現在改成由伺服器從資料庫載入歷史，你的訊息只傳新的那一則，再長的對話都不會爆了。",
@@ -81,6 +89,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.13.1",
+    date: "2026-03-20",
     title: "工具重新發布修正",
     summary:
       "之前編輯工具後重新發布會失敗，現在修好了。同一個對話再次發布會直接更新原本的工具，不會再出現錯誤。",
@@ -88,6 +97,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.13.0",
+    date: "2026-03-20",
     title: "Skills 技能系統",
     summary:
       "想讓 AI 變身後端工程師、行銷顧問、或數據分析師？現在你可以建立自己的 Skill，定義 AI 的角色和行為，還能公開分享給其他人使用。",
@@ -100,6 +110,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.12.0",
+    date: "2026-03-09",
     title: "深色模式登場",
     summary:
       "眼睛終於可以休息了！現在正式支援深色模式，而且會自動記住你的偏好。你也可以跟隨系統設定，白天亮、晚上暗，全自動。",
@@ -110,6 +121,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.11.0",
+    date: "2026-03-09",
     title: "改善了工具預覽視窗",
     summary:
       "對話和預覽之間多了一條可以左右拖拉的分隔線，想看對話多一點、還是預覽大一點，自己拉就好。",
@@ -117,6 +129,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.10.0",
+    date: "2026-03-09",
     title: "工具群組可見度",
     summary:
       "以前工具一發布，同群組的人全都看得到，想藏也藏不住。\n\n現在你可以親手挑選哪些群組能看到，終於不用擔心實驗性小工具被其他夥伴發現了。\n\n對了！現在 Meta Ads 可以看得更廣更深了！",
@@ -127,24 +140,28 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.9.3",
+    date: "2026-03-09",
     title: "資料庫掃描修復",
     summary: "資料庫掃描不會再莫名其妙掉線了，transaction 逾時的問題修好了。",
     items: ["修正資料庫掃描 transaction 逾時"],
   },
   {
     version: "v0.9.2",
+    date: "2026-03-09",
     title: "對話 Token 修復",
     summary: "聊太久不會再爆炸了，token 超過 200k 限制的問題修好了。",
     items: ["修正對話 token 超過 200k 限制的問題"],
   },
   {
     version: "v0.9.1",
+    date: "2026-03-03",
     title: "自訂送出快捷鍵",
     summary: "Enter 送出還是換行？現在你說了算。",
     items: ["可自訂訊息送出快捷鍵"],
   },
   {
     version: "v0.9.0",
+    date: "2026-03-05",
     title: "更聰明的對話標題",
     summary:
       "對話標題終於會自己取名了，不再是一堆「新對話」。覺得 AI 取的名字不夠酷？點一下就能改。",
@@ -152,6 +169,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.8.2",
+    date: "2026-03-09",
     title: "重新整理了大語言模型清單",
     summary:
       "現在的太古老了，我們嘗試重新整理新的名單",
@@ -159,6 +177,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.8.1",
+    date: "2026-03-05",
     title: "標題顯示修正",
     summary:
       "標題太長會把按鈕擠到外太空的問題修好了，現在最多 15 個字，乖乖待在該待的地方。",
@@ -166,6 +185,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.8.0",
+    date: "2026-03-05",
     title: "更方便的管理對話",
     summary:
       "現在你可以直接在左側更好地管理對話，重新命名、刪除對話、加入星號。",
@@ -173,6 +193,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.7.0",
+    date: "2026-03-03",
     title: "YouTube 整合",
     summary:
       "歡迎新來源 YouTube！直接問 Falcon 你的頻道數據，不用再自己爬後台。",
@@ -180,6 +201,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.6.0",
+    date: "2026-02-05",
     title: "外部資料庫",
     summary:
       "想直接問你自己的資料庫？現在可以了！接上 PostgreSQL 或 MySQL，Falcon 幫你查資料、寫報表，不用再自己敲 SQL。",
@@ -191,6 +213,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.5.0",
+    date: "2026-02-05",
     title: "網站數據系列",
     summary:
       "想知道網站流量怎麼樣？GA4 跟 Plausible 都接好了，直接問 Falcon 就能看到你的網站表現。",
@@ -201,6 +224,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.4.0",
+    date: "2026-02-05",
     title: "廣告數據系列",
     summary:
       "投廣告的人有福了！Meta Ads 數據直接串進來，成效、受眾、花費一問就有，不用再自己翻報表。",
@@ -208,6 +232,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.3.0",
+    date: "2026-02-05",
     title: "團隊協作系列",
     summary:
       "把你們團隊常用的工具都接進來了！Notion 查文件、Slack 找訊息、Asana 看任務、GitHub 追 PR，通通問 Falcon 就好。",
@@ -220,6 +245,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.2.0",
+    date: "2026-02-05",
     title: "Google 全家餐",
     summary:
       "一口氣把 Google 家族搬進來了！Sheets、Drive、Calendar、Gmail，你的 Google 資料現在都能直接問 Falcon。",
@@ -232,6 +258,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: "v0.1.0",
+    date: "2026-01-20",
     title: "Falcon 正式上線",
     summary:
       "Falcon 來了！跟 AI 聊天、建立自己的小工具、逛逛別人做了什麼 - 你的企業瑞士刀來了！",

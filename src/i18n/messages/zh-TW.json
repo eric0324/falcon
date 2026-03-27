@@ -422,5 +422,26 @@
       "writing": "寫作",
       "other": "其他"
     }
+  },
+  "tokenBurners": {
+    "title": "Token Burners of the Week",
+    "subtitle": "燃燒吧，讓 AI 為你工作",
+    "tokens": "tokens",
+    "jensenQuote1": "If that $500,000 engineer did not consume at least $250,000 worth of tokens, I am going to be deeply alarmed.",
+    "jensenQuote2": "This is no different than one of our chip designers who says guess what, I'm just going to use paper and pencil.",
+    "jensenSource": "Jensen Huang, All-In Podcast"
+  },
+  "toolDatabase": {
+    "title": "資料表",
+    "columns": "欄位定義",
+    "columnName": "欄位名稱",
+    "columnType": "型別",
+    "columnOptions": "選項",
+    "preview": "資料預覽",
+    "rows": "筆",
+    "backTo": "返回",
+    "tableTitle": "資料表",
+    "noData": "—",
+    "viewData": "查看資料"
   }
 }

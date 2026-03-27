@@ -83,6 +83,7 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
   const t = await getTranslations("tool");
   const tCategories = await getTranslations("categories");
   const tCommon = await getTranslations("common");
+  const tDb = await getTranslations("toolDatabase");
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto">
@@ -117,7 +118,7 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
               <Button variant="outline" size="sm" asChild>
                 <a href={`/tool/${tool.id}/data`} target="_blank" rel="noopener noreferrer">
                   <Database className="h-4 w-4 mr-1" />
-                  查看資料
+                  {tDb("viewData")}
                 </a>
               </Button>
               {isOwner && (
