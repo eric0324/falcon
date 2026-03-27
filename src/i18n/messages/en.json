@@ -33,6 +33,7 @@
   },
   "sidebar": {
     "nav": {
+      "home": "Home",
       "chat": "Chat",
       "skills": "Skills",
       "tools": "Tools",

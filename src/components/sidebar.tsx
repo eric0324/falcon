@@ -24,6 +24,7 @@ import {
   Moon,
   Monitor,
   Wand2,
+  Home,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -87,6 +88,7 @@ interface SidebarProps {
 }
 
 const navItems = [
+  { href: "/", labelKey: "nav.home" as const, icon: Home, neverActive: false, exact: true },
   { href: "/chat", labelKey: "nav.chat" as const, icon: Plus, neverActive: true, exact: false },
   { href: "/skills", labelKey: "nav.skills" as const, icon: Wand2, neverActive: false, exact: false },
   { href: "/tools", labelKey: "nav.tools" as const, icon: Wrench, neverActive: false, exact: false },
