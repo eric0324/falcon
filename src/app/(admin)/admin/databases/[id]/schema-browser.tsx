@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, ChevronDown, Key, RefreshCw, EyeOff, Eye, Shield } from "lucide-react";
+import { ChevronRight, ChevronDown, Key, RefreshCw, EyeOff, Eye, Shield, CopyCheck } from "lucide-react";
 
 interface RoleRef {
   id: string;
@@ -215,6 +215,25 @@ export function SchemaBrowser({ databaseId, tables: initialTables, allRoles }: S
     }
   }
 
+  async function applyTableGroupsToColumns(table: Table) {
+    if (!confirm(`確定要將「${table.tableName}」的群組權限套用到所有欄位嗎？`)) return;
+    const res = await fetch(`/api/admin/databases/${databaseId}/tables/${table.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ applyGroupsToAllColumns: true }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setTables((prev) =>
+        prev.map((t) =>
+          t.id === table.id
+            ? { ...t, allowedGroups: updated.allowedGroups, columns: updated.columns }
+            : t
+        )
+      );
+    }
+  }
+
   async function updateColumnRoles(tableId: string, columnId: string, roleIds: string[]) {
     const res = await fetch(`/api/admin/databases/${databaseId}/tables/${tableId}/columns/${columnId}`, {
       method: "PATCH",
@@ -291,6 +310,13 @@ export function SchemaBrowser({ databaseId, tables: initialTables, allRoles }: S
                       selectedIds={table.allowedGroups.map((r) => r.id)}
                       onSave={(ids) => updateTableRoles(table.id, ids)}
                     />
+                    <button
+                      onClick={() => applyTableGroupsToColumns(table)}
+                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                      title="將表的群組權限套用到所有欄位"
+                    >
+                      <CopyCheck className="h-4 w-4" />
+                    </button>
                     <button
                       onClick={() => toggleHidden(table)}
                       className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"

@@ -21,6 +21,57 @@ export async function PATCH(
 
   const body = await req.json();
 
+  // Bulk apply table groups to all columns
+  if (body.applyGroupsToAllColumns) {
+    const tableWithGroups = await prisma.externalDatabaseTable.findUnique({
+      where: { id: tableId },
+      select: {
+        allowedGroups: { select: { id: true } },
+        columns: { select: { id: true } },
+      },
+    });
+
+    if (!tableWithGroups) {
+      return NextResponse.json({ error: "Table not found" }, { status: 404 });
+    }
+
+    const groupConnect = tableWithGroups.allowedGroups.map((g) => ({ id: g.id }));
+
+    await prisma.$transaction(
+      tableWithGroups.columns.map((col) =>
+        prisma.externalDatabaseColumn.update({
+          where: { id: col.id },
+          data: { allowedGroups: { set: groupConnect } },
+        })
+      )
+    );
+
+    const updatedTable = await prisma.externalDatabaseTable.findUnique({
+      where: { id: tableId },
+      select: {
+        id: true,
+        tableName: true,
+        note: true,
+        hidden: true,
+        allowedGroups: { select: { id: true, name: true } },
+        columns: {
+          select: {
+            id: true,
+            columnName: true,
+            dataType: true,
+            isNullable: true,
+            isPrimaryKey: true,
+            note: true,
+            allowedGroups: { select: { id: true, name: true } },
+          },
+          orderBy: { columnName: "asc" },
+        },
+      },
+    });
+
+    return NextResponse.json(updatedTable);
+  }
+
   const updated = await prisma.externalDatabaseTable.update({
     where: { id: tableId },
     data: {
