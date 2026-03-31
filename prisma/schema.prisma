@@ -70,6 +70,7 @@ model User {
   knowledgeBaseReviews     KnowledgeBaseReview[]
   knowledgeUploads         KnowledgeUpload[]
   knowledgePointReviews    KnowledgePoint[]      @relation("KnowledgePointReviewer")
+  apiKeys                  UserApiKey[]
 }
 
 model Tool {
@@ -554,6 +555,23 @@ model KnowledgePoint {
 
   @@index([knowledgeBaseId, status])
   @@index([uploadId])
+}
+
+// ===== User API Key =====
+
+model UserApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  keyHash    String    @unique
+  keyPrefix  String
+  lastUsedAt DateTime?
+
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // ===== Group Model =====

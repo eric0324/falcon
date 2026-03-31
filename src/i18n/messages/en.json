@@ -458,6 +458,25 @@
     "noData": "—",
     "viewData": "View Data"
   },
+  "apiKeys": {
+    "title": "API Keys",
+    "description": "Generate API keys to let external services query your knowledge bases",
+    "create": "Generate Key",
+    "createTitle": "Generate API Key",
+    "nameLabel": "Description",
+    "namePlaceholder": "e.g., Customer Support Backend",
+    "creating": "Generating...",
+    "cancel": "Cancel",
+    "empty": "No API keys generated yet",
+    "activeKeys": "Active Keys",
+    "created": "Created",
+    "lastUsed": "Last used",
+    "deleteConfirm": "Are you sure you want to revoke this API key? This cannot be undone.",
+    "deleted": "Revoked",
+    "keyCreated": "API Key Generated",
+    "keyCreatedWarning": "Copy and save this key now. You won't be able to see it again after closing.",
+    "done": "Done"
+  },
   "knowledge": {
     "title": "Knowledge Base",
     "description": "Manage your knowledge bases, upload documents to create knowledge points",
