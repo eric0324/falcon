@@ -37,6 +37,7 @@
       "chat": "Chat",
       "skills": "Skills",
       "tools": "Tools",
+      "knowledge": "Knowledge",
       "explore": "Explore"
     },
     "conversation": {

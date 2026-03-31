@@ -25,6 +25,7 @@ import {
   Monitor,
   Wand2,
   Home,
+  BookMarked,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -92,6 +93,7 @@ const navItems = [
   { href: "/chat", labelKey: "nav.chat" as const, icon: Plus, neverActive: true, exact: false },
   { href: "/skills", labelKey: "nav.skills" as const, icon: Wand2, neverActive: false, exact: false },
   { href: "/tools", labelKey: "nav.tools" as const, icon: Wrench, neverActive: false, exact: false },
+  { href: "/knowledge", labelKey: "nav.knowledge" as const, icon: BookMarked, neverActive: false, exact: false },
 ];
 
 function SidebarContent({ conversations: initialConversations, user }: SidebarProps) {

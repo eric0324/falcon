@@ -65,6 +65,11 @@ model User {
   dataSourceLogs           DataSourceLog[]
   quota                    UserQuota?
   skills                   Skill[]
+  knowledgeBases           KnowledgeBase[]
+  knowledgeBaseMemberships KnowledgeBaseMember[]
+  knowledgeBaseReviews     KnowledgeBaseReview[]
+  knowledgeUploads         KnowledgeUpload[]
+  knowledgePointReviews    KnowledgePoint[]      @relation("KnowledgePointReviewer")
 }
 
 model Tool {
@@ -434,6 +439,121 @@ model Skill {
   @@index([userId])
   @@index([visibility, category])
   @@index([visibility, usageCount(sort: Desc)])
+}
+
+// ===== Knowledge Base Models =====
+
+enum KnowledgeBaseRole {
+  ADMIN
+  CONTRIBUTOR
+  VIEWER
+}
+
+enum UploadStatus {
+  PROCESSING
+  PENDING_REVIEW
+  COMPLETED
+  FAILED
+}
+
+enum PointStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model KnowledgeBase {
+  id           String  @id @default(cuid())
+  name         String
+  description  String?
+  systemPrompt String? @db.Text
+  createdBy    String
+  creator      User    @relation(fields: [createdBy], references: [id])
+
+  members KnowledgeBaseMember[]
+  uploads KnowledgeUpload[]
+  points  KnowledgePoint[]
+  reviews KnowledgeBaseReview[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdBy])
+}
+
+model KnowledgeBaseMember {
+  id              String            @id @default(cuid())
+  knowledgeBaseId String
+  userId          String
+  role            KnowledgeBaseRole
+
+  knowledgeBase KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([knowledgeBaseId, userId])
+  @@index([userId])
+}
+
+model KnowledgeBaseReview {
+  id              String @id @default(cuid())
+  knowledgeBaseId String
+  userId          String
+  rating          Int    // 1-5
+  content         String? @db.Text
+
+  knowledgeBase KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([knowledgeBaseId, userId])
+  @@index([knowledgeBaseId])
+}
+
+model KnowledgeUpload {
+  id              String       @id @default(cuid())
+  knowledgeBaseId String
+  uploadedBy      String
+  fileName        String
+  fileType        String
+  fileSize        Int
+  status          UploadStatus @default(PROCESSING)
+  error           String?
+  pointCount      Int          @default(0)
+
+  knowledgeBase KnowledgeBase  @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  uploader      User           @relation(fields: [uploadedBy], references: [id])
+  points        KnowledgePoint[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([knowledgeBaseId])
+}
+
+model KnowledgePoint {
+  id              String      @id @default(cuid())
+  knowledgeBaseId String
+  uploadId        String?
+  content         String      @db.Text
+  metadata        Json?
+  status          PointStatus @default(PENDING)
+  reviewedBy      String?
+
+  knowledgeBase KnowledgeBase   @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  upload        KnowledgeUpload? @relation(fields: [uploadId], references: [id], onDelete: SetNull)
+  reviewer      User?           @relation("KnowledgePointReviewer", fields: [reviewedBy], references: [id])
+
+  // embedding vector(1024) — managed via raw SQL, not Prisma
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([knowledgeBaseId, status])
+  @@index([uploadId])
 }
 
 // ===== Group Model =====
