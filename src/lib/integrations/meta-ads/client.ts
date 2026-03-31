@@ -193,14 +193,12 @@ const OVERVIEW_FIELDS = [
 
 const CAMPAIGN_FIELDS = [
   "campaign_name", "campaign_id",
-  "daily_budget", "lifetime_budget",
   "spend", "impressions", "clicks", "ctr", "cpc", "cpm",
   "actions", "cost_per_action_type", "video_p25_watched_actions",
 ];
 
 const ADSET_FIELDS = [
   "adset_name", "adset_id", "campaign_name", "campaign_id",
-  "daily_budget", "lifetime_budget",
   "spend", "impressions", "clicks", "ctr", "cpc", "cpm",
   "actions", "cost_per_action_type", "video_p25_watched_actions",
 ];
@@ -317,8 +315,8 @@ export async function queryCampaigns(
   return (data.data || []).map((row: Record<string, unknown>) => ({
     campaignName: (row.campaign_name as string) || "",
     campaignId: (row.campaign_id as string) || "",
-    dailyBudget: parseNum(row.daily_budget as string) / 100,
-    lifetimeBudget: parseNum(row.lifetime_budget as string) / 100,
+    dailyBudget: 0,
+    lifetimeBudget: 0,
     spend: parseNum(row.spend as string),
     impressions: parseNum(row.impressions as string),
     clicks: parseNum(row.clicks as string),
@@ -363,8 +361,8 @@ export async function queryAdsets(
     adsetId: (row.adset_id as string) || "",
     campaignName: (row.campaign_name as string) || "",
     campaignId: (row.campaign_id as string) || "",
-    dailyBudget: parseNum(row.daily_budget as string) / 100,
-    lifetimeBudget: parseNum(row.lifetime_budget as string) / 100,
+    dailyBudget: 0,
+    lifetimeBudget: 0,
     spend: parseNum(row.spend as string),
     impressions: parseNum(row.impressions as string),
     clicks: parseNum(row.clicks as string),
