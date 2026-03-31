@@ -1,20 +1,17 @@
 import { Worker } from "bullmq";
 import { connection } from "./lib/queue/connection";
 import { parseUploadProcessor } from "./lib/knowledge/processors/parse-upload";
+import { vectorizeProcessor } from "./lib/knowledge/processors/vectorize";
 
 const parseUploadWorker = new Worker(
-  "knowledge:parse-upload",
+  "knowledge-parse-upload",
   parseUploadProcessor,
   { connection, concurrency: 2 }
 );
 
 const vectorizeWorker = new Worker(
-  "knowledge:vectorize",
-  async (job) => {
-    console.log(`[vectorize] Processing job ${job.id}`, job.data);
-    // Processor will be added in Phase 3-4
-    throw new Error("Processor not implemented yet");
-  },
+  "knowledge-vectorize",
+  vectorizeProcessor,
   { connection, concurrency: 3 }
 );
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -10,9 +10,17 @@ import {
   Users,
   Star,
   Upload,
+  Plus,
+  Check,
+  X,
+  Pencil,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -46,13 +54,24 @@ interface KnowledgeBaseDetail {
   reviewCount: number;
 }
 
-function StarRatingInput({
-  value,
-  onChange,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-}) {
+interface KnowledgePoint {
+  id: string;
+  content: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  metadata: { source?: string; page?: number; sheet?: string; row?: number } | null;
+  upload: { fileName: string } | null;
+  reviewer: { name: string | null } | null;
+  createdAt: string;
+}
+
+interface PointsResponse {
+  points: KnowledgePoint[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+function StarRatingInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const [hover, setHover] = useState(0);
   return (
     <div className="flex gap-1">
@@ -78,19 +97,75 @@ function StarRatingInput({
   );
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  PENDING: "待審核",
+  APPROVED: "已通過",
+  REJECTED: "已拒絕",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  APPROVED: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  REJECTED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+};
+
+interface UploadRecord {
+  id: string;
+  fileName: string;
+  fileType: string;
+  status: "PROCESSING" | "PENDING_REVIEW" | "COMPLETED" | "FAILED";
+  error: string | null;
+  pointCount: number;
+  createdAt: string;
+  uploader: { id: string; name: string | null };
+}
+
+const UPLOAD_STATUS_LABELS: Record<string, string> = {
+  PROCESSING: "處理中...",
+  PENDING_REVIEW: "待審核",
+  COMPLETED: "已完成",
+  FAILED: "失敗",
+};
+
+const UPLOAD_STATUS_COLORS: Record<string, string> = {
+  PROCESSING: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  PENDING_REVIEW: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  COMPLETED: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  FAILED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+};
+
 export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: string }) {
   const router = useRouter();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [kb, setKb] = useState<KnowledgeBaseDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [uploads, setUploads] = useState<UploadRecord[]>([]);
 
-  // Review state
+  // Points state
+  const [pointsData, setPointsData] = useState<PointsResponse | null>(null);
+  const [pointsLoading, setPointsLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Dialogs
   const [showReview, setShowReview] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewContent, setReviewContent] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [showAddPoint, setShowAddPoint] = useState(false);
+  const [newPointContent, setNewPointContent] = useState("");
+  const [addingPoint, setAddingPoint] = useState(false);
+  const [editingPoint, setEditingPoint] = useState<KnowledgePoint | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [showUploads, setShowUploads] = useState(false);
 
-  useEffect(() => {
+  const canContribute = kb?.userRole === "ADMIN" || kb?.userRole === "CONTRIBUTOR";
+
+  const loadKb = useCallback(() => {
     fetch(`/api/knowledge-bases/${knowledgeBaseId}`)
       .then((res) => {
         if (!res.ok) throw new Error("Not found");
@@ -100,6 +175,31 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
       .catch(() => setError("找不到知識庫"))
       .finally(() => setLoading(false));
   }, [knowledgeBaseId]);
+
+  const loadPoints = useCallback(() => {
+    setPointsLoading(true);
+    const params = new URLSearchParams({ page: String(currentPage), limit: "20" });
+    if (statusFilter !== "all") params.set("status", statusFilter);
+
+    fetch(`/api/knowledge-bases/${knowledgeBaseId}/points?${params}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setPointsData(data);
+        setSelectedIds(new Set());
+      })
+      .catch(() => {})
+      .finally(() => setPointsLoading(false));
+  }, [knowledgeBaseId, currentPage, statusFilter]);
+
+  const loadUploads = useCallback(() => {
+    fetch(`/api/knowledge-bases/${knowledgeBaseId}/uploads`)
+      .then((res) => res.json())
+      .then(setUploads)
+      .catch(() => {});
+  }, [knowledgeBaseId]);
+
+  useEffect(() => { loadKb(); }, [loadKb]);
+  useEffect(() => { if (kb) { loadPoints(); loadUploads(); } }, [kb, loadPoints, loadUploads]);
 
   async function handleSubmitReview() {
     if (!reviewRating || submittingReview) return;
@@ -112,14 +212,139 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
       });
       if (res.ok) {
         setShowReview(false);
-        // Reload data
-        const updated = await fetch(`/api/knowledge-bases/${knowledgeBaseId}`).then((r) => r.json());
-        setKb(updated);
         setReviewRating(0);
         setReviewContent("");
+        loadKb();
       }
     } finally {
       setSubmittingReview(false);
+    }
+  }
+
+  async function handleAddPoint() {
+    if (!newPointContent.trim() || addingPoint) return;
+    setAddingPoint(true);
+    try {
+      const res = await fetch(`/api/knowledge-bases/${knowledgeBaseId}/points`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newPointContent.trim() }),
+      });
+      if (res.ok) {
+        setShowAddPoint(false);
+        setNewPointContent("");
+        loadPoints();
+        loadKb();
+      }
+    } finally {
+      setAddingPoint(false);
+    }
+  }
+
+  async function handleEditPoint() {
+    if (!editingPoint || !editContent.trim()) return;
+    const res = await fetch(
+      `/api/knowledge-bases/${knowledgeBaseId}/points/${editingPoint.id}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editContent.trim() }),
+      }
+    );
+    if (res.ok) {
+      setEditingPoint(null);
+      setEditContent("");
+      loadPoints();
+    }
+  }
+
+  async function handleDeletePoint(pointId: string) {
+    if (!confirm("確定要刪除此知識點？")) return;
+    const res = await fetch(
+      `/api/knowledge-bases/${knowledgeBaseId}/points/${pointId}`,
+      { method: "DELETE" }
+    );
+    if (res.ok) {
+      loadPoints();
+      loadKb();
+    }
+  }
+
+  async function handleBatchReview(action: "approve" | "reject") {
+    if (selectedIds.size === 0) return;
+    const label = action === "approve" ? "通過" : "拒絕";
+    if (!confirm(`確定要${label} ${selectedIds.size} 個知識點？`)) return;
+
+    const res = await fetch(`/api/knowledge-bases/${knowledgeBaseId}/points/review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pointIds: Array.from(selectedIds), action }),
+    });
+    if (res.ok) {
+      loadPoints();
+      loadKb();
+    }
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`/api/knowledge-bases/${knowledgeBaseId}/uploads`, {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        toast({ title: "上傳成功", description: `${file.name} 已送出處理` });
+        loadKb();
+        loadUploads();
+        // Poll for processing completion
+        const checkStatus = setInterval(async () => {
+          const data = await fetch(`/api/knowledge-bases/${knowledgeBaseId}/uploads`).then((r) => r.json());
+          setUploads(data);
+          const latest = data[0];
+          if (latest && latest.status !== "PROCESSING") {
+            clearInterval(checkStatus);
+            loadPoints();
+            loadKb();
+            if (latest.status === "PENDING_REVIEW") {
+              toast({ title: "解析完成", description: `產生 ${latest.pointCount} 個知識點，待審核` });
+            } else if (latest.status === "FAILED") {
+              toast({ title: "解析失敗", description: latest.error || "未知錯誤", variant: "destructive" });
+            }
+          }
+        }, 2000);
+        setTimeout(() => clearInterval(checkStatus), 60000);
+      } else {
+        const err = await res.json();
+        toast({ title: "上傳失敗", description: err.error || "未知錯誤", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "上傳失敗", description: "網路錯誤", variant: "destructive" });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (!pointsData) return;
+    if (selectedIds.size === pointsData.points.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(pointsData.points.map((p) => p.id)));
     }
   }
 
@@ -145,11 +370,10 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
     );
   }
 
-  const isAdmin = kb.userRole === "ADMIN";
   const isCreator = kb.createdBy === kb.creator.id;
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl">
+    <div className="p-4 sm:p-6">
       {/* Header */}
       <header className="flex items-center gap-4 mb-6">
         <Button variant="ghost" size="icon" asChild>
@@ -159,9 +383,7 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
         </Button>
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-semibold">{kb.name}</h1>
-          {kb.description && (
-            <p className="text-sm text-muted-foreground">{kb.description}</p>
-          )}
+          {kb.description && <p className="text-sm text-muted-foreground">{kb.description}</p>}
         </div>
         <div className="flex items-center gap-2">
           {!isCreator && (
@@ -170,7 +392,7 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
               評價
             </Button>
           )}
-          {isAdmin && (
+          {kb.userRole === "ADMIN" && (
             <Button variant="outline" size="sm" asChild>
               <Link href={`/knowledge/${kb.id}/settings`}>
                 <Settings className="h-4 w-4 mr-1" />
@@ -213,20 +435,211 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
         </Card>
       </div>
 
-      {/* Knowledge Points placeholder */}
+      {/* Upload Records — collapsible */}
+      {uploads.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader
+            className="cursor-pointer select-none"
+            onClick={() => setShowUploads((v) => !v)}
+          >
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">上傳紀錄 ({uploads.length})</CardTitle>
+              <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${showUploads ? "rotate-90" : ""}`} />
+            </div>
+          </CardHeader>
+          {showUploads && (
+            <CardContent>
+              <div className="space-y-2">
+                {uploads.map((upload) => (
+                  <div key={upload.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{upload.fileName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {upload.uploader.name} · {upload.pointCount > 0 ? `${upload.pointCount} 知識點` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${UPLOAD_STATUS_COLORS[upload.status]}`}>
+                        {upload.status === "PROCESSING" && "⏳ "}{UPLOAD_STATUS_LABELS[upload.status]}
+                      </span>
+                      {upload.error && (
+                        <span className="text-xs text-red-500" title={upload.error}>!</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
+      {/* Knowledge Points */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="text-base">知識點</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">知識點</CardTitle>
+            {canContribute && (
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={handleUpload}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  <Upload className="h-4 w-4 mr-1" />
+                  {uploading ? "上傳中..." : "上傳檔案"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowAddPoint(true)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  手動新增
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
-          {kb._count.points === 0 ? (
+          {/* Status filter tabs */}
+          <div className="flex gap-1 mb-4 border-b">
+            {["all", "PENDING", "APPROVED", "REJECTED"].map((s) => (
+              <button
+                key={s}
+                onClick={() => { setStatusFilter(s); setCurrentPage(1); }}
+                className={`px-3 py-2 text-sm border-b-2 transition-colors ${
+                  statusFilter === s
+                    ? "border-primary text-primary font-medium"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {s === "all" ? "全部" : STATUS_LABELS[s]}
+              </button>
+            ))}
+          </div>
+
+          {/* Batch actions */}
+          {canContribute && selectedIds.size > 0 && (
+            <div className="flex items-center gap-2 mb-3 p-2 bg-muted/50 rounded-lg">
+              <span className="text-sm text-muted-foreground">已選 {selectedIds.size} 項</span>
+              <Button size="sm" variant="outline" onClick={() => handleBatchReview("approve")}>
+                <Check className="h-3.5 w-3.5 mr-1" />
+                通過
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => handleBatchReview("reject")}>
+                <X className="h-3.5 w-3.5 mr-1" />
+                拒絕
+              </Button>
+            </div>
+          )}
+
+          {/* Points list */}
+          {pointsLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-16 bg-muted animate-pulse rounded" />
+              ))}
+            </div>
+          ) : !pointsData || pointsData.points.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
-              尚未上傳任何文件。上傳功能將在下一個版本開放。
+              沒有知識點
             </p>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              知識點管理介面將在下一個版本開放。
-            </p>
+            <>
+              <div className="border rounded-lg divide-y">
+                {/* Select all header */}
+                {canContribute && (
+                  <div className="flex items-center gap-3 px-4 py-2 bg-muted/30">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.size === pointsData.points.length && pointsData.points.length > 0}
+                      onChange={toggleSelectAll}
+                      className="rounded"
+                    />
+                    <span className="text-xs text-muted-foreground">全選</span>
+                  </div>
+                )}
+                {pointsData.points.map((point) => (
+                  <div key={point.id} className="flex items-start gap-3 px-4 py-3">
+                    {canContribute && (
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(point.id)}
+                        onChange={() => toggleSelect(point.id)}
+                        className="rounded mt-1"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm line-clamp-3">{point.content}</p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className={`text-xs px-1.5 py-0.5 rounded ${STATUS_COLORS[point.status]}`}>
+                          {STATUS_LABELS[point.status]}
+                        </span>
+                        {point.upload && (
+                          <span className="text-xs text-muted-foreground">
+                            {point.upload.fileName}
+                          </span>
+                        )}
+                        {point.metadata && (point.metadata as Record<string, unknown>).page != null && (
+                          <span className="text-xs text-muted-foreground">
+                            P.{String((point.metadata as Record<string, unknown>).page)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {canContribute && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => { setEditingPoint(point); setEditContent(point.content); }}
+                          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeletePoint(point.id)}
+                          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-red-600"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {pointsData.totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((p) => p - 1)}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    {currentPage} / {pointsData.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage >= pointsData.totalPages}
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -248,17 +661,13 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
                         <Star
                           key={i}
                           className={`h-3 w-3 ${
-                            i <= review.rating
-                              ? "fill-amber-400 text-amber-400"
-                              : "text-neutral-300"
+                            i <= review.rating ? "fill-amber-400 text-amber-400" : "text-neutral-300"
                           }`}
                         />
                       ))}
                     </div>
                   </div>
-                  {review.content && (
-                    <p className="text-sm text-muted-foreground">{review.content}</p>
-                  )}
+                  {review.content && <p className="text-sm text-muted-foreground">{review.content}</p>}
                 </div>
               ))}
             </div>
@@ -292,6 +701,60 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
             <Button variant="outline" onClick={() => setShowReview(false)}>取消</Button>
             <Button onClick={handleSubmitReview} disabled={!reviewRating || submittingReview}>
               {submittingReview ? "送出中..." : "送出評價"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Point Dialog */}
+      <Dialog open={showAddPoint} onOpenChange={setShowAddPoint}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>手動新增知識點</DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <textarea
+              value={newPointContent}
+              onChange={(e) => setNewPointContent(e.target.value)}
+              placeholder="輸入知識點內容..."
+              className="w-full rounded-md border px-3 py-2 text-sm resize-none"
+              rows={6}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddPoint(false)}>取消</Button>
+            <Button onClick={handleAddPoint} disabled={!newPointContent.trim() || addingPoint}>
+              {addingPoint ? "新增中..." : "新增"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Point Dialog */}
+      <Dialog open={!!editingPoint} onOpenChange={() => setEditingPoint(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>編輯知識點</DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="w-full rounded-md border px-3 py-2 text-sm resize-none"
+              rows={6}
+              autoFocus
+            />
+            {editingPoint?.status === "APPROVED" && (
+              <p className="text-xs text-amber-600 mt-2">
+                編輯已通過的知識點會重設為「待審核」，需要重新審核和向量化。
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingPoint(null)}>取消</Button>
+            <Button onClick={handleEditPoint} disabled={!editContent.trim()}>
+              儲存
             </Button>
           </DialogFooter>
         </DialogContent>
