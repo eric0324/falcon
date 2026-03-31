@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -20,7 +21,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
 
 interface KnowledgeBaseDetail {
   id: string;
@@ -71,6 +72,17 @@ interface PointsResponse {
   totalPages: number;
 }
 
+interface UploadRecord {
+  id: string;
+  fileName: string;
+  fileType: string;
+  status: "PROCESSING" | "PENDING_REVIEW" | "COMPLETED" | "FAILED";
+  error: string | null;
+  pointCount: number;
+  createdAt: string;
+  uploader: { id: string; name: string | null };
+}
+
 function StarRatingInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const [hover, setHover] = useState(0);
   return (
@@ -97,45 +109,9 @@ function StarRatingInput({ value, onChange }: { value: number; onChange: (v: num
   );
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: "待審核",
-  APPROVED: "已通過",
-  REJECTED: "已拒絕",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  APPROVED: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  REJECTED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-};
-
-interface UploadRecord {
-  id: string;
-  fileName: string;
-  fileType: string;
-  status: "PROCESSING" | "PENDING_REVIEW" | "COMPLETED" | "FAILED";
-  error: string | null;
-  pointCount: number;
-  createdAt: string;
-  uploader: { id: string; name: string | null };
-}
-
-const UPLOAD_STATUS_LABELS: Record<string, string> = {
-  PROCESSING: "處理中...",
-  PENDING_REVIEW: "待審核",
-  COMPLETED: "已完成",
-  FAILED: "失敗",
-};
-
-const UPLOAD_STATUS_COLORS: Record<string, string> = {
-  PROCESSING: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  PENDING_REVIEW: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  COMPLETED: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  FAILED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-};
-
 export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: string }) {
   const router = useRouter();
+  const t = useTranslations("knowledge");
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [kb, setKb] = useState<KnowledgeBaseDetail | null>(null);
@@ -165,6 +141,32 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
 
   const canContribute = kb?.userRole === "ADMIN" || kb?.userRole === "CONTRIBUTOR";
 
+  const STATUS_KEYS: Record<string, string> = {
+    PENDING: "statusPending",
+    APPROVED: "statusApproved",
+    REJECTED: "statusRejected",
+  };
+
+  const STATUS_COLORS: Record<string, string> = {
+    PENDING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+    APPROVED: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    REJECTED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  };
+
+  const UPLOAD_STATUS_KEYS: Record<string, string> = {
+    PROCESSING: "uploadProcessing",
+    PENDING_REVIEW: "uploadPendingReview",
+    COMPLETED: "uploadCompleted",
+    FAILED: "uploadFailed",
+  };
+
+  const UPLOAD_STATUS_COLORS: Record<string, string> = {
+    PROCESSING: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    PENDING_REVIEW: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+    COMPLETED: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    FAILED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  };
+
   const loadKb = useCallback(() => {
     fetch(`/api/knowledge-bases/${knowledgeBaseId}`)
       .then((res) => {
@@ -172,9 +174,9 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
         return res.json();
       })
       .then(setKb)
-      .catch(() => setError("找不到知識庫"))
+      .catch(() => setError(t("backToList")))
       .finally(() => setLoading(false));
-  }, [knowledgeBaseId]);
+  }, [knowledgeBaseId, t]);
 
   const loadPoints = useCallback(() => {
     setPointsLoading(true);
@@ -259,7 +261,7 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
   }
 
   async function handleDeletePoint(pointId: string) {
-    if (!confirm("確定要刪除此知識點？")) return;
+    if (!confirm(t("deleteConfirm"))) return;
     const res = await fetch(
       `/api/knowledge-bases/${knowledgeBaseId}/points/${pointId}`,
       { method: "DELETE" }
@@ -272,8 +274,8 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
 
   async function handleBatchReview(action: "approve" | "reject") {
     if (selectedIds.size === 0) return;
-    const label = action === "approve" ? "通過" : "拒絕";
-    if (!confirm(`確定要${label} ${selectedIds.size} 個知識點？`)) return;
+    const actionLabel = action === "approve" ? t("approve") : t("reject");
+    if (!confirm(t("batchConfirm", { action: actionLabel, count: selectedIds.size }))) return;
 
     const res = await fetch(`/api/knowledge-bases/${knowledgeBaseId}/points/review`, {
       method: "POST",
@@ -298,10 +300,9 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
         body: formData,
       });
       if (res.ok) {
-        toast({ title: "上傳成功", description: `${file.name} 已送出處理` });
+        toast({ title: t("uploadSuccess"), description: t("uploadSuccessDesc", { name: file.name }) });
         loadKb();
         loadUploads();
-        // Poll for processing completion
         const checkStatus = setInterval(async () => {
           const data = await fetch(`/api/knowledge-bases/${knowledgeBaseId}/uploads`).then((r) => r.json());
           setUploads(data);
@@ -311,19 +312,19 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
             loadPoints();
             loadKb();
             if (latest.status === "PENDING_REVIEW") {
-              toast({ title: "解析完成", description: `產生 ${latest.pointCount} 個知識點，待審核` });
+              toast({ title: t("parseComplete"), description: t("parseCompleteDesc", { count: latest.pointCount }) });
             } else if (latest.status === "FAILED") {
-              toast({ title: "解析失敗", description: latest.error || "未知錯誤", variant: "destructive" });
+              toast({ title: t("parseFailed"), description: latest.error || "", variant: "destructive" });
             }
           }
         }, 2000);
         setTimeout(() => clearInterval(checkStatus), 60000);
       } else {
         const err = await res.json();
-        toast({ title: "上傳失敗", description: err.error || "未知錯誤", variant: "destructive" });
+        toast({ title: t("uploadError"), description: err.error || "", variant: "destructive" });
       }
     } catch {
-      toast({ title: "上傳失敗", description: "網路錯誤", variant: "destructive" });
+      toast({ title: t("uploadError"), description: t("networkError"), variant: "destructive" });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -362,9 +363,9 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
   if (error || !kb) {
     return (
       <div className="p-4 sm:p-6">
-        <p className="text-muted-foreground">{error || "找不到知識庫"}</p>
+        <p className="text-muted-foreground">{error}</p>
         <Button variant="outline" className="mt-4" onClick={() => router.push("/knowledge")}>
-          返回列表
+          {t("backToList")}
         </Button>
       </div>
     );
@@ -377,9 +378,7 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
       {/* Header */}
       <header className="flex items-center gap-4 mb-6">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/knowledge">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
+          <Link href="/knowledge"><ArrowLeft className="h-4 w-4" /></Link>
         </Button>
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-semibold">{kb.name}</h1>
@@ -388,15 +387,13 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
         <div className="flex items-center gap-2">
           {!isCreator && (
             <Button variant="outline" size="sm" onClick={() => setShowReview(true)}>
-              <Star className="h-4 w-4 mr-1" />
-              評價
+              <Star className="h-4 w-4 mr-1" />{t("rate")}
             </Button>
           )}
           {kb.userRole === "ADMIN" && (
             <Button variant="outline" size="sm" asChild>
               <Link href={`/knowledge/${kb.id}/settings`}>
-                <Settings className="h-4 w-4 mr-1" />
-                設定
+                <Settings className="h-4 w-4 mr-1" />{t("settings.title")}
               </Link>
             </Button>
           )}
@@ -405,45 +402,34 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
 
       {/* Stats */}
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-4 mb-6">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <FileText className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-            <div className="text-2xl font-bold">{kb._count.points}</div>
-            <div className="text-xs text-muted-foreground">知識點</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <Upload className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-            <div className="text-2xl font-bold">{kb._count.uploads}</div>
-            <div className="text-xs text-muted-foreground">上傳次數</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <Users className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-            <div className="text-2xl font-bold">{kb.members.length}</div>
-            <div className="text-xs text-muted-foreground">成員</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <Star className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-            <div className="text-2xl font-bold">{kb.averageRating > 0 ? kb.averageRating.toFixed(1) : "-"}</div>
-            <div className="text-xs text-muted-foreground">{kb.reviewCount} 則評價</div>
-          </CardContent>
-        </Card>
+        <Card><CardContent className="p-4 text-center">
+          <FileText className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+          <div className="text-2xl font-bold">{kb._count.points}</div>
+          <div className="text-xs text-muted-foreground">{t("points")}</div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <Upload className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+          <div className="text-2xl font-bold">{kb._count.uploads}</div>
+          <div className="text-xs text-muted-foreground">{t("uploads")}</div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <Users className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+          <div className="text-2xl font-bold">{kb.members.length}</div>
+          <div className="text-xs text-muted-foreground">{t("members")}</div>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <Star className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+          <div className="text-2xl font-bold">{kb.averageRating > 0 ? kb.averageRating.toFixed(1) : "-"}</div>
+          <div className="text-xs text-muted-foreground">{kb.reviewCount} {t("reviews")}</div>
+        </CardContent></Card>
       </div>
 
       {/* Upload Records — collapsible */}
       {uploads.length > 0 && (
         <Card className="mb-6">
-          <CardHeader
-            className="cursor-pointer select-none"
-            onClick={() => setShowUploads((v) => !v)}
-          >
+          <CardHeader className="cursor-pointer select-none" onClick={() => setShowUploads((v) => !v)}>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">上傳紀錄 ({uploads.length})</CardTitle>
+              <CardTitle className="text-base">{t("uploadRecords")} ({uploads.length})</CardTitle>
               <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${showUploads ? "rotate-90" : ""}`} />
             </div>
           </CardHeader>
@@ -457,17 +443,15 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">{upload.fileName}</p>
                         <p className="text-xs text-muted-foreground">
-                          {upload.uploader.name} · {upload.pointCount > 0 ? `${upload.pointCount} 知識點` : ""}
+                          {upload.uploader.name} · {upload.pointCount > 0 ? `${upload.pointCount} ${t("points")}` : ""}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className={`text-xs px-1.5 py-0.5 rounded ${UPLOAD_STATUS_COLORS[upload.status]}`}>
-                        {upload.status === "PROCESSING" && "⏳ "}{UPLOAD_STATUS_LABELS[upload.status]}
+                        {upload.status === "PROCESSING" && "⏳ "}{t(UPLOAD_STATUS_KEYS[upload.status])}
                       </span>
-                      {upload.error && (
-                        <span className="text-xs text-red-500" title={upload.error}>!</span>
-                      )}
+                      {upload.error && <span className="text-xs text-red-500" title={upload.error}>!</span>}
                     </div>
                   </div>
                 ))}
@@ -481,28 +465,15 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
       <Card className="mb-6">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">知識點</CardTitle>
+            <CardTitle className="text-base">{t("points")}</CardTitle>
             {canContribute && (
               <div className="flex items-center gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.xlsx,.xls,.csv"
-                  className="hidden"
-                  onChange={handleUpload}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                >
-                  <Upload className="h-4 w-4 mr-1" />
-                  {uploading ? "上傳中..." : "上傳檔案"}
+                <input ref={fileInputRef} type="file" accept=".pdf,.xlsx,.xls,.csv" className="hidden" onChange={handleUpload} />
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                  <Upload className="h-4 w-4 mr-1" />{uploading ? t("uploading") : t("uploadFile")}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setShowAddPoint(true)}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  手動新增
+                  <Plus className="h-4 w-4 mr-1" />{t("addManual")}
                 </Button>
               </div>
             )}
@@ -521,7 +492,7 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {s === "all" ? "全部" : STATUS_LABELS[s]}
+                {s === "all" ? t("all") : t(STATUS_KEYS[s])}
               </button>
             ))}
           </div>
@@ -529,14 +500,12 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
           {/* Batch actions */}
           {canContribute && selectedIds.size > 0 && (
             <div className="flex items-center gap-2 mb-3 p-2 bg-muted/50 rounded-lg">
-              <span className="text-sm text-muted-foreground">已選 {selectedIds.size} 項</span>
+              <span className="text-sm text-muted-foreground">{t("selected", { count: selectedIds.size })}</span>
               <Button size="sm" variant="outline" onClick={() => handleBatchReview("approve")}>
-                <Check className="h-3.5 w-3.5 mr-1" />
-                通過
+                <Check className="h-3.5 w-3.5 mr-1" />{t("approve")}
               </Button>
               <Button size="sm" variant="outline" onClick={() => handleBatchReview("reject")}>
-                <X className="h-3.5 w-3.5 mr-1" />
-                拒絕
+                <X className="h-3.5 w-3.5 mr-1" />{t("reject")}
               </Button>
             </div>
           )}
@@ -544,18 +513,13 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
           {/* Points list */}
           {pointsLoading ? (
             <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-16 bg-muted animate-pulse rounded" />
-              ))}
+              {[1, 2, 3].map((i) => <div key={i} className="h-16 bg-muted animate-pulse rounded" />)}
             </div>
           ) : !pointsData || pointsData.points.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              沒有知識點
-            </p>
+            <p className="text-sm text-muted-foreground text-center py-8">{t("noPoints")}</p>
           ) : (
             <>
               <div className="border rounded-lg divide-y">
-                {/* Select all header */}
                 {canContribute && (
                   <div className="flex items-center gap-3 px-4 py-2 bg-muted/30">
                     <input
@@ -564,49 +528,32 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
                       onChange={toggleSelectAll}
                       className="rounded"
                     />
-                    <span className="text-xs text-muted-foreground">全選</span>
+                    <span className="text-xs text-muted-foreground">{t("selectAll")}</span>
                   </div>
                 )}
                 {pointsData.points.map((point) => (
                   <div key={point.id} className="flex items-start gap-3 px-4 py-3">
                     {canContribute && (
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(point.id)}
-                        onChange={() => toggleSelect(point.id)}
-                        className="rounded mt-1"
-                      />
+                      <input type="checkbox" checked={selectedIds.has(point.id)} onChange={() => toggleSelect(point.id)} className="rounded mt-1" />
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm line-clamp-3">{point.content}</p>
                       <div className="flex items-center gap-2 mt-1.5">
                         <span className={`text-xs px-1.5 py-0.5 rounded ${STATUS_COLORS[point.status]}`}>
-                          {STATUS_LABELS[point.status]}
+                          {t(STATUS_KEYS[point.status])}
                         </span>
-                        {point.upload && (
-                          <span className="text-xs text-muted-foreground">
-                            {point.upload.fileName}
-                          </span>
-                        )}
+                        {point.upload && <span className="text-xs text-muted-foreground">{point.upload.fileName}</span>}
                         {point.metadata && (point.metadata as Record<string, unknown>).page != null && (
-                          <span className="text-xs text-muted-foreground">
-                            P.{String((point.metadata as Record<string, unknown>).page)}
-                          </span>
+                          <span className="text-xs text-muted-foreground">P.{String((point.metadata as Record<string, unknown>).page)}</span>
                         )}
                       </div>
                     </div>
                     {canContribute && (
                       <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          onClick={() => { setEditingPoint(point); setEditContent(point.content); }}
-                          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-                        >
+                        <button onClick={() => { setEditingPoint(point); setEditContent(point.content); }} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
-                        <button
-                          onClick={() => handleDeletePoint(point.id)}
-                          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-red-600"
-                        >
+                        <button onClick={() => handleDeletePoint(point.id)} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-red-600">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
@@ -615,26 +562,13 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
                 ))}
               </div>
 
-              {/* Pagination */}
               {pointsData.totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage <= 1}
-                    onClick={() => setCurrentPage((p) => p - 1)}
-                  >
+                  <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => p - 1)}>
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <span className="text-sm text-muted-foreground">
-                    {currentPage} / {pointsData.totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage >= pointsData.totalPages}
-                    onClick={() => setCurrentPage((p) => p + 1)}
-                  >
+                  <span className="text-sm text-muted-foreground">{currentPage} / {pointsData.totalPages}</span>
+                  <Button variant="outline" size="sm" disabled={currentPage >= pointsData.totalPages} onClick={() => setCurrentPage((p) => p + 1)}>
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -647,23 +581,16 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
       {/* Reviews */}
       {kb.reviews.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">評價</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-base">{t("reviews")}</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-4">
               {kb.reviews.map((review) => (
                 <div key={review.id} className="border-b last:border-0 pb-3 last:pb-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium">{review.user.name || "匿名"}</span>
+                    <span className="text-sm font-medium">{review.user.name || "—"}</span>
                     <div className="flex">
                       {[1, 2, 3, 4, 5].map((i) => (
-                        <Star
-                          key={i}
-                          className={`h-3 w-3 ${
-                            i <= review.rating ? "fill-amber-400 text-amber-400" : "text-neutral-300"
-                          }`}
-                        />
+                        <Star key={i} className={`h-3 w-3 ${i <= review.rating ? "fill-amber-400 text-amber-400" : "text-neutral-300"}`} />
                       ))}
                     </div>
                   </div>
@@ -678,30 +605,20 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
       {/* Review Dialog */}
       <Dialog open={showReview} onOpenChange={setShowReview}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>評價「{kb.name}」</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{t("rateTitle", { name: kb.name })}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <label className="text-sm font-medium mb-2 block">評分</label>
+              <label className="text-sm font-medium mb-2 block">{t("rateLabel")}</label>
               <StarRatingInput value={reviewRating} onChange={setReviewRating} />
             </div>
             <div>
-              <label className="text-sm font-medium">評論（選填）</label>
-              <textarea
-                value={reviewContent}
-                onChange={(e) => setReviewContent(e.target.value)}
-                placeholder="分享你的使用心得"
-                className="mt-1 w-full rounded-md border px-3 py-2 text-sm resize-none"
-                rows={3}
-              />
+              <label className="text-sm font-medium">{t("rateComment")}</label>
+              <textarea value={reviewContent} onChange={(e) => setReviewContent(e.target.value)} placeholder={t("rateCommentPlaceholder")} className="mt-1 w-full rounded-md border px-3 py-2 text-sm resize-none" rows={3} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowReview(false)}>取消</Button>
-            <Button onClick={handleSubmitReview} disabled={!reviewRating || submittingReview}>
-              {submittingReview ? "送出中..." : "送出評價"}
-            </Button>
+            <Button variant="outline" onClick={() => setShowReview(false)}>{t("cancel")}</Button>
+            <Button onClick={handleSubmitReview} disabled={!reviewRating || submittingReview}>{submittingReview ? t("rateSubmitting") : t("rateSubmit")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -709,24 +626,13 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
       {/* Add Point Dialog */}
       <Dialog open={showAddPoint} onOpenChange={setShowAddPoint}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>手動新增知識點</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{t("addManualTitle")}</DialogTitle></DialogHeader>
           <div className="py-2">
-            <textarea
-              value={newPointContent}
-              onChange={(e) => setNewPointContent(e.target.value)}
-              placeholder="輸入知識點內容..."
-              className="w-full rounded-md border px-3 py-2 text-sm resize-none"
-              rows={6}
-              autoFocus
-            />
+            <textarea value={newPointContent} onChange={(e) => setNewPointContent(e.target.value)} placeholder={t("addManualPlaceholder")} className="w-full rounded-md border px-3 py-2 text-sm resize-none" rows={6} autoFocus />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddPoint(false)}>取消</Button>
-            <Button onClick={handleAddPoint} disabled={!newPointContent.trim() || addingPoint}>
-              {addingPoint ? "新增中..." : "新增"}
-            </Button>
+            <Button variant="outline" onClick={() => setShowAddPoint(false)}>{t("cancel")}</Button>
+            <Button onClick={handleAddPoint} disabled={!newPointContent.trim() || addingPoint}>{addingPoint ? t("adding") : t("add")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -734,28 +640,16 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
       {/* Edit Point Dialog */}
       <Dialog open={!!editingPoint} onOpenChange={() => setEditingPoint(null)}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>編輯知識點</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{t("editTitle")}</DialogTitle></DialogHeader>
           <div className="py-2">
-            <textarea
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              className="w-full rounded-md border px-3 py-2 text-sm resize-none"
-              rows={6}
-              autoFocus
-            />
+            <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm resize-none" rows={6} autoFocus />
             {editingPoint?.status === "APPROVED" && (
-              <p className="text-xs text-amber-600 mt-2">
-                編輯已通過的知識點會重設為「待審核」，需要重新審核和向量化。
-              </p>
+              <p className="text-xs text-amber-600 mt-2">{t("editApprovedWarning")}</p>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingPoint(null)}>取消</Button>
-            <Button onClick={handleEditPoint} disabled={!editContent.trim()}>
-              儲存
-            </Button>
+            <Button variant="outline" onClick={() => setEditingPoint(null)}>{t("cancel")}</Button>
+            <Button onClick={handleEditPoint} disabled={!editContent.trim()}>{t("save")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

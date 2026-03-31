@@ -192,7 +192,7 @@ export function KnowledgeSettingsClient({ knowledgeBaseId }: { knowledgeBaseId: 
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-3xl">
+    <div className="p-4 sm:p-6">
       {/* Header */}
       <header className="flex items-center gap-4 mb-6">
         <Button variant="ghost" size="icon" asChild>

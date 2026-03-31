@@ -421,6 +421,28 @@ queryDatabase 回傳 success: false 時，**不要直接把錯誤訊息告訴使
 
 修正後重新呼叫 queryDatabase。如果多次修正仍失敗，再將問題告知使用者並說明你嘗試過的修正方式。`;
 
+const KNOWLEDGE_BASE_INSTRUCTIONS = `
+
+## Knowledge Base (MANDATORY)
+
+The user has selected one or more knowledge bases. You MUST use the queryKnowledgeBase tool for EVERY user message before responding. Do NOT answer from your own knowledge — always retrieve first.
+
+### Workflow (follow this exactly)
+1. ALWAYS call queryKnowledgeBase FIRST with a query rephrased for optimal retrieval
+2. If the results are insufficient, call it again with a different query
+3. ONLY THEN compose your answer based on the retrieved knowledge points
+4. If no relevant results are found after multiple attempts, tell the user honestly
+
+### Citation rules
+- Cite sources inline using [1], [2], etc. when referencing a knowledge point
+- At the end of your answer, list citations with source file name: [1] filename — brief topic summary
+- If the tool returns a systemPrompt, follow those instructions for tone and formatting
+
+### CRITICAL
+- You MUST call queryKnowledgeBase before answering. Skipping the tool call is NOT allowed.
+- Do NOT fabricate answers. Only use retrieved knowledge points.
+- Respond in the same language as the user's question.`;
+
 // No data source instructions
 const NO_DATA_SOURCE_INSTRUCTIONS = `
 
@@ -902,6 +924,12 @@ export function buildSystemPrompt(dataSources?: string[]): string {
   const hasExtDb = dataSources.some(ds => ds.startsWith("extdb_"));
   if (hasExtDb) {
     prompt += EXTERNAL_DB_INSTRUCTIONS;
+  }
+
+  // Knowledge bases
+  const hasKb = dataSources.some(ds => ds.startsWith("kb_"));
+  if (hasKb) {
+    prompt += KNOWLEDGE_BASE_INSTRUCTIONS;
   }
 
   // companyAPI instructions for tool building with live data
