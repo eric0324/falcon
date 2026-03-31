@@ -1,6 +1,8 @@
 services:
   db:
-    image: postgres:15-alpine
+    build:
+      context: ./docker/postgres
+      dockerfile: Dockerfile
     environment:
       - POSTGRES_USER=falcon
       - POSTGRES_PASSWORD=falcon
@@ -26,6 +28,19 @@ services:
     depends_on:
       - db
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   mysql_test:
     image: mysql:8
     environment:
@@ -46,4 +61,5 @@ services:
 
 volumes:
   falcon_db_data:
+  redis_data:
   mysql_test_data:
