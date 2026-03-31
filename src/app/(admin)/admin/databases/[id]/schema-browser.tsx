@@ -272,16 +272,21 @@ export function SchemaBrowser({ databaseId, tables: initialTables, allRoles }: S
         <div className="border rounded-lg divide-y">
           {tables.map((table) => {
             const isExpanded = expandedTables.has(table.id);
+            const tableRoleKey = table.allowedGroups.map((r) => r.id).sort().join(",");
+            const hasOutOfSyncColumns = table.columns.some(
+              (col) => col.allowedGroups.map((r) => r.id).sort().join(",") !== tableRoleKey
+            );
             return (
               <div key={table.id} className={table.hidden ? "opacity-50" : ""}>
                 {/* Table row */}
-                <div className="flex items-center gap-2 p-3 hover:bg-muted/30 transition-colors">
+                <div className={`flex items-center gap-2 p-3 hover:bg-muted/30 transition-colors ${hasOutOfSyncColumns ? "bg-amber-50 dark:bg-amber-950/20" : ""}`}>
                   <button onClick={() => toggleTable(table.id)} className="p-0.5 rounded hover:bg-muted">
                     {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                   </button>
 
                   <span className="font-mono text-sm font-medium">{table.tableName}</span>
                   <span className="text-xs text-muted-foreground">({table.columns.length} 欄位)</span>
+                  {hasOutOfSyncColumns && <span className="text-amber-500 text-xs" title="部分欄位權限與資料表不一致">●</span>}
 
                   {/* Table note */}
                   {editingNote?.type === "table" && editingNote.id === table.id ? (
@@ -339,12 +344,17 @@ export function SchemaBrowser({ databaseId, tables: initialTables, allRoles }: S
                         </tr>
                       </thead>
                       <tbody>
-                        {table.columns.map((col) => (
-                          <tr key={col.id} className="border-b last:border-0 hover:bg-muted/30">
+                        {table.columns.map((col) => {
+                          const tableGroupIds = table.allowedGroups.map((r) => r.id).sort().join(",");
+                          const colGroupIds = col.allowedGroups.map((r) => r.id).sort().join(",");
+                          const isOutOfSync = tableGroupIds !== colGroupIds;
+                          return (
+                          <tr key={col.id} className={`border-b last:border-0 hover:bg-muted/30 ${isOutOfSync ? "bg-amber-50 dark:bg-amber-950/20" : ""}`}>
                             <td className="p-2 pl-10 font-mono">
                               <span className="flex items-center gap-1">
                                 {col.isPrimaryKey && <Key className="h-3 w-3 text-amber-500" />}
                                 {col.columnName}
+                                {isOutOfSync && <span className="text-amber-500 text-xs ml-1" title="欄位權限與資料表不一致">●</span>}
                               </span>
                             </td>
                             <td className="p-2">
@@ -375,7 +385,8 @@ export function SchemaBrowser({ databaseId, tables: initialTables, allRoles }: S
                               />
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
