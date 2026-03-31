@@ -1,27 +1,29 @@
 # Knowledge Base Specification
 
 ## Purpose
-知識庫功能讓管理員建立知識庫、貢獻者上傳文件自動轉為知識點並向量化，一般使用者在 Chat 介面選取知識庫進行 RAG 問答，並提供對外 API 讓外部服務查詢。
+知識庫功能讓任何使用者建立知識庫、貢獻者上傳文件自動轉為知識點並向量化，一般使用者在 Chat 介面選取知識庫進行 RAG 問答，並提供對外 API 讓外部服務查詢。使用者可以對知識庫評價，幫助其他人找到高品質的知識庫。
 
 ## Requirements
 
 ### Requirement: 知識庫 CRUD + 權限
 
-管理員可建立知識庫，並設定誰可以貢獻（上傳/編輯/刪除知識點）、誰可以查詢。
+任何使用者可建立知識庫，並設定誰可以貢獻（上傳/編輯/刪除知識點）、誰可以查詢。
 
 #### 資料模型
 
 ```prisma
 model KnowledgeBase {
-  id          String @id @default(cuid())
-  name        String
-  description String?
-  createdBy   String
-  creator     User   @relation(fields: [createdBy], references: [id])
+  id           String  @id @default(cuid())
+  name         String
+  description  String?
+  systemPrompt String? @db.Text // 自訂系統提示詞，引導 LLM 如何使用此知識庫回答
+  createdBy    String
+  creator      User    @relation(fields: [createdBy], references: [id])
 
   members     KnowledgeBaseMember[]
   uploads     KnowledgeUpload[]
   points      KnowledgePoint[]
+  reviews     KnowledgeBaseReview[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -48,7 +50,7 @@ enum KnowledgeBaseRole {
 ```
 
 #### Scenario: 建立知識庫
-- WHEN 管理員（系統 ADMIN）建立知識庫
+- WHEN 任何登入使用者建立知識庫
 - THEN 知識庫被建立，建立者自動成為該知識庫的 ADMIN
 
 #### Scenario: 新增成員
@@ -59,6 +61,56 @@ enum KnowledgeBaseRole {
 - WHEN 使用者嘗試操作知識庫
 - THEN 系統根據其 KnowledgeBaseMember.role 決定允許或拒絕
 - AND 系統 ADMIN 可操作所有知識庫
+
+---
+
+### Requirement: 知識庫評價
+
+使用者可以對有 VIEWER 以上權限的知識庫進行評價，幫助其他人判斷知識庫品質。
+
+#### 資料模型
+
+```prisma
+model KnowledgeBaseReview {
+  id              String        @id @default(cuid())
+  knowledgeBase   KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  knowledgeBaseId String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String
+  rating          Int           // 1-5
+  content         String?       @db.Text
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([knowledgeBaseId, userId]) // 每人每知識庫只能評一次
+  @@index([knowledgeBaseId])
+}
+```
+
+KnowledgeBase model 需加入 relation：
+```prisma
+  reviews     KnowledgeBaseReview[]
+```
+
+#### Scenario: 評價知識庫
+- WHEN 使用者對知識庫評分（1-5 星）
+- AND 使用者有該知識庫的 VIEWER 以上權限
+- THEN 建立評價記錄
+- AND 可附帶文字評論（選填）
+
+#### Scenario: 每人一次評價
+- WHEN 使用者已對該知識庫評過分
+- AND 再次提交評價
+- THEN 覆蓋原有的評分和評論
+
+#### Scenario: 平均分數顯示
+- WHEN 使用者瀏覽知識庫列表或詳情
+- THEN 顯示該知識庫的平均評分和評價數量
+
+#### Scenario: 建立者不可自評
+- WHEN 知識庫建立者嘗試評價自己的知識庫
+- THEN 拒絕操作
 
 ---
 
@@ -210,7 +262,7 @@ enum PointStatus {
 
 ### Requirement: Chat RAG 整合
 
-使用者在 Chat 介面選取知識庫作為 dataSource，查詢時自動檢索相關知識點並注入 LLM context。
+使用者在 Chat 介面選取知識庫作為 dataSource，查詢時自動檢索相關知識點並注入 LLM context。每個知識庫可設定自訂系統提示詞，引導 LLM 的回答風格和行為。
 
 #### Scenario: 選取知識庫
 - WHEN 使用者在 Chat 介面選取知識庫作為資料來源
@@ -223,7 +275,18 @@ enum PointStatus {
 - THEN 系統將使用者訊息向量化
 - AND 對選取的知識庫執行 hybrid search
 - AND 將 top-k 結果作為 context 注入 system prompt
-- AND LLM 根據檢索到的知識點回答
+- AND 若知識庫有設定自訂系統提示詞，一併注入 system prompt
+- AND LLM 根據檢索到的知識點和系統提示詞回答
+
+#### Scenario: 自訂系統提示詞
+- WHEN 知識庫 ADMIN 設定系統提示詞
+- THEN 該提示詞在 RAG 問答時注入 LLM context
+- AND 提示詞可引導回答語氣、格式、限制等（例如「請用正式語氣回答」「不確定時請說不知道」）
+- AND 提示詞為選填，未設定時使用預設 RAG 指示
+
+#### Scenario: 外部 API 也套用系統提示詞
+- WHEN 外部服務透過 API 查詢知識庫
+- THEN 同樣套用該知識庫的自訂系統提示詞
 
 #### Scenario: 未選取知識庫
 - WHEN 使用者發送訊息
@@ -331,6 +394,9 @@ model UserApiKey {
 | PUT    | /api/knowledge-bases/:id/points/:pointId | 編輯知識點 |
 | DELETE | /api/knowledge-bases/:id/points/:pointId | 刪除知識點 |
 | POST   | /api/knowledge-bases/:id/points/review | 批次審核（approve/reject） |
+| GET    | /api/knowledge-bases/:id/reviews | 列出評價 |
+| POST   | /api/knowledge-bases/:id/reviews | 新增/更新評價 |
+| DELETE | /api/knowledge-bases/:id/reviews | 刪除自己的評價 |
 | GET    | /api/me/api-keys | 列出我的 API Keys |
 | POST   | /api/me/api-keys | 產生 API Key |
 | DELETE | /api/me/api-keys/:id | 撤銷 API Key |

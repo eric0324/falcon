@@ -4,7 +4,7 @@
 `knowledge-base`
 
 ## Summary
-建立知識庫功能：管理員建庫設權限、貢獻者上傳文件自動切割為知識點、人工審核後向量化、Chat RAG 問答附引用、對外 API 供外部服務查詢。
+建立知識庫功能：任何使用者可建庫設權限、貢獻者上傳文件自動切割為知識點、人工審核後向量化、Chat RAG 問答附引用、對外 API 供外部服務查詢、使用者可評價知識庫。
 
 ## Motivation
 公司正在建置客服後台，需要 FAQ 問答能力。目前平台的 Chat 只能接外部資料源做即時查詢，缺乏「先整理知識、再問答」的 RAG 能力。知識庫功能讓團隊把文件（PDF、Excel、CSV）轉為結構化知識點，經審核後供內部 Chat 和外部 API 查詢。
@@ -16,7 +16,8 @@
 ## Scope
 
 ### In Scope
-- 知識庫 CRUD + 成員權限管理（ADMIN / CONTRIBUTOR / VIEWER）
+- 任何使用者可建立知識庫 + 成員權限管理（ADMIN / CONTRIBUTOR / VIEWER）
+- 知識庫評價系統（1-5 星 + 文字評論）
 - 檔案上傳：PDF、Excel、CSV，上傳即處理（不存原檔）
 - 文件解析 → overlap 切割 → 產生知識點
 - 知識點人工審核（單筆 + 批次）、手動新增、編輯
@@ -85,8 +86,8 @@ Chat 問答 → dataSources 包含 kb_<id>？
 ### Phase 3-1: 基礎建設（pgvector + BullMQ/Redis + Voyage AI）
 建立向量搜尋基礎設施和背景任務系統。
 
-### Phase 3-2: 知識庫 CRUD + 權限
-知識庫的建立、成員管理、權限控制。
+### Phase 3-2: 知識庫 CRUD + 權限 + 評價
+知識庫的建立、成員管理、權限控制、評價系統。
 
 ### Phase 3-3: 檔案上傳 + 解析 Pipeline
 檔案上傳、解析、切割為知識點。
