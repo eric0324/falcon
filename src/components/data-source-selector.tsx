@@ -60,6 +60,12 @@ interface ExternalDb {
   type: string;
 }
 
+interface KnowledgeBaseItem {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
 type GoogleConnectionStatus = {
   sheets: boolean;
   drive: boolean;
@@ -106,6 +112,7 @@ export function DataSourceSelector({
     vimeo: false,
   });
   const [externalDbs, setExternalDbs] = useState<ExternalDb[]>([]);
+  const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBaseItem[]>([]);
   const [connectingService, setConnectingService] = useState<string | null>(null);
 
   // Fetch external databases
@@ -115,6 +122,19 @@ export function DataSourceSelector({
       if (res.ok) {
         const data = await res.json();
         setExternalDbs(data.databases || []);
+      }
+    } catch {
+      // Silently fail
+    }
+  }, []);
+
+  // Fetch knowledge bases
+  const fetchKnowledgeBases = useCallback(async () => {
+    try {
+      const res = await fetch("/api/knowledge-bases");
+      if (res.ok) {
+        const data = await res.json();
+        setKnowledgeBases(data);
       }
     } catch {
       // Silently fail
@@ -151,10 +171,10 @@ export function DataSourceSelector({
 
   useEffect(() => {
     setIsLoading(true);
-    Promise.all([fetchGoogleStatus(), fetchIntegrationStatus(), fetchExternalDbs()]).finally(() =>
+    Promise.all([fetchGoogleStatus(), fetchIntegrationStatus(), fetchExternalDbs(), fetchKnowledgeBases()]).finally(() =>
       setIsLoading(false)
     );
-  }, [fetchGoogleStatus, fetchIntegrationStatus, fetchExternalDbs]);
+  }, [fetchGoogleStatus, fetchIntegrationStatus, fetchExternalDbs, fetchKnowledgeBases]);
 
   // Handle Google service connect
   const handleGoogleConnect = (service: GoogleServiceType) => {
@@ -213,6 +233,13 @@ export function DataSourceSelector({
     for (const db of externalDbs) {
       if (value.includes(`extdb_${db.id}`)) {
         names.push(db.name);
+      }
+    }
+
+    // Knowledge bases
+    for (const kb of knowledgeBases) {
+      if (value.includes(`kb_${kb.id}`)) {
+        names.push(kb.name);
       }
     }
 
@@ -625,6 +652,47 @@ export function DataSourceSelector({
                     <div className="flex-1 min-w-0">
                       <span className="font-medium text-sm block">{db.name}</span>
                       <p className="text-xs text-muted-foreground">{db.type}</p>
+                    </div>
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
+
+        {/* Knowledge Bases */}
+        {knowledgeBases.length > 0 && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="flex items-center gap-2.5 py-2.5 cursor-pointer">
+              <div className="w-4 flex items-center justify-center shrink-0">
+                {knowledgeBases.some((kb) => value.includes(`kb_${kb.id}`)) && (
+                  <Check className="h-4 w-4" />
+                )}
+              </div>
+              <span className="font-medium text-sm">{t("knowledgeBase")}</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-80">
+              {knowledgeBases.map((kb) => {
+                const dsId = `kb_${kb.id}`;
+                const isSelected = value.includes(dsId);
+                return (
+                  <DropdownMenuItem
+                    key={kb.id}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleToggle(dsId);
+                    }}
+                    className="flex items-start gap-2 py-2.5 cursor-pointer"
+                  >
+                    <div className="w-4 flex items-center justify-center shrink-0 mt-0.5">
+                      {isSelected && <Check className="h-4 w-4" />}
+                    </div>
+                    <BookOpen className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium text-sm block">{kb.name}</span>
+                      {kb.description && (
+                        <p className="text-xs text-muted-foreground">{kb.description}</p>
+                      )}
                     </div>
                   </DropdownMenuItem>
                 );

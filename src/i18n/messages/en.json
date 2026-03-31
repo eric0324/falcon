@@ -281,7 +281,8 @@
     "canRead": "Read",
     "canWrite": "Write",
     "clearAll": "Clear all",
-    "externalDb": "Databases"
+    "externalDb": "Databases",
+    "knowledgeBase": "Knowledge Base"
   },
   "google": {
     "title": "Google",

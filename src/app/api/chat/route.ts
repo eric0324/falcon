@@ -15,6 +15,7 @@ import { createYouTubeTools } from "@/lib/ai/youtube-tools";
 import { createVimeoTools } from "@/lib/ai/vimeo-tools";
 import { createExternalDbTools } from "@/lib/ai/external-db-tools";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
+import { hybridSearch } from "@/lib/knowledge/search";
 import { shouldCompact, estimateTokens, trimMessagesToFit } from "@/lib/ai/token-utils";
 import { compactMessages } from "@/lib/ai/compact";
 import { generateConversationTitle } from "@/lib/ai/generate-title";
@@ -218,6 +219,56 @@ export async function POST(req: Request) {
 
     // Build dynamic system prompt based on selected data sources
     let systemPrompt = buildSystemPrompt(dataSources);
+
+    // Knowledge Base RAG: retrieve relevant knowledge points and inject into system prompt
+    const kbIds = (dataSources as string[] | undefined)
+      ?.filter((s: string) => s.startsWith("kb_"))
+      .map((s: string) => s.replace("kb_", "")) || [];
+
+    if (kbIds.length > 0) {
+      try {
+        // Fetch knowledge base details for system prompts
+        const kbs = await prisma.knowledgeBase.findMany({
+          where: { id: { in: kbIds } },
+          select: { id: true, name: true, systemPrompt: true },
+        });
+
+        // Search each knowledge base
+        const allResults = await Promise.all(
+          kbIds.map((kbId) => hybridSearch(kbId, message, 5))
+        );
+        const flatResults = allResults.flat().sort((a, b) => b.score - a.score).slice(0, 10);
+
+        if (flatResults.length > 0) {
+          systemPrompt += `\n\n## Knowledge Base Context\n\n`;
+          systemPrompt += `The user has selected knowledge base(s) as a data source. Below are the most relevant knowledge points retrieved.\n\n`;
+          systemPrompt += `**Instructions:**\n`;
+          systemPrompt += `- Answer the user's question based ONLY on the provided knowledge points\n`;
+          systemPrompt += `- If the knowledge points do not contain relevant information, say so honestly — do NOT make up answers\n`;
+          systemPrompt += `- Cite your sources using [1], [2], etc. notation\n`;
+          systemPrompt += `- At the end of your answer, list the citations with their source metadata\n\n`;
+
+          // Inject per-KB system prompts if set
+          for (const kb of kbs) {
+            if (kb.systemPrompt) {
+              systemPrompt += `**Knowledge Base "${kb.name}" instructions:**\n${kb.systemPrompt}\n\n`;
+            }
+          }
+
+          systemPrompt += `**Retrieved Knowledge Points:**\n`;
+          flatResults.forEach((result, i) => {
+            const meta = result.metadata || {};
+            const source = (meta.source as string) || "unknown";
+            const page = meta.page ? `, Page ${meta.page}` : "";
+            const sheet = meta.sheet ? `, Sheet: ${meta.sheet}` : "";
+            const row = meta.row ? `, Row: ${meta.row}` : "";
+            systemPrompt += `[${i + 1}] ${result.content}\n(Source: ${source}${page}${sheet}${row})\n\n`;
+          });
+        }
+      } catch {
+        // Silently fail — RAG is best-effort, chat should still work
+      }
+    }
 
     // Append skill prompt if provided
     if (skillPrompt && typeof skillPrompt === "string") {
