@@ -153,21 +153,21 @@ export function KnowledgePageClient() {
                 )}
               </CardHeader>
               <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <FileText className="h-3.5 w-3.5" />
-                      {kb._count.points} {t("points")}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Users className="h-3.5 w-3.5" />
-                      {kb._count.members} {t("members")}
-                    </span>
-                  </div>
-                  <StarRating rating={kb.averageRating} count={kb.reviewCount} label={t("reviews")} />
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <FileText className="h-3.5 w-3.5 shrink-0" />
+                    {kb._count.points} {t("points")}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Users className="h-3.5 w-3.5 shrink-0" />
+                    {kb._count.members} {t("members")}
+                  </span>
                 </div>
-                <div className="text-xs text-muted-foreground mt-2">
-                  {t("createdBy", { name: kb.creator.name || "Unknown" })}
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-xs text-muted-foreground">
+                    {t("createdBy", { name: kb.creator.name || "Unknown" })}
+                  </span>
+                  <StarRating rating={kb.averageRating} count={kb.reviewCount} label={t("reviews")} />
                 </div>
               </CardContent>
             </Card>
