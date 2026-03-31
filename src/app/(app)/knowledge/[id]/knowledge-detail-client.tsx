@@ -18,6 +18,9 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  BookOpen,
+  Search,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -138,6 +141,13 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
   const [editContent, setEditContent] = useState("");
   const [uploading, setUploading] = useState(false);
   const [showUploads, setShowUploads] = useState(false);
+
+  // Notion import state
+  const [showNotionImport, setShowNotionImport] = useState(false);
+  const [notionQuery, setNotionQuery] = useState("");
+  const [notionPages, setNotionPages] = useState<Array<{ id: string; title: string; url: string; lastEditedTime: string }>>([]);
+  const [notionSearching, setNotionSearching] = useState(false);
+  const [notionImporting, setNotionImporting] = useState<string | null>(null);
 
   const canContribute = kb?.userRole === "ADMIN" || kb?.userRole === "CONTRIBUTOR";
 
@@ -331,6 +341,48 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
     }
   }
 
+  async function handleNotionSearch() {
+    if (notionSearching) return;
+    setNotionSearching(true);
+    try {
+      const res = await fetch(
+        `/api/knowledge-bases/${knowledgeBaseId}/import-notion?query=${encodeURIComponent(notionQuery)}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setNotionPages(data.pages);
+      }
+    } finally {
+      setNotionSearching(false);
+    }
+  }
+
+  async function handleNotionImport(pageId: string, pageTitle: string) {
+    setNotionImporting(pageId);
+    try {
+      const res = await fetch(`/api/knowledge-bases/${knowledgeBaseId}/import-notion`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageId, pageTitle }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast({ title: t("parseComplete"), description: t("parseCompleteDesc", { count: data.pointCount }) });
+        setShowNotionImport(false);
+        setNotionQuery("");
+        setNotionPages([]);
+        loadPoints();
+        loadKb();
+        loadUploads();
+      } else {
+        const err = await res.json();
+        toast({ title: t("uploadError"), description: err.error || "", variant: "destructive" });
+      }
+    } finally {
+      setNotionImporting(null);
+    }
+  }
+
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -471,6 +523,9 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
                 <input ref={fileInputRef} type="file" accept=".pdf,.xlsx,.xls,.csv" className="hidden" onChange={handleUpload} />
                 <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                   <Upload className="h-4 w-4 mr-1" />{uploading ? t("uploading") : t("uploadFile")}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowNotionImport(true)}>
+                  <BookOpen className="h-4 w-4 mr-1" />Notion
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setShowAddPoint(true)}>
                   <Plus className="h-4 w-4 mr-1" />{t("addManual")}
@@ -651,6 +706,60 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
             <Button variant="outline" onClick={() => setEditingPoint(null)}>{t("cancel")}</Button>
             <Button onClick={handleEditPoint} disabled={!editContent.trim()}>{t("save")}</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Notion Import Dialog */}
+      <Dialog open={showNotionImport} onOpenChange={setShowNotionImport}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{t("notionImport")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex gap-2">
+              <input
+                value={notionQuery}
+                onChange={(e) => setNotionQuery(e.target.value)}
+                placeholder={t("notionSearchPlaceholder")}
+                className="flex-1 rounded-md border px-3 py-2 text-sm"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") handleNotionSearch(); }}
+              />
+              <Button onClick={handleNotionSearch} disabled={notionSearching} size="sm">
+                {notionSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              </Button>
+            </div>
+            <div className="max-h-80 overflow-y-auto space-y-1">
+              {notionPages.length === 0 && !notionSearching && (
+                <p className="text-sm text-muted-foreground text-center py-6">{t("notionSearchHint")}</p>
+              )}
+              {notionPages.map((page) => (
+                <div
+                  key={page.id}
+                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{page.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(page.lastEditedTime).toLocaleDateString("zh-TW")}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={notionImporting === page.id}
+                    onClick={() => handleNotionImport(page.id, page.title)}
+                  >
+                    {notionImporting === page.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      t("notionImportButton")
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
