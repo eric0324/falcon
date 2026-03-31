@@ -29,6 +29,8 @@ export interface MetaAdsMetrics {
 export interface MetaAdsCampaignEntry {
   campaignName: string;
   campaignId: string;
+  dailyBudget: number;
+  lifetimeBudget: number;
   spend: number;
   impressions: number;
   clicks: number;
@@ -37,6 +39,7 @@ export interface MetaAdsCampaignEntry {
   cpm: number;
   actions: MetaAdsAction[];
   costPerAction: MetaAdsAction[];
+  videoP25WatchedActions: MetaAdsAction[];
 }
 
 export interface MetaAdsAdsetEntry {
@@ -44,6 +47,8 @@ export interface MetaAdsAdsetEntry {
   adsetId: string;
   campaignName: string;
   campaignId: string;
+  dailyBudget: number;
+  lifetimeBudget: number;
   spend: number;
   impressions: number;
   clicks: number;
@@ -52,6 +57,7 @@ export interface MetaAdsAdsetEntry {
   cpm: number;
   actions: MetaAdsAction[];
   costPerAction: MetaAdsAction[];
+  videoP25WatchedActions: MetaAdsAction[];
 }
 
 export interface MetaAdsAdEntry {
@@ -69,6 +75,7 @@ export interface MetaAdsAdEntry {
   cpm: number;
   actions: MetaAdsAction[];
   costPerAction: MetaAdsAction[];
+  videoP25WatchedActions: MetaAdsAction[];
 }
 
 export interface MetaAdsTimeseriesEntry {
@@ -186,20 +193,22 @@ const OVERVIEW_FIELDS = [
 
 const CAMPAIGN_FIELDS = [
   "campaign_name", "campaign_id",
+  "daily_budget", "lifetime_budget",
   "spend", "impressions", "clicks", "ctr", "cpc", "cpm",
-  "actions", "cost_per_action_type",
+  "actions", "cost_per_action_type", "video_p25_watched_actions",
 ];
 
 const ADSET_FIELDS = [
   "adset_name", "adset_id", "campaign_name", "campaign_id",
+  "daily_budget", "lifetime_budget",
   "spend", "impressions", "clicks", "ctr", "cpc", "cpm",
-  "actions", "cost_per_action_type",
+  "actions", "cost_per_action_type", "video_p25_watched_actions",
 ];
 
 const AD_FIELDS = [
   "ad_name", "ad_id", "adset_name", "adset_id", "campaign_name", "campaign_id",
   "spend", "impressions", "clicks", "ctr", "cpc", "cpm",
-  "actions", "cost_per_action_type",
+  "actions", "cost_per_action_type", "video_p25_watched_actions",
 ];
 
 const TIMESERIES_FIELDS = ["spend", "impressions", "clicks"];
@@ -308,6 +317,8 @@ export async function queryCampaigns(
   return (data.data || []).map((row: Record<string, unknown>) => ({
     campaignName: (row.campaign_name as string) || "",
     campaignId: (row.campaign_id as string) || "",
+    dailyBudget: parseNum(row.daily_budget as string) / 100,
+    lifetimeBudget: parseNum(row.lifetime_budget as string) / 100,
     spend: parseNum(row.spend as string),
     impressions: parseNum(row.impressions as string),
     clicks: parseNum(row.clicks as string),
@@ -316,6 +327,7 @@ export async function queryCampaigns(
     cpm: parseNum(row.cpm as string),
     actions: parseActions(row.actions as MetaAdsAction[]),
     costPerAction: parseActions(row.cost_per_action_type as MetaAdsAction[]),
+    videoP25WatchedActions: parseActions(row.video_p25_watched_actions as MetaAdsAction[]),
   }));
 }
 
@@ -351,6 +363,8 @@ export async function queryAdsets(
     adsetId: (row.adset_id as string) || "",
     campaignName: (row.campaign_name as string) || "",
     campaignId: (row.campaign_id as string) || "",
+    dailyBudget: parseNum(row.daily_budget as string) / 100,
+    lifetimeBudget: parseNum(row.lifetime_budget as string) / 100,
     spend: parseNum(row.spend as string),
     impressions: parseNum(row.impressions as string),
     clicks: parseNum(row.clicks as string),
@@ -359,6 +373,7 @@ export async function queryAdsets(
     cpm: parseNum(row.cpm as string),
     actions: parseActions(row.actions as MetaAdsAction[]),
     costPerAction: parseActions(row.cost_per_action_type as MetaAdsAction[]),
+    videoP25WatchedActions: parseActions(row.video_p25_watched_actions as MetaAdsAction[]),
   }));
 }
 
@@ -404,6 +419,7 @@ export async function queryAds(
     cpm: parseNum(row.cpm as string),
     actions: parseActions(row.actions as MetaAdsAction[]),
     costPerAction: parseActions(row.cost_per_action_type as MetaAdsAction[]),
+    videoP25WatchedActions: parseActions(row.video_p25_watched_actions as MetaAdsAction[]),
   }));
 }
 

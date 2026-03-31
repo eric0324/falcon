@@ -14,6 +14,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.20.1",
+    date: "2026-03-31",
+    title: "Meta Ads 新增預算與影片指標",
+    summary:
+      "Meta Ads 查詢新增日預算、總預算和影片 25% 觀看次數欄位，方便分析廣告預算分配和影片成效。",
+    items: [
+      "Meta Ads：新增 daily_budget / lifetime_budget（日預算 / 總預算）",
+      "Meta Ads：新增 video_p25_watched_actions（影片觀看達 25%）",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.20.0",
     date: "2026-03-31",
     title: "知識庫上線",
