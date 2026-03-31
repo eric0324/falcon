@@ -40,10 +40,23 @@ export async function PATCH(req: Request, context: RouteContext) {
   }
 
   const { id } = await context.params;
+  const body = await req.json();
+
+  // Restore allows undeleting a soft-deleted conversation
+  if (body.restore) {
+    const conversation = await prisma.conversation.findUnique({ where: { id } });
+    if (!conversation) return new Response("Not found", { status: 404 });
+    if (conversation.userId !== session.user.id) return new Response("Forbidden", { status: 403 });
+    const updated = await prisma.conversation.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
+    return NextResponse.json(updated);
+  }
+
   const { error } = await getConversationIfOwned(id, session.user.id);
   if (error) return new Response(error === 404 ? "Not found" : "Forbidden", { status: error });
 
-  const body = await req.json();
   const data: Record<string, unknown> = {};
 
   if (body.title) data.title = body.title;

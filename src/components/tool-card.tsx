@@ -29,6 +29,7 @@ interface Tool {
   name: string;
   description: string | null;
   updatedAt: Date;
+  conversationId?: string | null;
 }
 
 interface ToolCardProps {
@@ -102,7 +103,7 @@ export function ToolCard({ tool, readOnly = false }: ToolCardProps) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href={`/chat?edit=${tool.id}`}>
+                  <Link href={`/chat?${tool.conversationId ? `id=${tool.conversationId}&` : ""}edit=${tool.id}`}>
                     <Pencil className="mr-2 h-4 w-4" />
                     {tCommon("edit")}
                   </Link>

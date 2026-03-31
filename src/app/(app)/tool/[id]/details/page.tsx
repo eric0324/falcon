@@ -123,7 +123,7 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
               </Button>
               {isOwner && (
                 <Button variant="outline" size="sm" asChild>
-                  <Link href={`/chat?edit=${tool.id}`}>
+                  <Link href={`/chat?${tool.conversationId ? `id=${tool.conversationId}&` : ""}edit=${tool.id}`}>
                     <Pencil className="h-4 w-4 mr-1" />
                     {tCommon("edit")}
                   </Link>

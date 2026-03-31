@@ -14,6 +14,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.19.1",
+    date: "2026-03-31",
+    title: "編輯工具體驗修正",
+    summary:
+      "修正編輯工具時會開啟新對話的問題，現在會正確回到原始對話繼續編輯。如果原始對話曾被刪除，也會自動還原。",
+    items: [
+      "修正：編輯工具現在會回到原始對話，不再開啟新對話",
+      "修正：已刪除的工具對話在編輯時自動還原，Sidebar 即時更新",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.19.0",
     date: "2026-03-27",
     title: "工具資料庫上線",

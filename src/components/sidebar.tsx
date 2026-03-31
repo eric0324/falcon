@@ -133,6 +133,18 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
     setHasFetched(false);
   }, [currentConvId]);
 
+  // Refresh sidebar when a conversation is restored
+  useEffect(() => {
+    const handler = () => {
+      fetch("/api/conversations?limit=50")
+        .then((res) => res.ok ? res.json() : [])
+        .then(setConversations)
+        .catch(() => {});
+    };
+    window.addEventListener("conversation-restored", handler);
+    return () => window.removeEventListener("conversation-restored", handler);
+  }, []);
+
   const handleDeleteConfirm = async () => {
     const id = deleteConfirmId;
     if (!id || deletingId) return;

@@ -224,6 +224,19 @@ function StudioContent() {
           setToolVisibility(tool.visibility || "PRIVATE");
           setToolAllowedGroupIds(tool.allowedGroups?.map((g: { id: string }) => g.id) || []);
           setSelectedDataSources(tool.dataSources || []);
+          if (tool.conversationId) {
+            setConvId(tool.conversationId);
+            // Restore soft-deleted conversation so it reappears in sidebar
+            fetch(`/api/conversations/${tool.conversationId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ restore: true }),
+            })
+              .then(() => {
+                window.dispatchEvent(new Event("conversation-restored"));
+              })
+              .catch(() => {});
+          }
           if (tool.conversation?.messages) {
             setMessages(tool.conversation.messages);
           }
