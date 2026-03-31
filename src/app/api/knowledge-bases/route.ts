@@ -39,7 +39,8 @@ export async function GET() {
     const avgRating = ratings.length > 0
       ? ratings.reduce((a, b) => a + b, 0) / ratings.length
       : 0;
-    const { reviews: _, ...rest } = kb;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { reviews: _reviews, ...rest } = kb;
     return {
       ...rest,
       averageRating: Math.round(avgRating * 10) / 10,
