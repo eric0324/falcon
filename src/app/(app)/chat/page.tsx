@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PreviewPanel } from "@/components/preview-panel";
+import { DocumentPanel } from "@/components/document-panel";
 import { DeployDialog } from "@/components/deploy-dialog";
 import { ChatMessage } from "@/components/chat-message";
 import { useToast } from "@/components/ui/use-toast";
@@ -80,6 +81,7 @@ function StudioContent() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [code, setCode] = useState("");
+  const [docContent, setDocContent] = useState<{ markdown: string; title: string } | null>(null);
   const [draftToolId, setDraftToolId] = useState<string | null>(null);
   const [currentToolCalls, setCurrentToolCalls] = useState<ToolCall[]>([]);
   const [showDeployDialog, setShowDeployDialog] = useState(false);
@@ -136,6 +138,7 @@ function StudioContent() {
   const MAX_ERROR_RETRIES = 2;
 
   const hasCode = code.length > 0;
+  const hasPreview = hasCode || !!docContent;
   const isQuotaBlocked = quotaStatus?.status === "blocked";
 
   // Resizable panel
@@ -169,6 +172,7 @@ function StudioContent() {
     setMessages([]);
     setInput("");
     setCode("");
+    setDocContent(null);
     setDraftToolId(null);
     setCurrentToolCalls([]);
     setToolName("");
@@ -271,15 +275,15 @@ function StudioContent() {
         setConvStarred(conv.starred ?? false);
         setSelectedDataSources(conv.dataSources || []);
 
-        // Extract code from messages - check tool calls first, then content
+        // Extract code or document from messages - check tool calls first, then content
         const messages = conv.messages || [];
         let foundCode: string | null = null;
+        let foundDoc: { markdown: string; title: string } | null = null;
 
         // Search backwards through messages
-        for (let i = messages.length - 1; i >= 0 && !foundCode; i--) {
+        for (let i = messages.length - 1; i >= 0 && !foundCode && !foundDoc; i--) {
           const msg = messages[i];
           if (msg.role === "assistant") {
-            // First check tool calls for updateCode result
             if (msg.toolCalls) {
               for (const toolCall of msg.toolCalls) {
                 if (toolCall.name === "updateCode" && toolCall.result?.code) {
@@ -287,10 +291,13 @@ function StudioContent() {
                   foundCode = extracted || toolCall.result.code;
                   break;
                 }
+                if (toolCall.name === "updateDocument" && toolCall.result?.markdown && toolCall.result?.title) {
+                  foundDoc = { markdown: toolCall.result.markdown, title: toolCall.result.title };
+                  break;
+                }
               }
             }
-            // If no tool call code, try extracting from content
-            if (!foundCode && msg.content) {
+            if (!foundCode && !foundDoc && msg.content) {
               const extracted = extractCode(msg.content);
               if (extracted) foundCode = extracted;
             }
@@ -298,6 +305,7 @@ function StudioContent() {
         }
 
         setCode(foundCode || "");
+        setDocContent(foundDoc);
         setConvId(loadId);
 
         // Restore draft toolId if conversation has a linked tool
@@ -493,6 +501,16 @@ function StudioContent() {
                       const extracted = extractCode(result.code);
                       const finalCode = extracted || result.code;
                       setCode(finalCode);
+                      setDocContent(null);
+                    }
+                  }
+
+                  // Handle updateDocument tool result
+                  if (existing.name === "updateDocument" && typeof resultData.result === "object" && resultData.result) {
+                    const result = resultData.result as { markdown?: string; title?: string };
+                    if (result.markdown && result.title) {
+                      setDocContent({ markdown: result.markdown, title: result.title });
+                      setCode("");
                     }
                   }
 
@@ -710,6 +728,15 @@ function StudioContent() {
                         const extracted = extractCode(result.code);
                         const finalCode = extracted || result.code;
                         setCode(finalCode);
+                        setDocContent(null);
+                      }
+                    }
+
+                    if (existing.name === "updateDocument" && typeof resultData.result === "object" && resultData.result) {
+                      const result = resultData.result as { markdown?: string; title?: string };
+                      if (result.markdown && result.title) {
+                        setDocContent({ markdown: result.markdown, title: result.title });
+                        setCode("");
                       }
                     }
                   }
@@ -983,7 +1010,7 @@ function StudioContent() {
         {/* Chat Panel */}
         <div
           className="flex flex-col min-w-0 min-h-0"
-          style={hasCode && !isMobileChat && !previewCollapsed ? { width: `${panelRatio}%` } : { flex: 1 }}
+          style={hasPreview && !isMobileChat && !previewCollapsed ? { width: `${panelRatio}%` } : { flex: 1 }}
         >
           <ScrollArea className="flex-1 p-4" ref={scrollRef}>
             <div className="space-y-4">
@@ -1099,7 +1126,7 @@ function StudioContent() {
                   onKeyDown={handleKeyDown}
                   placeholder={isQuotaBlocked ? tq("inputDisabled") : t("input.placeholder")}
                   className="min-h-[80px] pr-12 resize-none"
-                  disabled={isLoading || isQuotaBlocked}
+                  disabled={isQuotaBlocked}
                 />
                 <Button
                   type="submit"
@@ -1160,7 +1187,7 @@ function StudioContent() {
         </div>
 
         {/* Draggable Divider — hidden on mobile */}
-        {hasCode && !isMobileChat && !previewCollapsed && (
+        {hasPreview && !isMobileChat && !previewCollapsed && (
           <div
             className={`group relative w-1.5 cursor-col-resize shrink-0 flex items-center justify-center ${isDragging ? "bg-primary/30" : "bg-transparent hover:bg-primary/15"}`}
             onMouseDown={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -1173,18 +1200,26 @@ function StudioContent() {
           </div>
         )}
 
-        {/* Preview Panel - only shown when code exists */}
-        {hasCode && (
+        {/* Preview Panel — code preview or document preview */}
+        {hasPreview && (
           <div className={`relative ${previewCollapsed ? "shrink-0" : isMobileChat ? "h-[50vh] border-t min-w-0" : "flex-1 h-full min-w-0"}`}>
             {isDragging && !previewCollapsed && <div className="absolute inset-0 z-50" />}
-            <PreviewPanel
-              code={code}
-              toolId={editId || draftToolId}
-              dataSources={selectedDataSources}
-              onError={handlePreviewError}
-              onShare={() => setShowDeployDialog(true)}
-              onCollapsedChange={setPreviewCollapsed}
-            />
+            {docContent ? (
+              <DocumentPanel
+                markdown={docContent.markdown}
+                title={docContent.title}
+                onCollapsedChange={setPreviewCollapsed}
+              />
+            ) : (
+              <PreviewPanel
+                code={code}
+                toolId={editId || draftToolId}
+                dataSources={selectedDataSources}
+                onError={handlePreviewError}
+                onShare={() => setShowDeployDialog(true)}
+                onCollapsedChange={setPreviewCollapsed}
+              />
+            )}
           </div>
         )}
       </div>

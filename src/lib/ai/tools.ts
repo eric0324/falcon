@@ -57,6 +57,22 @@ export function createStudioTools(userId: string, conversationId?: string) {
         };
       },
     }),
+    updateDocument: tool({
+      description: "產生或更新 Markdown 文件。當使用者要求撰寫文件、報告、企劃、文章、信件等文字內容時使用此工具，而非 updateCode。",
+      inputSchema: z.object({
+        markdown: z.string().describe("完整的 Markdown 文件內容（不要包含 ```markdown 等標記）"),
+        title: z.string().describe("文件標題"),
+        explanation: z.string().describe("簡短說明這次更新做了什麼（繁體中文）"),
+      }),
+      execute: async ({ markdown, title, explanation }) => {
+        return {
+          type: "document_update",
+          markdown,
+          title,
+          explanation,
+        };
+      },
+    }),
   };
 }
 

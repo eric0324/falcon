@@ -14,6 +14,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.21.0",
+    date: "2026-04-02",
+    title: "文件撰寫模式",
+    summary:
+      "AI 現在能直接幫你撰寫 Markdown 文件，像是報告、企劃、信件，右側即時預覽並可下載。",
+    items: [
+      "文件模式：請 AI 寫報告/企劃/信件時，右側顯示 Markdown 預覽 + 下載按鈕",
+      "改善：AI 思考中仍可輸入文字，不再鎖定輸入框",
+    ],
+  },
+  {
     version: "v0.20.2",
     date: "2026-04-02",
     title: "Preview 全螢幕 + 收合",
