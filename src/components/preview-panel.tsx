@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { RefreshCw, Share2 } from "lucide-react";
+import { RefreshCw, Share2, Maximize2, Minimize2, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { generateSandboxApiClient } from "@/lib/sandbox-api-client";
 
@@ -11,6 +11,7 @@ interface PreviewPanelProps {
   dataSources?: string[];
   onError?: (error: string | null) => void;
   onShare?: () => void;
+  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
 const DEFAULT_CODE = `export default function App() {
@@ -72,16 +73,16 @@ function buildPreviewHtml(code: string, apiClientCode?: string): string {
 </html>`;
 }
 
-export function PreviewPanel({ code, toolId, dataSources, onError, onShare }: PreviewPanelProps) {
+export function PreviewPanel({ code, toolId, dataSources, onError, onShare, onCollapsedChange }: PreviewPanelProps) {
   const [key, setKey] = useState(0);
   const [, setError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const displayCode = code || DEFAULT_CODE;
 
   const hasDataSources = dataSources && dataSources.length > 0;
-  // Always use real API client — LLM bridge is a platform capability available to all tools
   const apiClientCode = generateSandboxApiClient();
 
-  // Handle bridge messages from iframe (preview mode)
   const handleMessage = useCallback(
     async (event: MessageEvent) => {
       if (event.data?.type === "preview-error") {
@@ -95,10 +96,8 @@ export function PreviewPanel({ code, toolId, dataSources, onError, onShare }: Pr
         return;
       }
 
-      // Bridge message handling
       if (event.data?.type !== "api-bridge") return;
       const isPlatform = event.data.dataSourceId === "llm" || event.data.dataSourceId === "tooldb";
-      // Allow platform capabilities always; other data sources require explicit selection
       if (!isPlatform && !hasDataSources) return;
 
       const { id, dataSourceId, action, params } = event.data;
@@ -159,11 +158,81 @@ export function PreviewPanel({ code, toolId, dataSources, onError, onShare }: Pr
     setError(null);
   }, [code]);
 
+  // Notify parent when fullscreen changes (treat as collapsed for layout)
+  useEffect(() => {
+    onCollapsedChange?.(isFullscreen || isCollapsed);
+  }, [isFullscreen, isCollapsed, onCollapsedChange]);
+
+  // ESC to exit fullscreen
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsFullscreen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFullscreen]);
+
   const handleRefresh = () => {
     setKey((prev) => prev + 1);
     setError(null);
   };
 
+  const handleToggleCollapse = () => {
+    setIsCollapsed((prev) => !prev);
+  };
+
+  // Collapsed state — show a thin bar to expand
+  if (isCollapsed) {
+    return (
+      <div className="h-full flex items-center border-l">
+        <button
+          onClick={handleToggleCollapse}
+          className="h-full px-1.5 hover:bg-muted/50 transition-colors flex items-center"
+          title="展開預覽"
+        >
+          <PanelRightOpen className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </div>
+    );
+  }
+
+  // Fullscreen: show overlay + collapse the inline panel
+  if (isFullscreen) {
+    return (
+      <>
+        {/* Inline: thin bar like collapsed */}
+        <div className="h-full flex items-center border-l">
+          <button
+            onClick={() => setIsFullscreen(false)}
+            className="h-full px-1.5 hover:bg-muted/50 transition-colors flex items-center"
+            title="退出全螢幕"
+          >
+            <Minimize2 className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </div>
+        {/* Fullscreen overlay */}
+        <div className="fixed inset-0 z-[100] bg-white dark:bg-neutral-950">
+          <button
+            onClick={() => setIsFullscreen(false)}
+            className="absolute top-3 right-3 z-10 p-2 rounded-lg bg-white/80 hover:bg-white text-black shadow-md backdrop-blur-sm transition-colors"
+            title="退出全螢幕"
+          >
+            <Minimize2 className="h-4 w-4" />
+          </button>
+          <iframe
+            key={`fs-${key}`}
+            srcDoc={buildPreviewHtml(displayCode, apiClientCode)}
+            className="w-full h-full border-0"
+            sandbox="allow-scripts"
+            title="Preview"
+          />
+        </div>
+      </>
+    );
+  }
+
+  // Normal state
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="border-b px-4 py-2 shrink-0 flex items-center justify-between">
@@ -177,6 +246,12 @@ export function PreviewPanel({ code, toolId, dataSources, onError, onShare }: Pr
               <Share2 className="h-3.5 w-3.5" />
             </Button>
           )}
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsFullscreen(true)} title="全螢幕">
+            <Maximize2 className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleToggleCollapse} title="收合預覽">
+            <PanelRightClose className="h-3.5 w-3.5" />
+          </Button>
         </div>
       </div>
       <div className="flex-1 relative bg-white">

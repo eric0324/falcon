@@ -141,6 +141,7 @@ function StudioContent() {
   // Resizable panel
   const [panelRatio, setPanelRatio] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
+  const [previewCollapsed, setPreviewCollapsed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -982,7 +983,7 @@ function StudioContent() {
         {/* Chat Panel */}
         <div
           className="flex flex-col min-w-0 min-h-0"
-          style={hasCode && !isMobileChat ? { width: `${panelRatio}%` } : { flex: 1 }}
+          style={hasCode && !isMobileChat && !previewCollapsed ? { width: `${panelRatio}%` } : { flex: 1 }}
         >
           <ScrollArea className="flex-1 p-4" ref={scrollRef}>
             <div className="space-y-4">
@@ -1159,7 +1160,7 @@ function StudioContent() {
         </div>
 
         {/* Draggable Divider — hidden on mobile */}
-        {hasCode && !isMobileChat && (
+        {hasCode && !isMobileChat && !previewCollapsed && (
           <div
             className={`group relative w-1.5 cursor-col-resize shrink-0 flex items-center justify-center ${isDragging ? "bg-primary/30" : "bg-transparent hover:bg-primary/15"}`}
             onMouseDown={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -1174,14 +1175,15 @@ function StudioContent() {
 
         {/* Preview Panel - only shown when code exists */}
         {hasCode && (
-          <div className={`min-w-0 relative ${isMobileChat ? "h-[50vh] border-t" : "flex-1 h-full"}`}>
-            {isDragging && <div className="absolute inset-0 z-50" />}
+          <div className={`relative ${previewCollapsed ? "shrink-0" : isMobileChat ? "h-[50vh] border-t min-w-0" : "flex-1 h-full min-w-0"}`}>
+            {isDragging && !previewCollapsed && <div className="absolute inset-0 z-50" />}
             <PreviewPanel
               code={code}
               toolId={editId || draftToolId}
               dataSources={selectedDataSources}
               onError={handlePreviewError}
               onShare={() => setShowDeployDialog(true)}
+              onCollapsedChange={setPreviewCollapsed}
             />
           </div>
         )}

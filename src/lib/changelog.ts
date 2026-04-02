@@ -14,6 +14,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.20.2",
+    date: "2026-04-02",
+    title: "Preview 全螢幕 + 收合",
+    summary:
+      "對話中的工具預覽面板新增全螢幕和收合功能，全螢幕讓你專注檢視工具效果，收合讓你有更多空間跟 AI 對話。",
+    items: [
+      "Preview 全螢幕：點擊放大按鈕，預覽撐滿整個畫面，按 ESC 或右上角按鈕退出",
+      "Preview 收合：點擊收合按鈕，預覽縮到側邊，聊天區自動撐滿",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.20.1",
     date: "2026-03-31",
     title: "Meta Ads 新增預算與影片指標",
