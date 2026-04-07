@@ -17,9 +17,9 @@ const allGoogleScopes = [
 ].join(" ");
 
 export async function getAuthOptions(): Promise<NextAuthOptions> {
-  const clientId = await getConfig("GOOGLE_CLIENT_ID") || "";
-  const clientSecret = await getConfig("GOOGLE_CLIENT_SECRET") || "";
-  const allowedDomain = await getConfig("ALLOWED_EMAIL_DOMAIN") || "company.com";
+  const clientId = await getConfig("GOOGLE_CLIENT_ID") || process.env.GOOGLE_CLIENT_ID || "";
+  const clientSecret = await getConfig("GOOGLE_CLIENT_SECRET") || process.env.GOOGLE_CLIENT_SECRET || "";
+  const allowedDomain = await getConfig("ALLOWED_EMAIL_DOMAIN") || process.env.ALLOWED_EMAIL_DOMAIN || "company.com";
 
   return {
     providers: [
