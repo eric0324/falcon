@@ -8,10 +8,14 @@ const CACHE_TTL_MS = 60_000; // 60 seconds
 /**
  * All config keys that the system supports, grouped for the admin UI.
  */
-export const CONFIG_DEFINITIONS: Record<
-  string,
-  { key: string; description: string; sensitive: boolean }[]
-> = {
+export interface ConfigDef {
+  key: string;
+  description: string;
+  sensitive: boolean;
+  options?: string[];
+}
+
+export const CONFIG_DEFINITIONS: Record<string, ConfigDef[]> = {
   google_oauth: [
     { key: "GOOGLE_CLIENT_ID", description: "Client ID", sensitive: false },
     { key: "GOOGLE_CLIENT_SECRET", description: "Client Secret", sensitive: true },
@@ -38,19 +42,16 @@ export const CONFIG_DEFINITIONS: Record<
   ],
   asana: [
     { key: "ASANA_PAT", description: "Personal Access Token", sensitive: true },
-    { key: "ASANA_WORKSPACE_ID", description: "Workspace ID", sensitive: false },
   ],
   github: [
     { key: "GITHUB_TOKEN", description: "Personal Access Token", sensitive: true },
   ],
   vimeo: [
     { key: "VIMEO_ACCESS_TOKEN", description: "Access Token", sensitive: true },
-    { key: "VIMEO_USER_ID", description: "User ID", sensitive: false },
   ],
   plausible: [
     { key: "PLAUSIBLE_API_KEY", description: "API Key", sensitive: true },
     { key: "PLAUSIBLE_SITE_ID", description: "Site ID", sensitive: false },
-    { key: "PLAUSIBLE_BASE_URL", description: "Base URL", sensitive: false },
   ],
   ga4: [
     { key: "GA4_CLIENT_EMAIL", description: "Service Account Email", sensitive: false },
@@ -63,7 +64,7 @@ export const CONFIG_DEFINITIONS: Record<
   ],
   general: [
     { key: "DEFAULT_MONTHLY_QUOTA_USD", description: "Default monthly quota (USD)", sensitive: false },
-    { key: "PG_TEXT_SEARCH_CONFIG", description: "PostgreSQL text search config", sensitive: false },
+    { key: "PG_TEXT_SEARCH_CONFIG", description: "PostgreSQL text search config", sensitive: false, options: ["simple", "english", "chinese"] },
   ],
 };
 

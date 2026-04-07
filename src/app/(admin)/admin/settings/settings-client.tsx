@@ -11,6 +11,7 @@ interface ConfigItem {
   sensitive: boolean;
   hasValue: boolean;
   value: string | null;
+  options?: string[];
 }
 
 type ConfigGroups = Record<string, ConfigItem[]>;
@@ -108,63 +109,65 @@ export function SettingsClient() {
           <div className="divide-y">
             {items.map((item) => {
               const isEditing = editValues[item.key] !== undefined;
-              const currentValue = isEditing ? editValues[item.key] : "";
+              const displayValue = item.sensitive
+                ? (item.hasValue && !isEditing ? "••••••••••••" : "")
+                : (item.value || "");
+              const currentValue = isEditing ? editValues[item.key] : displayValue;
               const isSensitive = item.sensitive;
               const isVisible = showValues[item.key];
 
               return (
                 <div key={item.key} className="px-5 py-3">
                   <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-neutral-800">
-                        {item.description}
-                      </span>
-                      {item.hasValue ? (
-                        <span className="text-[11px] px-1.5 py-px rounded bg-green-50 text-green-600">
-                          已設定
-                        </span>
-                      ) : (
-                        <span className="text-[11px] px-1.5 py-px rounded bg-neutral-100 text-neutral-400">
-                          未設定
-                        </span>
-                      )}
-                    </div>
+                    <span className="text-sm font-medium text-neutral-800">
+                      {item.description}
+                    </span>
                   </div>
 
                   <div className="relative">
-                    <Input
-                      type={isSensitive && !isVisible ? "password" : "text"}
-                      placeholder={
-                        item.hasValue
-                          ? isSensitive
-                            ? "輸入新值覆蓋"
-                            : item.value || ""
-                          : item.key
-                      }
-                      value={currentValue}
-                      onChange={(e) =>
-                        setEditValues((p) => ({ ...p, [item.key]: e.target.value }))
-                      }
-                      className="text-sm h-9 pr-8 font-mono"
-                    />
-                    {isSensitive && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowValues((p) => ({ ...p, [item.key]: !p[item.key] }))
+                    {item.options ? (
+                      <select
+                        value={currentValue || item.options[0]}
+                        onChange={(e) =>
+                          setEditValues((p) => ({ ...p, [item.key]: e.target.value }))
                         }
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                        className="w-full h-9 px-3 text-sm font-mono border rounded-md bg-white"
                       >
-                        {isVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                      </button>
+                        {item.options.map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <>
+                        <Input
+                          type={isSensitive && !isVisible ? "password" : "text"}
+                          value={currentValue}
+                          onFocus={() => {
+                            if (isSensitive && !isEditing) {
+                              setEditValues((p) => ({ ...p, [item.key]: "" }));
+                            }
+                          }}
+                          onChange={(e) =>
+                            setEditValues((p) => ({ ...p, [item.key]: e.target.value }))
+                          }
+                          className="text-sm h-9 pr-8 font-mono"
+                        />
+                        {isSensitive && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowValues((p) => ({ ...p, [item.key]: !p[item.key] }))
+                            }
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                          >
+                            {isVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
 
-                  {!isSensitive && item.hasValue && item.value && !isEditing && (
-                    <p className="mt-1 text-[11px] text-neutral-400 font-mono truncate">
-                      {item.value}
-                    </p>
-                  )}
+
                 </div>
               );
             })}

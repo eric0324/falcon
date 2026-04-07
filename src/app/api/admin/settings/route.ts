@@ -36,6 +36,7 @@ export async function GET() {
         sensitive: def.sensitive,
         hasValue,
         value: displayValue,
+        options: def.options,
       };
     });
   }
