@@ -20,7 +20,7 @@ vi.mock("@/lib/config", () => ({
   getConfig: vi.fn((key: string) => Promise.resolve(`mock-${key}`)),
 }));
 
-import { MODEL_IDS, modelInfo, defaultModel, getModel, type ModelId } from "./models";
+import { MODEL_IDS, modelInfo, defaultModel, getModel } from "./models";
 
 describe("MODEL_IDS", () => {
   it("contains expected model keys", () => {
