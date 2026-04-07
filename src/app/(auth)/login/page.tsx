@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { LoginForm } from "@/components/login-form";
 
 export const metadata = { title: "登入" };
@@ -10,7 +9,7 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ error?: string; domain?: string; callbackUrl?: string }>;
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const params = await searchParams;
 
   if (session) {

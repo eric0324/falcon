@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import type { Session } from "next-auth";
 
@@ -9,7 +8,7 @@ import type { Session } from "next-auth";
  * Returns the session if authorized, or a NextResponse (401/403) if not.
  */
 export async function requireAdmin(): Promise<Session | NextResponse> {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

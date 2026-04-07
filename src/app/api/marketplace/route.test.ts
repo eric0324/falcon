@@ -1,15 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-const mockGetServerSession = vi.hoisted(() => vi.fn());
+const mockGetSession = vi.hoisted(() => vi.fn());
 const prismaMock = vi.hoisted(() => ({
   user: { findUnique: vi.fn() },
   tool: { findMany: vi.fn(), count: vi.fn() },
   toolStats: { findMany: vi.fn() },
 }));
 
-vi.mock("next-auth", () => ({ getServerSession: mockGetServerSession }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
+vi.mock("@/lib/session", () => ({ getSession: mockGetSession }));
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 
 import { GET } from "./route";
@@ -21,7 +20,7 @@ const mockSession = {
 describe("GET /api/marketplace", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
   });
 
   it("returns paginated tools", async () => {

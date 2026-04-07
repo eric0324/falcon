@@ -1,4 +1,5 @@
 import { BetaAnalyticsDataClient } from "@google-analytics/data";
+import { getConfig } from "@/lib/config";
 
 // ===== Types =====
 
@@ -33,22 +34,27 @@ export interface GA4Filters {
 
 // ===== Configuration =====
 
-export function isGA4Configured(): boolean {
-  return (
-    !!process.env.GA4_CLIENT_EMAIL &&
-    !!process.env.GA4_PRIVATE_KEY &&
-    !!process.env.GA4_PROPERTY_ID
-  );
+export async function isGA4Configured(): Promise<boolean> {
+  const [clientEmail, privateKey, propertyId] = await Promise.all([
+    getConfig("GA4_CLIENT_EMAIL"),
+    getConfig("GA4_PRIVATE_KEY"),
+    getConfig("GA4_PROPERTY_ID"),
+  ]);
+  return !!clientEmail && !!privateKey && !!propertyId;
 }
 
 let clientInstance: BetaAnalyticsDataClient | null = null;
 
-function getClient(): BetaAnalyticsDataClient {
+async function getClient(): Promise<BetaAnalyticsDataClient> {
   if (!clientInstance) {
-    const privateKey = (process.env.GA4_PRIVATE_KEY || "").replace(/\\n/g, "\n");
+    const [clientEmail, rawPrivateKey] = await Promise.all([
+      getConfig("GA4_CLIENT_EMAIL"),
+      getConfig("GA4_PRIVATE_KEY"),
+    ]);
+    const privateKey = (rawPrivateKey || "").replace(/\\n/g, "\n");
     clientInstance = new BetaAnalyticsDataClient({
       credentials: {
-        client_email: process.env.GA4_CLIENT_EMAIL,
+        client_email: clientEmail,
         private_key: privateKey,
       },
     });
@@ -61,8 +67,8 @@ export function _resetClient(): void {
   clientInstance = null;
 }
 
-function getPropertyId(): string {
-  const id = process.env.GA4_PROPERTY_ID;
+async function getPropertyId(): Promise<string> {
+  const id = await getConfig("GA4_PROPERTY_ID");
   if (!id) throw new Error("GA4_PROPERTY_ID is not configured");
   return id;
 }
@@ -183,9 +189,9 @@ const CORE_METRICS = [
 ];
 
 export async function getRealtimeUsers(): Promise<number> {
-  const client = getClient();
+  const [client, propertyId] = await Promise.all([getClient(), getPropertyId()]);
   const [response] = await client.runRealtimeReport({
-    property: `properties/${getPropertyId()}`,
+    property: `properties/${propertyId}`,
     metrics: [{ name: "activeUsers" }],
   });
 
@@ -199,9 +205,9 @@ export async function queryAggregate(
   startDate?: string,
   endDate?: string
 ): Promise<GA4Metrics> {
-  const client = getClient();
+  const [client, propertyId] = await Promise.all([getClient(), getPropertyId()]);
   const [response] = await client.runReport({
-    property: `properties/${getPropertyId()}`,
+    property: `properties/${propertyId}`,
     dateRanges: [buildDateRange(dateRange, startDate, endDate)],
     metrics: CORE_METRICS,
     dimensionFilter: buildDimensionFilter(filters),
@@ -227,9 +233,9 @@ export async function queryTimeseries(
   startDate?: string,
   endDate?: string
 ): Promise<GA4TimeseriesEntry[]> {
-  const client = getClient();
+  const [client, propertyId] = await Promise.all([getClient(), getPropertyId()]);
   const [response] = await client.runReport({
-    property: `properties/${getPropertyId()}`,
+    property: `properties/${propertyId}`,
     dateRanges: [buildDateRange(dateRange, startDate, endDate)],
     dimensions: [{ name: getPeriodDimension(period) }],
     metrics: [{ name: "activeUsers" }, { name: "screenPageViews" }],
@@ -253,10 +259,10 @@ export async function queryBreakdown(
   endDate?: string
 ): Promise<GA4BreakdownEntry[]> {
   const ga4Dimension = DIMENSION_MAP[dimension] || dimension;
-  const client = getClient();
+  const [client, propertyId] = await Promise.all([getClient(), getPropertyId()]);
 
   const [response] = await client.runReport({
-    property: `properties/${getPropertyId()}`,
+    property: `properties/${propertyId}`,
     dateRanges: [buildDateRange(dateRange, startDate, endDate)],
     dimensions: [{ name: ga4Dimension }],
     metrics: [{ name: "activeUsers" }, { name: "screenPageViews" }],

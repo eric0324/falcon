@@ -1,3 +1,5 @@
+import { getConfig } from "@/lib/config";
+
 const SLACK_API_BASE = "https://slack.com/api";
 
 // ===== Types =====
@@ -32,22 +34,22 @@ export interface SlackSearchResult {
 
 // ===== Configuration =====
 
-export function isSlackConfigured(): boolean {
-  return !!process.env.SLACK_BOT_TOKEN;
+export async function isSlackConfigured(): Promise<boolean> {
+  return !!(await getConfig("SLACK_BOT_TOKEN"));
 }
 
-export function isSlackSearchConfigured(): boolean {
-  return !!process.env.SLACK_USER_TOKEN;
+export async function isSlackSearchConfigured(): Promise<boolean> {
+  return !!(await getConfig("SLACK_USER_TOKEN"));
 }
 
-function getBotToken(): string {
-  const token = process.env.SLACK_BOT_TOKEN;
+async function getBotToken(): Promise<string> {
+  const token = await getConfig("SLACK_BOT_TOKEN");
   if (!token) throw new Error("SLACK_BOT_TOKEN is not configured");
   return token;
 }
 
-function getUserToken(): string {
-  const token = process.env.SLACK_USER_TOKEN;
+async function getUserToken(): Promise<string> {
+  const token = await getConfig("SLACK_USER_TOKEN");
   if (!token) throw new Error("SLACK_USER_TOKEN is not configured");
   return token;
 }
@@ -95,7 +97,7 @@ export async function getUserName(userId: string): Promise<string> {
   try {
     const data = await slackFetch<{
       user: { profile: { display_name: string; real_name: string } };
-    }>("users.info", getBotToken(), { user: userId });
+    }>("users.info", await getBotToken(), { user: userId });
 
     const name = data.user.profile.display_name || data.user.profile.real_name || userId;
     userNameCache.set(userId, name);
@@ -120,7 +122,7 @@ async function resolveUserNames<T extends { user: string }>(
 // ===== Auto-Join =====
 
 async function joinChannel(channelId: string): Promise<void> {
-  await slackFetch("conversations.join", getBotToken(), { channel: channelId });
+  await slackFetch("conversations.join", await getBotToken(), { channel: channelId });
 }
 
 async function withAutoJoin<T>(channelId: string, fn: () => Promise<T>): Promise<T> {
@@ -145,7 +147,7 @@ export async function listChannels(): Promise<SlackChannel[]> {
       topic: { value: string };
       num_members: number;
     }>;
-  }>("conversations.list", getBotToken(), {
+  }>("conversations.list", await getBotToken(), {
     types: "public_channel",
     exclude_archived: "true",
     limit: "200",
@@ -171,7 +173,7 @@ export async function getChannelMessages(
         ts: string;
         reply_count?: number;
       }>;
-    }>("conversations.history", getBotToken(), {
+    }>("conversations.history", await getBotToken(), {
       channel: channelId,
       limit: String(limit),
     });
@@ -198,7 +200,7 @@ export async function getThreadReplies(
         text: string;
         ts: string;
       }>;
-    }>("conversations.replies", getBotToken(), {
+    }>("conversations.replies", await getBotToken(), {
       channel: channelId,
       ts: threadTs,
     });
@@ -227,7 +229,7 @@ export async function searchMessages(
         permalink: string;
       }>;
     };
-  }>("search.messages", getUserToken(), {
+  }>("search.messages", await getUserToken(), {
     query,
     count: String(limit),
   });

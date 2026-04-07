@@ -1,7 +1,6 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { streamText } from "ai";
-import { models, ModelId, defaultModel } from "@/lib/ai/models";
+import { getModel, ModelId, defaultModel } from "@/lib/ai/models";
 import { createStudioTools } from "@/lib/ai/tools";
 import { createGoogleTools } from "@/lib/ai/google-tools";
 import { createNotionTools } from "@/lib/ai/notion-tools";
@@ -79,7 +78,7 @@ function buildMessageContent(
 type CoreMessage = any;
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
 
   if (!session?.user?.email || !session?.user?.id) {
     return new Response("Unauthorized", { status: 401 });
@@ -100,7 +99,7 @@ export async function POST(req: Request) {
     const { message, model, files, conversationId: incomingConversationId, dataSources, skillPrompt } = await req.json();
 
     // Use specified model or default
-    const selectedModel = models[(model as ModelId) || defaultModel];
+    const selectedModel = await getModel((model as ModelId) || defaultModel);
     const modelName = (model || defaultModel) as ModelId;
 
     // Load conversation history from DB or create new conversation

@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getKnowledgeBaseRole, hasMinRole } from "@/lib/knowledge/permissions";
 
@@ -10,7 +9,7 @@ interface RouteContext {
 
 // PUT /api/knowledge-bases/:id/members/:memberId — update role
 export async function PUT(req: Request, context: RouteContext) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -37,7 +36,7 @@ export async function PUT(req: Request, context: RouteContext) {
 
 // DELETE /api/knowledge-bases/:id/members/:memberId — remove member
 export async function DELETE(_req: Request, context: RouteContext) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

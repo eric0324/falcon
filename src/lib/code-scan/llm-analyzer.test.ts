@@ -5,9 +5,7 @@ vi.mock("ai", () => ({
 }));
 
 vi.mock("@/lib/ai/models", () => ({
-  models: {
-    "claude-haiku": { provider: "anthropic", modelId: "claude-haiku" },
-  },
+  getModel: vi.fn().mockResolvedValue({ provider: "anthropic", modelId: "claude-haiku" }),
 }));
 
 import { generateText } from "ai";

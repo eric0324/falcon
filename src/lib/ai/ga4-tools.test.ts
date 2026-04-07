@@ -25,7 +25,7 @@ const mockBreakdown = vi.mocked(queryBreakdown);
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockIsConfigured.mockReturnValue(true);
+  mockIsConfigured.mockReturnValue(Promise.resolve(true));
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,7 +40,7 @@ async function executeTool(params: Record<string, unknown>): Promise<any> {
 describe("ga4Query tool", () => {
   describe("not configured", () => {
     it("returns error when GA4 is not configured", async () => {
-      mockIsConfigured.mockReturnValue(false);
+      mockIsConfigured.mockReturnValue(Promise.resolve(false));
       const result = await executeTool({ action: "realtime" });
       expect(result.success).toBe(false);
       expect(result.needsConnection).toBe(true);

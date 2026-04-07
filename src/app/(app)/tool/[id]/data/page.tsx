@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { canUserAccessTool } from "@/lib/tool-visibility";
 import { ToolDataClient } from "./client";
@@ -17,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ToolDataPage({ params }: Props) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const { id } = await params;
 
   if (!session?.user?.id) {

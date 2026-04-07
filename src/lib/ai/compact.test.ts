@@ -8,14 +8,7 @@ vi.mock("ai", () => ({
 
 // Mock models to avoid importing real AI SDK providers
 vi.mock("./models", () => ({
-  models: {
-    "claude-haiku": { provider: "anthropic", modelId: "claude-haiku" },
-    "claude-sonnet": { provider: "anthropic", modelId: "claude-sonnet" },
-    "gpt-5-mini": { provider: "openai", modelId: "gpt-5-mini" },
-    "gpt-5-nano": { provider: "openai", modelId: "gpt-5-nano" },
-    "gemini-flash": { provider: "google", modelId: "gemini-flash" },
-    "gemini-pro": { provider: "google", modelId: "gemini-pro" },
-  },
+  getModel: vi.fn().mockResolvedValue({ provider: "anthropic", modelId: "claude-haiku" }),
   defaultModel: "claude-haiku",
 }));
 

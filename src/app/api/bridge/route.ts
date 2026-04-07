@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { dispatchBridge } from "@/lib/bridge/handlers";
 import { logDataSourceCall, sanitizeBridgeParams, sanitizeResponse } from "@/lib/data-source-log";
@@ -15,7 +14,7 @@ async function getUser(session: { user?: { email?: string | null } } | null) {
 
 export async function POST(req: Request) {
   // 1. Session auth
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const user = await getUser(session);
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

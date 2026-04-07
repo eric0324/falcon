@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockGetServerSession = vi.hoisted(() => vi.fn());
+const mockGetSession = vi.hoisted(() => vi.fn());
 const mockCreateConversationWithMessages = vi.hoisted(() => vi.fn());
 const mockLinkOrphanTokenUsage = vi.hoisted(() => vi.fn());
 const mockGenerateConversationTitle = vi.hoisted(() => vi.fn());
@@ -10,8 +10,7 @@ const prismaMock = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("next-auth", () => ({ getServerSession: mockGetServerSession }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
+vi.mock("@/lib/session", () => ({ getSession: mockGetSession }));
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/lib/conversation-messages", () => ({
   createConversationWithMessages: mockCreateConversationWithMessages,
@@ -40,13 +39,13 @@ describe("GET /api/conversations", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 401 when not logged in", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    mockGetSession.mockResolvedValue(null);
     const res = await GET(new Request("http://localhost/api/conversations"));
     expect(res.status).toBe(401);
   });
 
   it("returns user conversations ordered by updatedAt desc", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     prismaMock.conversation.findMany.mockResolvedValue([
       {
         id: "conv-1",
@@ -74,7 +73,7 @@ describe("GET /api/conversations", () => {
   });
 
   it("respects limit query param", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     prismaMock.conversation.findMany.mockResolvedValue([]);
 
     await GET(new Request("http://localhost/api/conversations?limit=3"));
@@ -88,13 +87,13 @@ describe("POST /api/conversations", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 401 when not logged in", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    mockGetSession.mockResolvedValue(null);
     const res = await POST(makeRequest({}));
     expect(res.status).toBe(401);
   });
 
   it("creates a conversation with AI-generated title", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     mockGenerateConversationTitle.mockResolvedValue("查詢訂單狀態");
     const messages = [
       { role: "user", content: "幫我查訂單" },
@@ -132,7 +131,7 @@ describe("POST /api/conversations", () => {
   });
 
   it("returns 400 when messages are missing", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     const res = await POST(makeRequest({}));
     expect(res.status).toBe(400);
   });

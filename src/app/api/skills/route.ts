@@ -1,7 +1,6 @@
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
 const VALID_CATEGORIES = ["analytics", "marketing", "project-management", "writing", "other"] as const;
@@ -18,7 +17,7 @@ const createSkillSchema = z.object({
 
 // GET /api/skills — 取得公開 skills + 自己的 skills
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -73,7 +72,7 @@ export async function GET(req: Request) {
 
 // POST /api/skills — 建立 skill
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

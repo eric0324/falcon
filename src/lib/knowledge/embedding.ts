@@ -1,9 +1,11 @@
+import { getConfig } from "@/lib/config";
+
 const VOYAGE_API_URL = "https://api.voyageai.com/v1/embeddings";
 const VOYAGE_MODEL = "voyage-3";
 const BATCH_SIZE = 128;
 
-function getApiKey(): string {
-  const key = process.env.VOYAGE_API_KEY;
+async function getApiKey(): Promise<string> {
+  const key = await getConfig("VOYAGE_API_KEY");
   if (!key) throw new Error("VOYAGE_API_KEY is not set");
   return key;
 }
@@ -18,7 +20,7 @@ async function callVoyageApi(texts: string[]): Promise<number[][]> {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${getApiKey()}`,
+      Authorization: `Bearer ${await getApiKey()}`,
     },
     body: JSON.stringify({
       input: texts,

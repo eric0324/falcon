@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { generateConversationTitle } from "@/lib/ai/generate-title";
@@ -7,7 +6,7 @@ import { createConversationWithMessages, linkOrphanTokenUsage } from "@/lib/conv
 import type { Message } from "@/types/message";
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return new Response("Unauthorized", { status: 401 });
   }
@@ -49,7 +48,7 @@ function getFirstUserContent(messages: Array<{ role: string; content: string }>)
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return new Response("Unauthorized", { status: 401 });
   }

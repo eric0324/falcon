@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { canUserAccessTool } from "@/lib/tool-visibility";
 import { normalizeRow, type ColumnDef } from "@/lib/bridge/tooldb-handler";
@@ -9,7 +8,7 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string; tableId: string }> }
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

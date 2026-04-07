@@ -1,7 +1,6 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { buildVisibilityFilter } from "@/lib/tool-visibility";
@@ -17,7 +16,7 @@ interface LeaderboardPageProps {
 }
 
 export default async function LeaderboardPage({ searchParams }: LeaderboardPageProps) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const { tab = "trending" } = await searchParams;
 
   if (!session?.user?.id) {

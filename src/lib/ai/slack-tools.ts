@@ -31,7 +31,7 @@ export function createSlackTools() {
         const { action, channelId, threadTs, search, limit = 20 } = params;
 
         try {
-          if (!isSlackConfigured()) {
+          if (!(await isSlackConfigured())) {
             return {
               success: false,
               error: "Slack 尚未設定。請在環境變數中設定 SLACK_BOT_TOKEN。",
@@ -65,7 +65,7 @@ export function createSlackTools() {
 
           // Search messages
           if (action === "search" && search) {
-            if (!isSlackSearchConfigured()) {
+            if (!(await isSlackSearchConfigured())) {
               return {
                 success: false,
                 error: "搜尋功能未啟用，請設定 SLACK_USER_TOKEN。",

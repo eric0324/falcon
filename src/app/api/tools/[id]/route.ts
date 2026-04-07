@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { canUserAccessTool } from "@/lib/tool-visibility";
 import { runRuleScan } from "@/lib/code-scan/rules";
@@ -19,7 +18,7 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const userId = await getUserId(session);
 
   if (!userId) {
@@ -91,7 +90,7 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const userId = await getUserId(session);
 
   if (!userId) {
@@ -171,7 +170,7 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const userId = await getUserId(session);
 
   if (!userId) {

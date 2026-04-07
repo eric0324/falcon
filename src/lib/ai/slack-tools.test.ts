@@ -28,8 +28,8 @@ const mockSearch = vi.mocked(searchMessages);
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockIsConfigured.mockReturnValue(true);
-  mockIsSearchConfigured.mockReturnValue(true);
+  mockIsConfigured.mockReturnValue(Promise.resolve(true));
+  mockIsSearchConfigured.mockReturnValue(Promise.resolve(true));
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,7 +44,7 @@ async function executeSlackTool(params: Record<string, unknown>): Promise<any> {
 describe("slackSearch tool", () => {
   describe("not configured", () => {
     it("returns error when Slack is not configured", async () => {
-      mockIsConfigured.mockReturnValue(false);
+      mockIsConfigured.mockReturnValue(Promise.resolve(false));
 
       const result = await executeSlackTool({ action: "list" });
 
@@ -132,7 +132,7 @@ describe("slackSearch tool", () => {
     });
 
     it("returns error when search is not configured", async () => {
-      mockIsSearchConfigured.mockReturnValue(false);
+      mockIsSearchConfigured.mockReturnValue(Promise.resolve(false));
 
       const result = await executeSlackTool({
         action: "search",

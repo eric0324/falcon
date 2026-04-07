@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getKnowledgeBaseRole } from "@/lib/knowledge/permissions";
 
@@ -10,7 +9,7 @@ interface RouteContext {
 
 // GET /api/knowledge-bases/:id/reviews
 export async function GET(_req: Request, context: RouteContext) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -27,7 +26,7 @@ export async function GET(_req: Request, context: RouteContext) {
 
 // POST /api/knowledge-bases/:id/reviews — create or update review
 export async function POST(req: Request, context: RouteContext) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -77,7 +76,7 @@ export async function POST(req: Request, context: RouteContext) {
 
 // DELETE /api/knowledge-bases/:id/reviews — delete own review
 export async function DELETE(_req: Request, context: RouteContext) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

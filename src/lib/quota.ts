@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/prisma";
+import { getConfig } from "@/lib/config";
 import { estimateCost } from "@/lib/ai/models";
 
-const DEFAULT_MONTHLY_QUOTA_USD = parseFloat(
-  process.env.DEFAULT_MONTHLY_QUOTA_USD || "50"
-);
+async function getDefaultMonthlyQuotaUsd(): Promise<number> {
+  const val = await getConfig("DEFAULT_MONTHLY_QUOTA_USD");
+  return parseFloat(val || "50");
+}
 
 export interface QuotaStatus {
   status: "ok" | "warning" | "blocked";
@@ -18,10 +20,11 @@ export async function getOrCreateQuota(userId: string) {
   const existing = await prisma.userQuota.findUnique({ where: { userId } });
   if (existing) return existing;
 
+  const defaultQuota = await getDefaultMonthlyQuotaUsd();
   return prisma.userQuota.create({
     data: {
       userId,
-      monthlyLimitUsd: DEFAULT_MONTHLY_QUOTA_USD,
+      monthlyLimitUsd: defaultQuota,
       bonusBalanceUsd: 0,
       periodStart: getMonthStart(new Date()),
     },

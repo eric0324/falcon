@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { runRuleScan } from "@/lib/code-scan/rules";
 import { scanOnDeploy } from "@/lib/code-scan";
@@ -15,7 +14,7 @@ async function getUserId(session: { user?: { email?: string | null } } | null) {
 }
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const userId = await getUserId(session);
 
   if (!userId) {
@@ -51,7 +50,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const userId = await getUserId(session);
 
   if (!userId) {

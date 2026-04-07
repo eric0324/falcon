@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { KnowledgeDetailClient } from "./knowledge-detail-client";
 
@@ -8,7 +7,7 @@ interface PageProps {
 }
 
 export default async function KnowledgeDetailPage({ params }: PageProps) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.email) {
     redirect("/login");
   }

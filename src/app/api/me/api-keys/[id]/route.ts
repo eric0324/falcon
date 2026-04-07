@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
 interface RouteContext {
@@ -9,7 +8,7 @@ interface RouteContext {
 
 // DELETE /api/me/api-keys/:id — revoke an API key
 export async function DELETE(_req: Request, context: RouteContext) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getKnowledgeBaseRole, hasMinRole } from "@/lib/knowledge/permissions";
 import { parseUploadQueue } from "@/lib/queue/queues";
@@ -11,7 +10,7 @@ interface RouteContext {
 
 // GET /api/knowledge-bases/:id/uploads — list uploads
 export async function GET(_req: Request, context: RouteContext) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -35,7 +34,7 @@ export async function GET(_req: Request, context: RouteContext) {
 
 // POST /api/knowledge-bases/:id/uploads — upload file
 export async function POST(req: Request, context: RouteContext) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

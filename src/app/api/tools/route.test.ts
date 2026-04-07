@@ -1,15 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Setup mocks with vi.hoisted
-const mockGetServerSession = vi.hoisted(() => vi.fn());
+const mockGetSession = vi.hoisted(() => vi.fn());
 const prismaMock = vi.hoisted(() => ({
   user: { findUnique: vi.fn() },
   tool: { findMany: vi.fn(), create: vi.fn() },
   toolStats: { create: vi.fn() },
 }));
 
-vi.mock("next-auth", () => ({ getServerSession: mockGetServerSession }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
+vi.mock("@/lib/session", () => ({ getSession: mockGetSession }));
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 
 import { GET, POST } from "./route";
@@ -19,12 +18,12 @@ const mockSession = {
 };
 
 function setLoggedIn() {
-  mockGetServerSession.mockResolvedValue(mockSession);
+  mockGetSession.mockResolvedValue(mockSession);
   prismaMock.user.findUnique.mockResolvedValue({ id: "user-1" });
 }
 
 function setLoggedOut() {
-  mockGetServerSession.mockResolvedValue(null);
+  mockGetSession.mockResolvedValue(null);
 }
 
 describe("GET /api/tools", () => {

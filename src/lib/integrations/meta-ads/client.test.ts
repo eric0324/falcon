@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+vi.mock("@/lib/config", () => ({
+  getConfig: vi.fn((key: string) => Promise.resolve(process.env[key])),
+}));
+
 // Mock fetch globally
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
@@ -29,19 +33,19 @@ describe("isMetaAdsConfigured", () => {
   it("returns true when both env vars are set", async () => {
     setEnv({ META_ADS_ACCESS_TOKEN: "token123", META_ADS_ACCOUNT_IDS: "Test:act_123" });
     const { isMetaAdsConfigured } = await importClient();
-    expect(isMetaAdsConfigured()).toBe(true);
+    expect(await isMetaAdsConfigured()).toBe(true);
   });
 
   it("returns false when access token is missing", async () => {
     setEnv({ META_ADS_ACCESS_TOKEN: "", META_ADS_ACCOUNT_IDS: "Test:act_123" });
     const { isMetaAdsConfigured } = await importClient();
-    expect(isMetaAdsConfigured()).toBe(false);
+    expect(await isMetaAdsConfigured()).toBe(false);
   });
 
   it("returns false when account IDs is missing", async () => {
     setEnv({ META_ADS_ACCESS_TOKEN: "token123", META_ADS_ACCOUNT_IDS: "" });
     const { isMetaAdsConfigured } = await importClient();
-    expect(isMetaAdsConfigured()).toBe(false);
+    expect(await isMetaAdsConfigured()).toBe(false);
   });
 });
 
@@ -55,7 +59,7 @@ describe("parseAccounts", () => {
   it("parses name:id format", async () => {
     setEnv({ META_ADS_ACCESS_TOKEN: "t", META_ADS_ACCOUNT_IDS: "增長組:act_111,語言學習:act_222" });
     const { parseAccounts } = await importClient();
-    const accounts = parseAccounts();
+    const accounts = await parseAccounts();
     expect(accounts).toEqual([
       { name: "增長組", accountId: "act_111" },
       { name: "語言學習", accountId: "act_222" },
@@ -65,7 +69,7 @@ describe("parseAccounts", () => {
   it("handles bare act_id without name", async () => {
     setEnv({ META_ADS_ACCESS_TOKEN: "t", META_ADS_ACCOUNT_IDS: "act_111,act_222" });
     const { parseAccounts } = await importClient();
-    const accounts = parseAccounts();
+    const accounts = await parseAccounts();
     expect(accounts).toEqual([
       { name: "act_111", accountId: "act_111" },
       { name: "act_222", accountId: "act_222" },
@@ -75,7 +79,7 @@ describe("parseAccounts", () => {
   it("trims whitespace", async () => {
     setEnv({ META_ADS_ACCESS_TOKEN: "t", META_ADS_ACCOUNT_IDS: " 增長組 : act_111 , 語言 : act_222 " });
     const { parseAccounts } = await importClient();
-    const accounts = parseAccounts();
+    const accounts = await parseAccounts();
     expect(accounts).toEqual([
       { name: "增長組", accountId: "act_111" },
       { name: "語言", accountId: "act_222" },
@@ -85,7 +89,7 @@ describe("parseAccounts", () => {
   it("returns empty array when not configured", async () => {
     setEnv({ META_ADS_ACCESS_TOKEN: "t", META_ADS_ACCOUNT_IDS: "" });
     const { parseAccounts } = await importClient();
-    expect(parseAccounts()).toEqual([]);
+    expect(await parseAccounts()).toEqual([]);
   });
 });
 

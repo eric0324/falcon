@@ -4,6 +4,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 const mockRunReport = vi.fn();
 const mockRunRealtimeReport = vi.fn();
 
+vi.mock("@/lib/config", () => ({
+  getConfig: vi.fn((key: string) => Promise.resolve(process.env[key])),
+}));
+
 vi.mock("@google-analytics/data", () => ({
   BetaAnalyticsDataClient: class {
     runReport = mockRunReport;
@@ -36,7 +40,7 @@ describe("isGA4Configured", () => {
     process.env.GA4_PRIVATE_KEY = "-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----";
     process.env.GA4_PROPERTY_ID = "123456789";
     const { isGA4Configured } = await importClient();
-    expect(isGA4Configured()).toBe(true);
+    expect(await isGA4Configured()).toBe(true);
   });
 
   it("returns false when client email is not set", async () => {
@@ -44,7 +48,7 @@ describe("isGA4Configured", () => {
     process.env.GA4_PRIVATE_KEY = "key";
     process.env.GA4_PROPERTY_ID = "123456789";
     const { isGA4Configured } = await importClient();
-    expect(isGA4Configured()).toBe(false);
+    expect(await isGA4Configured()).toBe(false);
   });
 
   it("returns false when private key is not set", async () => {
@@ -52,7 +56,7 @@ describe("isGA4Configured", () => {
     delete process.env.GA4_PRIVATE_KEY;
     process.env.GA4_PROPERTY_ID = "123456789";
     const { isGA4Configured } = await importClient();
-    expect(isGA4Configured()).toBe(false);
+    expect(await isGA4Configured()).toBe(false);
   });
 
   it("returns false when property ID is not set", async () => {
@@ -60,7 +64,7 @@ describe("isGA4Configured", () => {
     process.env.GA4_PRIVATE_KEY = "key";
     delete process.env.GA4_PROPERTY_ID;
     const { isGA4Configured } = await importClient();
-    expect(isGA4Configured()).toBe(false);
+    expect(await isGA4Configured()).toBe(false);
   });
 });
 

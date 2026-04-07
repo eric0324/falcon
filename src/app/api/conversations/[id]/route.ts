@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getMessages, replaceMessages, linkOrphanTokenUsage } from "@/lib/conversation-messages";
@@ -20,7 +19,7 @@ async function getConversationIfOwned(conversationId: string, userId: string) {
 }
 
 export async function GET(_req: Request, context: RouteContext) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return new Response("Unauthorized", { status: 401 });
   }
@@ -34,7 +33,7 @@ export async function GET(_req: Request, context: RouteContext) {
 }
 
 export async function PATCH(req: Request, context: RouteContext) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return new Response("Unauthorized", { status: 401 });
   }
@@ -83,7 +82,7 @@ export async function PATCH(req: Request, context: RouteContext) {
 }
 
 export async function DELETE(_req: Request, context: RouteContext) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) {
     return new Response("Unauthorized", { status: 401 });
   }

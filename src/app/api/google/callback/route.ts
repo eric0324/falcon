@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { exchangeCodeForTokens, GoogleServiceType } from "@/lib/google/config";
 import { saveGoogleToken, serviceTypeToEnum } from "@/lib/google/token-manager";
 
@@ -11,7 +10,7 @@ interface OAuthState {
 }
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const searchParams = request.nextUrl.searchParams;
 
   const code = searchParams.get("code");

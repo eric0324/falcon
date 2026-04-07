@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+vi.mock("@/lib/config", () => ({
+  getConfig: vi.fn((key: string) => Promise.resolve(process.env[key])),
+}));
+
 const originalEnv = process.env;
 
 beforeEach(() => {
@@ -19,13 +23,13 @@ describe("isAsanaConfigured", () => {
   it("returns true when ASANA_PAT is set", async () => {
     process.env.ASANA_PAT = "1/test-pat";
     const { isAsanaConfigured } = await importClient();
-    expect(isAsanaConfigured()).toBe(true);
+    expect(await isAsanaConfigured()).toBe(true);
   });
 
   it("returns false when ASANA_PAT is not set", async () => {
     delete process.env.ASANA_PAT;
     const { isAsanaConfigured } = await importClient();
-    expect(isAsanaConfigured()).toBe(false);
+    expect(await isAsanaConfigured()).toBe(false);
   });
 });
 

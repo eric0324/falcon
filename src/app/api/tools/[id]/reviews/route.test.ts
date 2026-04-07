@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-const mockGetServerSession = vi.hoisted(() => vi.fn());
+const mockGetSession = vi.hoisted(() => vi.fn());
 const prismaMock = vi.hoisted(() => ({
   toolReview: {
     findMany: vi.fn(),
@@ -13,8 +13,7 @@ const prismaMock = vi.hoisted(() => ({
   toolStats: { upsert: vi.fn(), update: vi.fn() },
 }));
 
-vi.mock("next-auth", () => ({ getServerSession: mockGetServerSession }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
+vi.mock("@/lib/session", () => ({ getSession: mockGetSession }));
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 
 import { GET, POST, DELETE } from "./route";
@@ -61,7 +60,7 @@ describe("POST /api/tools/[id]/reviews", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 401 when not logged in", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    mockGetSession.mockResolvedValue(null);
     const req = new NextRequest("http://localhost/api/tools/t1/reviews", {
       method: "POST",
       body: JSON.stringify({ rating: 5, content: "Great" }),
@@ -71,7 +70,7 @@ describe("POST /api/tools/[id]/reviews", () => {
   });
 
   it("returns 400 for invalid rating (0)", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     const req = new NextRequest("http://localhost/api/tools/t1/reviews", {
       method: "POST",
       body: JSON.stringify({ rating: 0, content: "Bad" }),
@@ -83,7 +82,7 @@ describe("POST /api/tools/[id]/reviews", () => {
   });
 
   it("returns 400 for invalid rating (6)", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     const req = new NextRequest("http://localhost/api/tools/t1/reviews", {
       method: "POST",
       body: JSON.stringify({ rating: 6, content: "Too much" }),
@@ -93,7 +92,7 @@ describe("POST /api/tools/[id]/reviews", () => {
   });
 
   it("returns 404 when tool not found", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     prismaMock.tool.findUnique.mockResolvedValue(null);
     const req = new NextRequest("http://localhost/api/tools/t1/reviews", {
       method: "POST",
@@ -104,7 +103,7 @@ describe("POST /api/tools/[id]/reviews", () => {
   });
 
   it("creates/updates review successfully", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     prismaMock.tool.findUnique.mockResolvedValue({
       id: "t1",
       authorId: "other-user",
@@ -132,7 +131,7 @@ describe("POST /api/tools/[id]/reviews", () => {
   });
 
   it("calculates weighted rating using IMDB formula", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     prismaMock.tool.findUnique.mockResolvedValue({ id: "t1", authorId: "other" });
     prismaMock.toolReview.upsert.mockResolvedValue({ id: "r1", rating: 5 });
     prismaMock.toolReview.aggregate.mockResolvedValue({
@@ -165,14 +164,14 @@ describe("DELETE /api/tools/[id]/reviews", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 401 when not logged in", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    mockGetSession.mockResolvedValue(null);
     const req = new NextRequest("http://localhost/api/tools/t1/reviews", { method: "DELETE" });
     const res = await DELETE(req, makeParams("t1"));
     expect(res.status).toBe(401);
   });
 
   it("returns 404 when no review to delete", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     prismaMock.toolReview.deleteMany.mockResolvedValue({ count: 0 });
 
     const req = new NextRequest("http://localhost/api/tools/t1/reviews", { method: "DELETE" });
@@ -181,7 +180,7 @@ describe("DELETE /api/tools/[id]/reviews", () => {
   });
 
   it("deletes own review successfully", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     prismaMock.toolReview.deleteMany.mockResolvedValue({ count: 1 });
     prismaMock.toolReview.aggregate.mockResolvedValue({
       _avg: { rating: 4.0 },

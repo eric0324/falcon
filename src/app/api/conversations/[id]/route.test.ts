@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockGetServerSession = vi.hoisted(() => vi.fn());
+const mockGetSession = vi.hoisted(() => vi.fn());
 const mockGetMessages = vi.hoisted(() => vi.fn());
 const mockReplaceMessages = vi.hoisted(() => vi.fn());
 const mockLinkOrphanTokenUsage = vi.hoisted(() => vi.fn());
@@ -12,8 +12,7 @@ const prismaMock = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("next-auth", () => ({ getServerSession: mockGetServerSession }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
+vi.mock("@/lib/session", () => ({ getSession: mockGetSession }));
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/lib/conversation-messages", () => ({
   getMessages: mockGetMessages,
@@ -41,13 +40,13 @@ describe("GET /api/conversations/[id]", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 401 when not logged in", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    mockGetSession.mockResolvedValue(null);
     const res = await GET(new Request("http://localhost"), { params });
     expect(res.status).toBe(401);
   });
 
   it("returns conversation with messages from ConversationMessage table", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     prismaMock.conversation.findUnique.mockResolvedValue({
       id: "conv-1",
       title: "查詢訂單",
@@ -70,7 +69,7 @@ describe("GET /api/conversations/[id]", () => {
   });
 
   it("returns 404 when conversation not found", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     prismaMock.conversation.findUnique.mockResolvedValue(null);
 
     const res = await GET(new Request("http://localhost"), { params });
@@ -78,7 +77,7 @@ describe("GET /api/conversations/[id]", () => {
   });
 
   it("returns 403 when conversation belongs to another user", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     prismaMock.conversation.findUnique.mockResolvedValue({
       id: "conv-1",
       userId: "other-user",
@@ -93,13 +92,13 @@ describe("PATCH /api/conversations/[id]", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 401 when not logged in", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    mockGetSession.mockResolvedValue(null);
     const res = await PATCH(makeRequest({}), { params });
     expect(res.status).toBe(401);
   });
 
   it("updates conversation messages via replaceMessages", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     prismaMock.conversation.findUnique.mockResolvedValue({
       id: "conv-1",
       userId: "user-1",
@@ -122,7 +121,7 @@ describe("PATCH /api/conversations/[id]", () => {
   });
 
   it("does not link orphan TokenUsage when messages not updated", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     prismaMock.conversation.findUnique.mockResolvedValue({
       id: "conv-1",
       userId: "user-1",
@@ -137,7 +136,7 @@ describe("PATCH /api/conversations/[id]", () => {
   });
 
   it("updates model without touching messages", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     prismaMock.conversation.findUnique.mockResolvedValue({
       id: "conv-1",
       userId: "user-1",
@@ -159,7 +158,7 @@ describe("PATCH /api/conversations/[id]", () => {
   });
 
   it("returns 403 when conversation belongs to another user", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     prismaMock.conversation.findUnique.mockResolvedValue({
       id: "conv-1",
       userId: "other-user",
@@ -174,13 +173,13 @@ describe("DELETE /api/conversations/[id]", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 401 when not logged in", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    mockGetSession.mockResolvedValue(null);
     const res = await DELETE(new Request("http://localhost"), { params });
     expect(res.status).toBe(401);
   });
 
   it("soft-deletes conversation", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     prismaMock.conversation.findUnique.mockResolvedValue({
       id: "conv-1",
       userId: "user-1",
@@ -196,7 +195,7 @@ describe("DELETE /api/conversations/[id]", () => {
   });
 
   it("returns 403 when conversation belongs to another user", async () => {
-    mockGetServerSession.mockResolvedValue(mockSession);
+    mockGetSession.mockResolvedValue(mockSession);
     prismaMock.conversation.findUnique.mockResolvedValue({
       id: "conv-1",
       userId: "other-user",

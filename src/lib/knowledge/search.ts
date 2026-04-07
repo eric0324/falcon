@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getConfig } from "@/lib/config";
 import { embedText } from "./embedding";
 
 interface SearchResult {
@@ -8,7 +9,9 @@ interface SearchResult {
   score: number;
 }
 
-const TS_CONFIG = process.env.PG_TEXT_SEARCH_CONFIG || "simple";
+async function getTsConfig(): Promise<string> {
+  return (await getConfig("PG_TEXT_SEARCH_CONFIG")) || "simple";
+}
 
 export async function hybridSearch(
   knowledgeBaseId: string,
@@ -16,6 +19,7 @@ export async function hybridSearch(
   topK: number = 5
 ): Promise<SearchResult[]> {
   // 1. Embed the query
+  const tsConfig = await getTsConfig();
   const queryEmbedding = await embedText(query);
   const vectorStr = `[${queryEmbedding.join(",")}]`;
 
@@ -33,11 +37,11 @@ export async function hybridSearch(
     text_results AS (
       SELECT id, content, metadata,
              ROW_NUMBER() OVER (
-               ORDER BY ts_rank(to_tsvector('${TS_CONFIG}', content), plainto_tsquery('${TS_CONFIG}', $3)) DESC
+               ORDER BY ts_rank(to_tsvector('${tsConfig}', content), plainto_tsquery('${tsConfig}', $3)) DESC
              ) AS rank
       FROM "KnowledgePoint"
       WHERE "knowledgeBaseId" = $2 AND status = 'APPROVED'
-        AND to_tsvector('${TS_CONFIG}', content) @@ plainto_tsquery('${TS_CONFIG}', $3)
+        AND to_tsvector('${tsConfig}', content) @@ plainto_tsquery('${tsConfig}', $3)
       LIMIT 20
     )
     SELECT

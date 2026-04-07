@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+vi.mock("@/lib/config", () => ({
+  getConfig: vi.fn((key: string) => Promise.resolve(process.env[key])),
+}));
+
 // Mock environment variables
 const originalEnv = process.env;
 
@@ -21,13 +25,13 @@ describe("isSlackConfigured", () => {
   it("returns true when SLACK_BOT_TOKEN is set", async () => {
     process.env.SLACK_BOT_TOKEN = "xoxb-test-token";
     const { isSlackConfigured } = await importClient();
-    expect(isSlackConfigured()).toBe(true);
+    expect(await isSlackConfigured()).toBe(true);
   });
 
   it("returns false when SLACK_BOT_TOKEN is not set", async () => {
     delete process.env.SLACK_BOT_TOKEN;
     const { isSlackConfigured } = await importClient();
-    expect(isSlackConfigured()).toBe(false);
+    expect(await isSlackConfigured()).toBe(false);
   });
 });
 
@@ -35,13 +39,13 @@ describe("isSlackSearchConfigured", () => {
   it("returns true when SLACK_USER_TOKEN is set", async () => {
     process.env.SLACK_USER_TOKEN = "xoxp-test-token";
     const { isSlackSearchConfigured } = await importClient();
-    expect(isSlackSearchConfigured()).toBe(true);
+    expect(await isSlackSearchConfigured()).toBe(true);
   });
 
   it("returns false when SLACK_USER_TOKEN is not set", async () => {
     delete process.env.SLACK_USER_TOKEN;
     const { isSlackSearchConfigured } = await importClient();
-    expect(isSlackSearchConfigured()).toBe(false);
+    expect(await isSlackSearchConfigured()).toBe(false);
   });
 });
 

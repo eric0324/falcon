@@ -1,8 +1,7 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { buildVisibilityFilter } from "@/lib/tool-visibility";
@@ -17,7 +16,7 @@ import { UserAvatar } from "@/components/user-avatar";
 export const metadata = { title: "首頁" };
 
 export default async function HomePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
 
   if (!session?.user?.id) {
     redirect("/login");

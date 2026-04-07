@@ -1,3 +1,5 @@
+import { getConfig } from "@/lib/config";
+
 const GITHUB_API_BASE = "https://api.github.com";
 
 // ===== Types =====
@@ -73,12 +75,12 @@ export interface GitHubCommit {
 
 // ===== Configuration =====
 
-export function isGitHubConfigured(): boolean {
-  return !!process.env.GITHUB_TOKEN;
+export async function isGitHubConfigured(): Promise<boolean> {
+  return !!(await getConfig("GITHUB_TOKEN"));
 }
 
-function getToken(): string {
-  const token = process.env.GITHUB_TOKEN;
+async function getToken(): Promise<string> {
+  const token = await getConfig("GITHUB_TOKEN");
   if (!token) throw new Error("GITHUB_TOKEN is not configured");
   return token;
 }
@@ -93,7 +95,7 @@ async function githubFetch<T = any>(
   path: string,
   extraHeaders?: Record<string, string>,
 ): Promise<T> {
-  const token = getToken();
+  const token = await getToken();
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,

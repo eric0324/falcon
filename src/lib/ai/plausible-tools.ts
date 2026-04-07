@@ -39,7 +39,7 @@ export function createPlausibleTools() {
       }),
       execute: async (params) => {
         try {
-          if (!isPlausibleConfigured()) {
+          if (!(await isPlausibleConfigured())) {
             return {
               success: false,
               error: "Plausible Analytics is not configured.",

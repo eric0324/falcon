@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { buildVisibilityFilter } from "@/lib/tool-visibility";
 import { formatDistanceToNow } from "date-fns";
@@ -21,7 +20,7 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
 }
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const { id } = await params;
 
   if (!session?.user?.id) {

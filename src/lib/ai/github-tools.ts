@@ -38,7 +38,7 @@ export function createGitHubTools() {
       }),
       execute: async (params) => {
         try {
-          if (!isGitHubConfigured()) {
+          if (!(await isGitHubConfigured())) {
             return {
               success: false,
               error: "GitHub is not configured.",

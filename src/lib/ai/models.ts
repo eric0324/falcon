@@ -1,17 +1,19 @@
-import { anthropic } from "@ai-sdk/anthropic";
-import { google } from "@ai-sdk/google";
-import { openai } from "@ai-sdk/openai";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAI } from "@ai-sdk/openai";
+import { getConfigRequired } from "@/lib/config";
+import type { LanguageModel } from "ai";
 
-export const models = {
-  "claude-sonnet": anthropic("claude-sonnet-4-6"),
-  "claude-haiku": anthropic("claude-haiku-4-5-20251001"),
-  "gpt-5-mini": openai("gpt-5-mini"),
-  "gpt-5-nano": openai("gpt-5-nano"),
-  "gemini-flash": google("gemini-2.5-flash"),
-  "gemini-pro": google("gemini-2.5-pro"),
-} as const;
+export const MODEL_IDS = [
+  "claude-sonnet",
+  "claude-haiku",
+  "gpt-5-mini",
+  "gpt-5-nano",
+  "gemini-flash",
+  "gemini-pro",
+] as const;
 
-export type ModelId = keyof typeof models;
+export type ModelId = (typeof MODEL_IDS)[number];
 
 export const modelInfo: Record<ModelId, { name: string; description: string }> = {
   "claude-sonnet": {
@@ -61,4 +63,37 @@ export function estimateCost(
   const pricing = modelPricing[model];
   if (!pricing) return 0;
   return (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000;
+}
+
+const MODEL_PROVIDER_MAP: Record<ModelId, { provider: "anthropic" | "openai" | "google"; modelName: string }> = {
+  "claude-sonnet": { provider: "anthropic", modelName: "claude-sonnet-4-6" },
+  "claude-haiku": { provider: "anthropic", modelName: "claude-haiku-4-5-20251001" },
+  "gpt-5-mini": { provider: "openai", modelName: "gpt-5-mini" },
+  "gpt-5-nano": { provider: "openai", modelName: "gpt-5-nano" },
+  "gemini-flash": { provider: "google", modelName: "gemini-2.5-flash" },
+  "gemini-pro": { provider: "google", modelName: "gemini-2.5-pro" },
+};
+
+/**
+ * Get an AI model instance by ID. Reads API keys from DB/env dynamically.
+ */
+export async function getModel(modelId: ModelId): Promise<LanguageModel> {
+  const { provider, modelName } = MODEL_PROVIDER_MAP[modelId];
+
+  const KEY_MAP = {
+    anthropic: "ANTHROPIC_API_KEY",
+    openai: "OPENAI_API_KEY",
+    google: "GOOGLE_GENERATIVE_AI_API_KEY",
+  } as const;
+
+  const apiKey = await getConfigRequired(KEY_MAP[provider]);
+
+  switch (provider) {
+    case "anthropic":
+      return createAnthropic({ apiKey })(modelName);
+    case "openai":
+      return createOpenAI({ apiKey })(modelName);
+    case "google":
+      return createGoogleGenerativeAI({ apiKey })(modelName);
+  }
 }

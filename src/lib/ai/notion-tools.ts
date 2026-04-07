@@ -62,7 +62,7 @@ export function createNotionTools() {
 
         try {
           // Check if Notion is configured
-          if (!isNotionConfigured()) {
+          if (!(await isNotionConfigured())) {
             return {
               success: false,
               error: "Notion 尚未設定。請在環境變數中設定 NOTION_TOKEN。",

@@ -1,3 +1,5 @@
+import { getConfig } from "@/lib/config";
+
 const DEFAULT_BASE_URL = "https://plausible.io";
 
 // ===== Types =====
@@ -39,22 +41,26 @@ export interface PlausibleFilters {
 
 // ===== Configuration =====
 
-export function isPlausibleConfigured(): boolean {
-  return !!process.env.PLAUSIBLE_API_KEY && !!process.env.PLAUSIBLE_SITE_ID;
+export async function isPlausibleConfigured(): Promise<boolean> {
+  const [apiKey, siteId] = await Promise.all([
+    getConfig("PLAUSIBLE_API_KEY"),
+    getConfig("PLAUSIBLE_SITE_ID"),
+  ]);
+  return !!apiKey && !!siteId;
 }
 
-function getBaseUrl(): string {
-  return process.env.PLAUSIBLE_BASE_URL || DEFAULT_BASE_URL;
+async function getBaseUrl(): Promise<string> {
+  return (await getConfig("PLAUSIBLE_BASE_URL")) || DEFAULT_BASE_URL;
 }
 
-function getApiKey(): string {
-  const key = process.env.PLAUSIBLE_API_KEY;
+async function getApiKey(): Promise<string> {
+  const key = await getConfig("PLAUSIBLE_API_KEY");
   if (!key) throw new Error("PLAUSIBLE_API_KEY is not configured");
   return key;
 }
 
-function getSiteId(): string {
-  const id = process.env.PLAUSIBLE_SITE_ID;
+async function getSiteId(): Promise<string> {
+  const id = await getConfig("PLAUSIBLE_SITE_ID");
   if (!id) throw new Error("PLAUSIBLE_SITE_ID is not configured");
   return id;
 }
@@ -112,11 +118,14 @@ const DIMENSION_MAP: Record<string, string> = {
 // ===== API Functions =====
 
 export async function getRealtimeVisitors(): Promise<number> {
-  const url = `${getBaseUrl()}/api/v1/stats/realtime/visitors?site_id=${getSiteId()}`;
+  const [baseUrl, siteId, apiKey] = await Promise.all([
+    getBaseUrl(), getSiteId(), getApiKey(),
+  ]);
+  const url = `${baseUrl}/api/v1/stats/realtime/visitors?site_id=${siteId}`;
 
   const response = await fetch(url, {
     headers: {
-      Authorization: `Bearer ${getApiKey()}`,
+      Authorization: `Bearer ${apiKey}`,
     },
   });
 
@@ -140,8 +149,12 @@ export async function queryAggregate(
     "visitors", "pageviews", "visits", "bounce_rate", "visit_duration", "views_per_visit",
   ];
 
+  const [siteId, baseUrl, apiKey] = await Promise.all([
+    getSiteId(), getBaseUrl(), getApiKey(),
+  ]);
+
   const body: Record<string, unknown> = {
-    site_id: getSiteId(),
+    site_id: siteId,
     metrics,
     date_range: dateRange === "custom" && startDate && endDate
       ? [startDate, endDate]
@@ -153,10 +166,10 @@ export async function queryAggregate(
     body.filters = builtFilters;
   }
 
-  const response = await fetch(`${getBaseUrl()}/api/v2/query`, {
+  const response = await fetch(`${baseUrl}/api/v2/query`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${getApiKey()}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
@@ -189,8 +202,12 @@ export async function queryTimeseries(
   startDate?: string,
   endDate?: string
 ): Promise<PlausibleTimeseriesEntry[]> {
+  const [siteId, baseUrl, apiKey] = await Promise.all([
+    getSiteId(), getBaseUrl(), getApiKey(),
+  ]);
+
   const body: Record<string, unknown> = {
-    site_id: getSiteId(),
+    site_id: siteId,
     metrics: ["visitors", "pageviews", "bounce_rate", "visit_duration"],
     dimensions: [`time:${period}`],
     date_range: dateRange === "custom" && startDate && endDate
@@ -203,10 +220,10 @@ export async function queryTimeseries(
     body.filters = builtFilters;
   }
 
-  const response = await fetch(`${getBaseUrl()}/api/v2/query`, {
+  const response = await fetch(`${baseUrl}/api/v2/query`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${getApiKey()}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
@@ -240,8 +257,12 @@ export async function queryBreakdown(
 ): Promise<PlausibleBreakdownEntry[]> {
   const plausibleDimension = DIMENSION_MAP[dimension] || dimension;
 
+  const [siteId, baseUrl, apiKey] = await Promise.all([
+    getSiteId(), getBaseUrl(), getApiKey(),
+  ]);
+
   const body: Record<string, unknown> = {
-    site_id: getSiteId(),
+    site_id: siteId,
     metrics: ["visitors", "pageviews", "bounce_rate", "visit_duration"],
     dimensions: [plausibleDimension],
     date_range: dateRange === "custom" && startDate && endDate
@@ -256,10 +277,10 @@ export async function queryBreakdown(
     body.filters = builtFilters;
   }
 
-  const response = await fetch(`${getBaseUrl()}/api/v2/query`, {
+  const response = await fetch(`${baseUrl}/api/v2/query`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${getApiKey()}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),

@@ -1,3 +1,5 @@
+import { getConfig } from "@/lib/config";
+
 const NOTION_API_VERSION = "2022-06-28";
 const NOTION_BASE_URL = "https://api.notion.com/v1";
 
@@ -34,15 +36,15 @@ export interface NotionQueryResult {
 /**
  * Check if Notion is configured
  */
-export function isNotionConfigured(): boolean {
-  return !!process.env.NOTION_TOKEN;
+export async function isNotionConfigured(): Promise<boolean> {
+  return !!(await getConfig("NOTION_TOKEN"));
 }
 
 /**
- * Get Notion token from environment
+ * Get Notion token from config
  */
-function getToken(): string {
-  const token = process.env.NOTION_TOKEN;
+async function getToken(): Promise<string> {
+  const token = await getConfig("NOTION_TOKEN");
   if (!token) {
     throw new Error("NOTION_TOKEN is not configured");
   }
@@ -56,7 +58,7 @@ async function notionFetch<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = getToken();
+  const token = await getToken();
   const url = `${NOTION_BASE_URL}${endpoint}`;
 
   const response = await fetch(url, {

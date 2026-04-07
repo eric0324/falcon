@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { getServerSession } from "next-auth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { canUserAccessTool } from "@/lib/tool-visibility";
 import { ArrowLeft, Pencil, Info, AlertTriangle } from "lucide-react";
@@ -21,7 +20,7 @@ export async function generateMetadata({ params }: ToolPageProps): Promise<Metad
 }
 
 export default async function ToolPage({ params }: ToolPageProps) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const { id } = await params;
 
   const tool = await prisma.tool.findUnique({

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Users, Wrench, Database, Shield, FileText, ShieldCheck, ArrowLeft, PanelLeft } from "lucide-react";
+import { Users, Wrench, Database, Shield, FileText, ShieldCheck, Settings, ArrowLeft, PanelLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -16,6 +16,7 @@ const navItems = [
   { href: "/admin/groups", label: "群組管理", icon: Shield },
   { href: "/admin/scans", label: "弱點掃描", icon: ShieldCheck },
   { href: "/admin/logs", label: "稽核日誌", icon: FileText },
+  { href: "/admin/settings", label: "系統設定", icon: Settings },
 ];
 
 export function AdminSidebar() {

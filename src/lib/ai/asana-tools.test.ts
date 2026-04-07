@@ -28,7 +28,7 @@ const mockSearchTasks = vi.mocked(searchTasks);
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockIsConfigured.mockReturnValue(true);
+  mockIsConfigured.mockReturnValue(Promise.resolve(true));
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,7 +43,7 @@ async function executeTool(params: Record<string, unknown>): Promise<any> {
 describe("asanaSearch tool", () => {
   describe("not configured", () => {
     it("returns error when Asana is not configured", async () => {
-      mockIsConfigured.mockReturnValue(false);
+      mockIsConfigured.mockReturnValue(Promise.resolve(false));
       const result = await executeTool({ action: "list" });
       expect(result.success).toBe(false);
       expect(result.needsConnection).toBe(true);

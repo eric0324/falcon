@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+vi.mock("@/lib/config", () => ({
+  getConfig: vi.fn((key: string) => Promise.resolve(process.env[key])),
+}));
+
 const originalEnv = process.env;
 
 beforeEach(() => {
@@ -20,21 +24,21 @@ describe("isPlausibleConfigured", () => {
     process.env.PLAUSIBLE_API_KEY = "test-key";
     process.env.PLAUSIBLE_SITE_ID = "example.com";
     const { isPlausibleConfigured } = await importClient();
-    expect(isPlausibleConfigured()).toBe(true);
+    expect(await isPlausibleConfigured()).toBe(true);
   });
 
   it("returns false when API key is not set", async () => {
     delete process.env.PLAUSIBLE_API_KEY;
     process.env.PLAUSIBLE_SITE_ID = "example.com";
     const { isPlausibleConfigured } = await importClient();
-    expect(isPlausibleConfigured()).toBe(false);
+    expect(await isPlausibleConfigured()).toBe(false);
   });
 
   it("returns false when site ID is not set", async () => {
     process.env.PLAUSIBLE_API_KEY = "test-key";
     delete process.env.PLAUSIBLE_SITE_ID;
     const { isPlausibleConfigured } = await importClient();
-    expect(isPlausibleConfigured()).toBe(false);
+    expect(await isPlausibleConfigured()).toBe(false);
   });
 });
 

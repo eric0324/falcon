@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { AppShellClient } from "@/components/app-shell-client";
 
@@ -9,7 +8,7 @@ interface AppShellProps {
 }
 
 export async function AppShell({ children }: AppShellProps) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
 
   if (!session?.user?.email) {
     redirect("/login");

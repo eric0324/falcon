@@ -1,4 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+vi.mock("@/lib/config", () => ({
+  getConfig: vi.fn((key: string) => Promise.resolve(process.env[key])),
+}));
+
 import { getBlockChildren, getBlockChildrenDeep, blocksToText } from "./client";
 
 // Mock global fetch

@@ -1,3 +1,5 @@
+import { getConfig } from "@/lib/config";
+
 const GRAPH_API_VERSION = "v21.0";
 const GRAPH_API_BASE = "https://graph.facebook.com";
 
@@ -95,15 +97,16 @@ export interface MetaAdsBreakdownEntry {
 
 // ===== Configuration =====
 
-export function isMetaAdsConfigured(): boolean {
-  return (
-    !!process.env.META_ADS_ACCESS_TOKEN &&
-    !!process.env.META_ADS_ACCOUNT_IDS
-  );
+export async function isMetaAdsConfigured(): Promise<boolean> {
+  const [token, accountIds] = await Promise.all([
+    getConfig("META_ADS_ACCESS_TOKEN"),
+    getConfig("META_ADS_ACCOUNT_IDS"),
+  ]);
+  return !!token && !!accountIds;
 }
 
-export function parseAccounts(): MetaAdsAccount[] {
-  const raw = process.env.META_ADS_ACCOUNT_IDS;
+export async function parseAccounts(): Promise<MetaAdsAccount[]> {
+  const raw = await getConfig("META_ADS_ACCOUNT_IDS");
   if (!raw) return [];
 
   return raw.split(",").map((entry) => {
@@ -121,15 +124,15 @@ export function parseAccounts(): MetaAdsAccount[] {
   }).filter(Boolean) as MetaAdsAccount[];
 }
 
-function getAccessToken(): string {
-  const token = process.env.META_ADS_ACCESS_TOKEN;
+async function getAccessToken(): Promise<string> {
+  const token = await getConfig("META_ADS_ACCESS_TOKEN");
   if (!token) throw new Error("META_ADS_ACCESS_TOKEN is not configured");
   return token;
 }
 
-function resolveAccountId(accountId?: string): string {
+async function resolveAccountId(accountId?: string): Promise<string> {
   if (accountId) return accountId;
-  const accounts = parseAccounts();
+  const accounts = await parseAccounts();
   if (accounts.length === 0) throw new Error("META_ADS_ACCOUNT_IDS is not configured");
   return accounts[0].accountId;
 }
@@ -227,7 +230,7 @@ function parseActions(raw: MetaAdsAction[] | undefined | null): MetaAdsAction[] 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchInsights(accountId: string, params: Record<string, string>): Promise<any> {
-  const token = getAccessToken();
+  const token = await getAccessToken();
 
   const searchParams = new URLSearchParams({
     access_token: token,
@@ -255,7 +258,7 @@ export async function queryOverview(
   startDate?: string,
   endDate?: string
 ): Promise<MetaAdsMetrics> {
-  const id = resolveAccountId(accountId);
+  const id = await resolveAccountId(accountId);
   const timeRange = buildTimeRange(dateRange, startDate, endDate);
 
   const data = await fetchInsights(id, {
@@ -293,7 +296,7 @@ export async function queryCampaigns(
   endDate?: string,
   campaignNameFilter?: string
 ): Promise<MetaAdsCampaignEntry[]> {
-  const id = resolveAccountId(accountId);
+  const id = await resolveAccountId(accountId);
   const timeRange = buildTimeRange(dateRange, startDate, endDate);
 
   const params: Record<string, string> = {
@@ -337,7 +340,7 @@ export async function queryAdsets(
   endDate?: string,
   campaignNameFilter?: string
 ): Promise<MetaAdsAdsetEntry[]> {
-  const id = resolveAccountId(accountId);
+  const id = await resolveAccountId(accountId);
   const timeRange = buildTimeRange(dateRange, startDate, endDate);
 
   const params: Record<string, string> = {
@@ -383,7 +386,7 @@ export async function queryAds(
   endDate?: string,
   campaignNameFilter?: string
 ): Promise<MetaAdsAdEntry[]> {
-  const id = resolveAccountId(accountId);
+  const id = await resolveAccountId(accountId);
   const timeRange = buildTimeRange(dateRange, startDate, endDate);
 
   const params: Record<string, string> = {
@@ -428,7 +431,7 @@ export async function queryTimeseries(
   startDate?: string,
   endDate?: string
 ): Promise<MetaAdsTimeseriesEntry[]> {
-  const id = resolveAccountId(accountId);
+  const id = await resolveAccountId(accountId);
   const timeRange = buildTimeRange(dateRange, startDate, endDate);
   const timeIncrement = period === "monthly" ? "monthly" : "1";
 
@@ -453,7 +456,7 @@ export async function queryBreakdown(
   startDate?: string,
   endDate?: string
 ): Promise<MetaAdsBreakdownEntry[]> {
-  const id = resolveAccountId(accountId);
+  const id = await resolveAccountId(accountId);
   const apiBreakdown = BREAKDOWN_MAP[dimension] || dimension;
   const timeRange = buildTimeRange(dateRange, startDate, endDate);
 

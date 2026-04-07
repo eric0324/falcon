@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+vi.mock("@/lib/config", () => ({
+  getConfig: vi.fn((key: string) => Promise.resolve(process.env[key])),
+}));
+
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
@@ -25,19 +29,19 @@ describe("isGitHubConfigured", () => {
   it("returns true when GITHUB_TOKEN is set", async () => {
     setEnv("ghp_test123");
     const { isGitHubConfigured } = await importClient();
-    expect(isGitHubConfigured()).toBe(true);
+    expect(await isGitHubConfigured()).toBe(true);
   });
 
   it("returns false when GITHUB_TOKEN is missing", async () => {
     clearEnv();
     const { isGitHubConfigured } = await importClient();
-    expect(isGitHubConfigured()).toBe(false);
+    expect(await isGitHubConfigured()).toBe(false);
   });
 
   it("returns false when GITHUB_TOKEN is empty", async () => {
     setEnv("");
     const { isGitHubConfigured } = await importClient();
-    expect(isGitHubConfigured()).toBe(false);
+    expect(await isGitHubConfigured()).toBe(false);
   });
 });
 

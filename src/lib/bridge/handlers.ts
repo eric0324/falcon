@@ -80,7 +80,7 @@ import {
   getAnalytics as vimeoGetAnalytics,
 } from "@/lib/integrations/vimeo";
 import { generateText } from "ai";
-import { models, defaultModel, type ModelId } from "@/lib/ai/models";
+import { getModel, defaultModel, type ModelId } from "@/lib/ai/models";
 import { handleToolDB } from "@/lib/bridge/tooldb-handler";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -506,7 +506,7 @@ async function handleLLM(action: string, params: Params): Promise<unknown> {
 
   // Validate model
   const modelId = (params.model || defaultModel) as ModelId;
-  const model = models[modelId];
+  const model = await getModel(modelId);
   if (!model) {
     throw new Error(`不支援的模型: ${params.model}`);
   }

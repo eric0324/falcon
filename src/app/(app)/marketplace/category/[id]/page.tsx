@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import { getServerSession } from "next-auth";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { buildVisibilityFilter } from "@/lib/tool-visibility";
 import { TOOL_CATEGORIES, getCategoryById } from "@/lib/categories";
@@ -24,7 +23,7 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const { id: categoryId } = await params;
 
   if (!session?.user?.id) {

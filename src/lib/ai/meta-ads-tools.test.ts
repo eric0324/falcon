@@ -34,7 +34,7 @@ describe("createMetaAdsTools", () => {
   });
 
   it("returns not configured when Meta Ads is not set up", async () => {
-    mockIsConfigured.mockReturnValue(false);
+    mockIsConfigured.mockReturnValue(Promise.resolve(false));
     const tools = createMetaAdsTools();
     const result = await tools.metaAdsQuery.execute!(
       { action: "overview" as const },
@@ -48,7 +48,7 @@ describe("createMetaAdsTools", () => {
   });
 
   it("lists available accounts", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockParseAccounts.mockReturnValue([
       { name: "增長組", accountId: "act_111" },
       { name: "語言學習", accountId: "act_222" },
@@ -67,7 +67,7 @@ describe("createMetaAdsTools", () => {
   });
 
   it("returns overview data with accountId", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockOverview.mockResolvedValue({
       spend: 150, impressions: 5000, clicks: 200, ctr: 4.0,
       cpc: 0.75, cpm: 30, reach: 4000, frequency: 1.25,
@@ -87,7 +87,7 @@ describe("createMetaAdsTools", () => {
   });
 
   it("defaults overview dateRange to last_30d", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockOverview.mockResolvedValue({
       spend: 0, impressions: 0, clicks: 0, ctr: 0,
       cpc: 0, cpm: 0, reach: 0, frequency: 0, actions: [], costPerAction: [],
@@ -103,7 +103,7 @@ describe("createMetaAdsTools", () => {
   });
 
   it("returns campaigns data with accountId", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockCampaigns.mockResolvedValue([
       { campaignName: "Test", campaignId: "111", spend: 50, impressions: 2000, clicks: 80, ctr: 4.0, cpc: 0.63, cpm: 25, actions: [], costPerAction: [] },
     ]);
@@ -119,7 +119,7 @@ describe("createMetaAdsTools", () => {
   });
 
   it("passes campaignNameFilter to queryCampaigns", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockCampaigns.mockResolvedValue([
       { campaignName: "ASC_CV_28_超級數字力", campaignId: "333", spend: 100, impressions: 5000, clicks: 200, ctr: 4.0, cpc: 0.5, cpm: 20, actions: [], costPerAction: [] },
     ]);
@@ -135,7 +135,7 @@ describe("createMetaAdsTools", () => {
   });
 
   it("returns timeseries data with accountId", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockTimeseries.mockResolvedValue([
       { date: "2026-02-01", spend: 20, impressions: 800, clicks: 30 },
     ]);
@@ -151,7 +151,7 @@ describe("createMetaAdsTools", () => {
   });
 
   it("defaults timeseries period to day", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockTimeseries.mockResolvedValue([]);
 
     const tools = createMetaAdsTools();
@@ -164,7 +164,7 @@ describe("createMetaAdsTools", () => {
   });
 
   it("returns breakdown data with accountId", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockBreakdown.mockResolvedValue([
       { dimension: "25-34", spend: 60, impressions: 2000, clicks: 80, ctr: 4.0 },
     ]);
@@ -180,7 +180,7 @@ describe("createMetaAdsTools", () => {
   });
 
   it("defaults breakdown dimension to age", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockBreakdown.mockResolvedValue([]);
 
     const tools = createMetaAdsTools();
@@ -193,7 +193,7 @@ describe("createMetaAdsTools", () => {
   });
 
   it("handles errors gracefully", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockOverview.mockRejectedValue(new Error("API failure"));
 
     const tools = createMetaAdsTools();

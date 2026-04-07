@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth";
 import { getTranslations } from "next-intl/server";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -12,7 +11,7 @@ import { ToolCard } from "@/components/tool-card";
 export const metadata = { title: "我的工具" };
 
 export default async function ToolsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
 
   if (!session?.user?.email) {
     redirect("/login");

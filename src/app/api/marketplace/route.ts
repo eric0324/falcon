@@ -1,12 +1,11 @@
-import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { buildVisibilityFilter } from "@/lib/tool-visibility";
 
 // GET /api/marketplace - Get marketplace tools
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   const { searchParams } = new URL(request.url);
 
   const section = searchParams.get("section"); // trending, newest, category

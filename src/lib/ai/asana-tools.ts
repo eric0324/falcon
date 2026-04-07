@@ -32,7 +32,7 @@ export function createAsanaTools() {
         const { action, projectId, taskId, search, limit = 20 } = params;
 
         try {
-          if (!isAsanaConfigured()) {
+          if (!(await isAsanaConfigured())) {
             return {
               success: false,
               error: "Asana 尚未設定。請在環境變數中設定 ASANA_PAT。",

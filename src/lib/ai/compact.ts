@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { models } from "./models";
+import { getModel } from "./models";
 
 interface Message {
   role: string;
@@ -89,7 +89,7 @@ export async function compactMessages(
   const conversationText = formatMessagesForSummary(oldMessages);
 
   const { text: summary } = await generateText({
-    model: models["claude-haiku"],
+    model: await getModel("claude-haiku"),
     prompt: SUMMARY_PROMPT_PREFIX + conversationText,
   });
 

@@ -42,7 +42,7 @@ Drill-down hierarchy: campaigns → adsets → ads.`,
       }),
       execute: async (params) => {
         try {
-          if (!isMetaAdsConfigured()) {
+          if (!(await isMetaAdsConfigured())) {
             return {
               success: false,
               error: "Meta Ads is not configured.",
@@ -53,7 +53,7 @@ Drill-down hierarchy: campaigns → adsets → ads.`,
 
           switch (params.action) {
             case "listAccounts": {
-              const accounts = parseAccounts();
+              const accounts = await parseAccounts();
               return {
                 success: true,
                 service: "meta_ads",

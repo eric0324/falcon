@@ -1,3 +1,5 @@
+import { getConfig } from "@/lib/config";
+
 const VIMEO_API_BASE = "https://api.vimeo.com";
 
 // ===== Types =====
@@ -36,13 +38,13 @@ export interface VimeoAnalyticsResult {
 
 // ===== Configuration =====
 
-export function isVimeoConfigured(): boolean {
-  return !!process.env.VIMEO_ACCESS_TOKEN;
+export async function isVimeoConfigured(): Promise<boolean> {
+  return !!(await getConfig("VIMEO_ACCESS_TOKEN"));
 }
 
 
-function getAccessToken(): string {
-  const token = process.env.VIMEO_ACCESS_TOKEN;
+async function getAccessToken(): Promise<string> {
+  const token = await getConfig("VIMEO_ACCESS_TOKEN");
   if (!token) throw new Error("VIMEO_ACCESS_TOKEN is not set");
   return token;
 }
@@ -50,7 +52,8 @@ function getAccessToken(): string {
 let _cachedUserId: string | null = null;
 
 async function resolveUserId(): Promise<string> {
-  if (process.env.VIMEO_USER_ID) return process.env.VIMEO_USER_ID;
+  const envUserId = await getConfig("VIMEO_USER_ID");
+  if (envUserId) return envUserId;
   if (_cachedUserId) return _cachedUserId;
 
   // Resolve /me to actual user ID (needed for analytics endpoint)
@@ -72,7 +75,7 @@ async function vimeoFetch<T>(endpoint: string, params?: Record<string, string>):
 
   const res = await fetch(url.toString(), {
     headers: {
-      Authorization: `Bearer ${getAccessToken()}`,
+      Authorization: `Bearer ${await getAccessToken()}`,
       Accept: "application/vnd.vimeo.*+json;version=3.4",
     },
   });

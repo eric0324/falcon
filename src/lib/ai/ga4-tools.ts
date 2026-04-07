@@ -37,7 +37,7 @@ export function createGA4Tools() {
       }),
       execute: async (params) => {
         try {
-          if (!isGA4Configured()) {
+          if (!(await isGA4Configured())) {
             return {
               success: false,
               error: "Google Analytics 4 is not configured.",

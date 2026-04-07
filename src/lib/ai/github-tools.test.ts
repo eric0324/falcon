@@ -34,7 +34,7 @@ describe("createGitHubTools", () => {
   });
 
   it("returns not configured when GitHub is not set up", async () => {
-    mockIsConfigured.mockReturnValue(false);
+    mockIsConfigured.mockReturnValue(Promise.resolve(false));
     const tools = createGitHubTools();
     const result = await tools.githubQuery.execute!(
       { action: "listRepos" as const },
@@ -48,7 +48,7 @@ describe("createGitHubTools", () => {
   });
 
   it("lists repos", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockListRepos.mockResolvedValue([
       { name: "falcon", fullName: "myorg/falcon", language: "TypeScript" },
     ]);
@@ -66,7 +66,7 @@ describe("createGitHubTools", () => {
   });
 
   it("lists repos with org filter", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockListRepos.mockResolvedValue([]);
 
     const tools = createGitHubTools();
@@ -79,7 +79,7 @@ describe("createGitHubTools", () => {
   });
 
   it("lists pull requests", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockListPRs.mockResolvedValue([
       { number: 42, title: "Add feature", author: "alice", state: "open" },
     ]);
@@ -95,7 +95,7 @@ describe("createGitHubTools", () => {
   });
 
   it("lists PRs with state filter", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockListPRs.mockResolvedValue([]);
 
     const tools = createGitHubTools();
@@ -108,7 +108,7 @@ describe("createGitHubTools", () => {
   });
 
   it("reads PR details", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockGetPR.mockResolvedValue({
       number: 42,
       title: "Add feature",
@@ -128,7 +128,7 @@ describe("createGitHubTools", () => {
   });
 
   it("requires repo and prNumber for readPR", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
 
     const tools = createGitHubTools();
     const result = await tools.githubQuery.execute!(
@@ -141,7 +141,7 @@ describe("createGitHubTools", () => {
   });
 
   it("searches code", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockSearchCode.mockResolvedValue([
       { path: "src/payment.ts", repo: "myorg/api", textMatches: [] },
     ]);
@@ -157,7 +157,7 @@ describe("createGitHubTools", () => {
   });
 
   it("searches code in specific repo", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockSearchCode.mockResolvedValue([]);
 
     const tools = createGitHubTools();
@@ -170,7 +170,7 @@ describe("createGitHubTools", () => {
   });
 
   it("lists commits", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockListCommits.mockResolvedValue([
       { sha: "abc1234", message: "feat: add login", author: "Alice" },
     ]);
@@ -186,7 +186,7 @@ describe("createGitHubTools", () => {
   });
 
   it("lists commits on specific branch", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockListCommits.mockResolvedValue([]);
 
     const tools = createGitHubTools();
@@ -199,7 +199,7 @@ describe("createGitHubTools", () => {
   });
 
   it("handles errors gracefully", async () => {
-    mockIsConfigured.mockReturnValue(true);
+    mockIsConfigured.mockReturnValue(Promise.resolve(true));
     mockListRepos.mockRejectedValue(new Error("API failure"));
 
     const tools = createGitHubTools();

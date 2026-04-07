@@ -574,6 +574,18 @@ model UserApiKey {
   @@index([userId])
 }
 
+// ===== System Config =====
+
+model SystemConfig {
+  key         String   @id
+  value       String   @db.Text
+  encrypted   Boolean  @default(true)
+  description String?
+  group       String   // "oauth", "ai", "integration", "analytics", "general"
+  updatedAt   DateTime @updatedAt
+  updatedBy   String?
+}
+
 // ===== Group Model =====
 
 model Group {

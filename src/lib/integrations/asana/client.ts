@@ -1,3 +1,5 @@
+import { getConfig } from "@/lib/config";
+
 const ASANA_API_BASE = "https://app.asana.com/api/1.0";
 
 // ===== Types =====
@@ -53,12 +55,12 @@ export interface AsanaSearchResult {
 
 // ===== Configuration =====
 
-export function isAsanaConfigured(): boolean {
-  return !!process.env.ASANA_PAT;
+export async function isAsanaConfigured(): Promise<boolean> {
+  return !!(await getConfig("ASANA_PAT"));
 }
 
-function getToken(): string {
-  const token = process.env.ASANA_PAT;
+async function getToken(): Promise<string> {
+  const token = await getConfig("ASANA_PAT");
   if (!token) throw new Error("ASANA_PAT is not configured");
   return token;
 }
@@ -76,7 +78,7 @@ async function asanaFetch<T>(
 
   const response = await fetch(url.toString(), {
     headers: {
-      Authorization: `Bearer ${getToken()}`,
+      Authorization: `Bearer ${await getToken()}`,
       Accept: "application/json",
     },
   });
@@ -96,8 +98,9 @@ async function asanaFetch<T>(
 let cachedWorkspaceId: string | null = null;
 
 async function getWorkspaceId(): Promise<string> {
-  if (process.env.ASANA_WORKSPACE_ID) {
-    return process.env.ASANA_WORKSPACE_ID;
+  const envWorkspaceId = await getConfig("ASANA_WORKSPACE_ID");
+  if (envWorkspaceId) {
+    return envWorkspaceId;
   }
 
   if (cachedWorkspaceId) return cachedWorkspaceId;

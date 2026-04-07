@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { models } from "@/lib/ai/models";
+import { getModel } from "@/lib/ai/models";
 import type { ScanFinding } from "./rules";
 
 const VALID_SEVERITIES = new Set(["critical", "warning", "info"]);
@@ -33,7 +33,7 @@ export async function runLlmScan(code: string): Promise<{
 }> {
   try {
     const { text } = await generateText({
-      model: models["claude-haiku"],
+      model: await getModel("claude-haiku"),
       system: `You are a security & performance code reviewer for React JSX components running inside an iframe sandbox (allow-scripts only).
 
 Analyze the code and return a JSON object with:
