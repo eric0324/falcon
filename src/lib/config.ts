@@ -64,7 +64,7 @@ export const CONFIG_DEFINITIONS: Record<string, ConfigDef[]> = {
   ],
   general: [
     { key: "DEFAULT_MONTHLY_QUOTA_USD", description: "Default monthly quota (USD)", sensitive: false },
-    { key: "PG_TEXT_SEARCH_CONFIG", description: "PostgreSQL text search config", sensitive: false, options: ["simple", "english", "chinese"] },
+    { key: "PG_TEXT_SEARCH_CONFIG", description: "PostgreSQL text search config", sensitive: false, options: ["simple", "english"] },
   ],
 };
 
