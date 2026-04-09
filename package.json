@@ -38,6 +38,7 @@
     "@radix-ui/react-toast": "^1.2.4",
     "ai": "^6.0.48",
     "bullmq": "^5.71.1",
+    "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "commander": "^14.0.2",

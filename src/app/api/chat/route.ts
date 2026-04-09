@@ -2,6 +2,7 @@ import { getSession } from "@/lib/session";
 import { streamText } from "ai";
 import { getModel, ModelId, defaultModel } from "@/lib/ai/models";
 import { createStudioTools, suggestDataSourcesTool } from "@/lib/ai/tools";
+import { createScraperTools } from "@/lib/ai/scraper-tools";
 import { createGoogleTools } from "@/lib/ai/google-tools";
 import { createNotionTools } from "@/lib/ai/notion-tools";
 import { createSlackTools } from "@/lib/ai/slack-tools";
@@ -231,8 +232,8 @@ export async function POST(req: Request) {
         filteredTools = { ...filteredTools, ...kbTools };
       }
     }
-    // Always register suggestDataSources tool
-    filteredTools = { ...filteredTools, ...suggestDataSourcesTool };
+    // Always register suggestDataSources and scraper tools
+    filteredTools = { ...filteredTools, ...suggestDataSourcesTool, ...createScraperTools() };
 
     // Build list of available-but-unselected data sources for AI to suggest
     const selectedSet = new Set((dataSources as string[]) || []);

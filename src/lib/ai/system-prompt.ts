@@ -47,9 +47,9 @@ Proceed immediately when requirements are clear:
 ## Response Language
 - Always respond in **Traditional Chinese (Taiwan)**. Never use Mainland Chinese (Simplified Chinese) expressions.
 - Be concise and clear.
-- **STRICTLY FORBIDDEN vocabulary** (left = BANNED, right = must use instead):
-  優化→改善/改進、信息→資訊、視頻→影片、數據→資料、用戶→使用者、反饋→回饋、激活→啟用、默認→預設、鏈接→連結、文檔→文件、終端→終端機、交互→互動、響應→回應、場景→情境、方案→方式/做法
-- This is a hard rule. Using any banned word is considered a critical error.
+- **STRICTLY FORBIDDEN vocabulary** — using ANY of these is a critical error. You MUST use the replacement on the right:
+  優化→改善/改進、質量→品質、信息→資訊、視頻→影片、數據→資料、用戶→使用者、反饋→回饋、激活→啟用、默認→預設、鏈接→連結、文檔→文件、終端→終端機、交互→互動、響應→回應、場景→情境、方案→方式/做法、獲取→取得、支持→支援、訪問→存取/瀏覽、實現→達成/完成、模塊→模組、組件→元件、配置→設定、項目→專案、程序→程式、進程→程序/流程、線程→執行緒、內存→記憶體、代碼→程式碼、調用→呼叫、接口→介面、遍歷→走訪、頭像→大頭貼、上線→上架/啟用
+- Re-read your response before sending. If any banned word appears, rewrite that sentence.
 
 ## When building UI (updateCode)
 - Output a single React component: export default function App()
@@ -59,7 +59,12 @@ Proceed immediately when requirements are clear:
 - Submit code via the updateCode tool
 - The code parameter must be pure JavaScript/JSX — no markdown fences
 - Do not output code in chat as markdown code blocks; use the updateCode tool instead
-- Briefly explain what you will build, then call updateCode`;
+- Briefly explain what you will build, then call updateCode
+
+## Web Scraping (built-in, always available)
+- Use the \`webScrape\` tool when the user provides a URL or asks about a web page
+- Call it directly — do not ask for confirmation
+- Only fetches static HTML; JavaScript-rendered content (SPA) may not be available`;
 
 // Google service descriptions
 const GOOGLE_SERVICE_INFO: Record<string, { name: string; keywords: string; example: string }> = {
@@ -497,6 +502,24 @@ Important:
 - Use for button-triggered actions (e.g. "Generate summary", "Translate"). Do NOT call LLM inside useEffect or in loops
 - The result object has \`result.text\` for the LLM response text`;
 
+const SCRAPER_BRIDGE_INSTRUCTIONS = `
+
+## Web Scraper (built-in, always available)
+
+Tools can fetch web pages via \`window.companyAPI.execute("scrape", "fetch", { url })\`. This is a built-in platform capability — no data source selection needed.
+
+\`\`\`js
+const result = await window.companyAPI.execute("scrape", "fetch", {
+  url: "https://example.com",
+});
+// result = { url, title, text, truncated }
+\`\`\`
+
+Important:
+- Only fetches static HTML — JavaScript-rendered content (SPA) will not be available
+- Max ~8000 characters of text; longer pages will be truncated
+- Use for button-triggered actions. Do NOT call in loops or useEffect`;
+
 const TOOLDB_INSTRUCTIONS = `
 
 ## Tool Database (built-in, always available)
@@ -906,6 +929,7 @@ export function buildSystemPrompt(dataSources?: string[], availableSources?: str
       prompt += NO_DATA_SOURCE_INSTRUCTIONS;
     }
     prompt += LLM_BRIDGE_INSTRUCTIONS;
+    prompt += SCRAPER_BRIDGE_INSTRUCTIONS;
     prompt += TOOLDB_INSTRUCTIONS;
     return prompt;
   }
@@ -985,6 +1009,9 @@ export function buildSystemPrompt(dataSources?: string[], availableSources?: str
 
   // LLM bridge — always available regardless of data source selection
   prompt += LLM_BRIDGE_INSTRUCTIONS;
+
+  // Web scraper — always available
+  prompt += SCRAPER_BRIDGE_INSTRUCTIONS;
 
   // Tool database — always available
   prompt += TOOLDB_INSTRUCTIONS;

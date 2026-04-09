@@ -14,6 +14,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.23.0",
+    date: "2026-04-09",
+    title: "網頁抓取",
+    summary:
+      "貼個網址，AI 就能幫你讀網頁內容！不管是看文章、抓產品資訊、還是比較不同網頁，直接問就好。",
+    items: [
+      "網頁抓取：AI 可以直接讀取網頁內容，回答你關於網頁的問題",
+    ],
+  },
+  {
     version: "v0.22.0",
     date: "2026-04-09",
     title: "智慧資料來源建議",

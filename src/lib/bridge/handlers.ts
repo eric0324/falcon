@@ -81,6 +81,7 @@ import {
 } from "@/lib/integrations/vimeo";
 import { generateText } from "ai";
 import { getModel, defaultModel, type ModelId } from "@/lib/ai/models";
+import { scrapeUrl } from "@/lib/scraper";
 import { handleToolDB } from "@/lib/bridge/tooldb-handler";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -534,6 +535,21 @@ async function handleLLM(action: string, params: Params): Promise<unknown> {
   };
 }
 
+// ===== Web Scraper =====
+
+async function handleScrape(action: string, params: Params): Promise<unknown> {
+  if (action !== "fetch") {
+    throw new Error(`Unsupported scrape action: ${action}`);
+  }
+
+  const url = params.url;
+  if (!url || typeof url !== "string") {
+    throw new Error("scrape requires a url parameter");
+  }
+
+  return scrapeUrl(url);
+}
+
 // ===== Main Dispatcher =====
 
 export async function dispatchBridge(
@@ -572,6 +588,7 @@ export async function dispatchBridge(
     meta_ads: handleMetaAds,
     vimeo: handleVimeo,
     llm: handleLLM,
+    scrape: handleScrape,
   };
 
   const handler = handlers[dataSourceId];
