@@ -65,10 +65,11 @@ window.companyAPI = {
 window.__bridgeCall = function(payload) {
   return new Promise(function(resolve, reject) {
     var id = 'bridge_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+    var timeoutMs = (payload.dataSourceId === 'llm' || payload.dataSourceId === 'scrape') ? 60000 : 30000;
     var timeout = setTimeout(function() {
       window.removeEventListener('message', handler);
-      reject(new Error('API call timeout (30s)'));
-    }, 30000);
+      reject(new Error('API call timeout (' + (timeoutMs / 1000) + 's)'));
+    }, timeoutMs);
 
     function handler(e) {
       if (e.data && e.data.type === 'api-bridge-response' && e.data.id === id) {

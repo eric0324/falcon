@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
+
+// LLM calls can take 10-30 seconds
+export const maxDuration = 60;
 import { prisma } from "@/lib/prisma";
 import { dispatchBridge } from "@/lib/bridge/handlers";
 import { logDataSourceCall, sanitizeBridgeParams, sanitizeResponse } from "@/lib/data-source-log";
