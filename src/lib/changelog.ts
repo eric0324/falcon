@@ -14,6 +14,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.22.0",
+    date: "2026-04-09",
+    title: "對話訊息一鍵複製",
+    summary:
+      "滑鼠移到對話訊息上就會出現複製按鈕，一鍵複製訊息內容，方便貼到其他地方使用。",
+    items: [
+      "對話訊息一鍵複製：hover 訊息即可複製內容",
+    ],
+  },
+  {
     version: "v0.21.0",
     date: "2026-04-02",
     title: "文件撰寫模式",
