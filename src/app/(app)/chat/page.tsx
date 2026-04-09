@@ -492,12 +492,6 @@ function StudioContent() {
     }
   }, [suggestedSources, isLoading]);
 
-  // Handle actions from tool call displays
-  const handleToolAction = useCallback((action: string, payload: unknown) => {
-    if (action === "enableDataSources") {
-      handleConfirmSuggestedSources(payload as string[]);
-    }
-  }, [handleConfirmSuggestedSources]);
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -1207,7 +1201,7 @@ function StudioContent() {
                     {hasToolCalls && (
                       <div className="space-y-2">
                         {toolCallsToShow.map((toolCall) => (
-                          <ToolCallDisplay key={toolCall.id} toolCall={toolCall} onAction={handleToolAction} />
+                          <ToolCallDisplay key={toolCall.id} toolCall={toolCall} />
                         ))}
                       </div>
                     )}
@@ -1227,7 +1221,7 @@ function StudioContent() {
                   {currentToolCalls.length > 0 ? (
                     <div className="space-y-2">
                       {currentToolCalls.map((toolCall) => (
-                        <ToolCallDisplay key={toolCall.id} toolCall={toolCall} onAction={handleToolAction} />
+                        <ToolCallDisplay key={toolCall.id} toolCall={toolCall} />
                       ))}
                     </div>
                   ) : (

@@ -15,7 +15,6 @@ export interface ToolCall {
 
 interface ToolCallDisplayProps {
   toolCall: ToolCall;
-  onAction?: (action: string, payload: unknown) => void;
 }
 
 const toolIcons: Record<string, React.ReactNode> = {
@@ -84,7 +83,7 @@ const toolCompletedLabels: Record<string, string> = {
   suggestDataSources: "Data sources suggested",
 };
 
-export function ToolCallDisplay({ toolCall, onAction }: ToolCallDisplayProps) {
+export function ToolCallDisplay({ toolCall }: ToolCallDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Hide suggestDataSources from tool call list (rendered as overlay in chat page)

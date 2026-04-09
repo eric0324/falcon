@@ -19,8 +19,6 @@ interface ModelSelectorProps {
   onChange: (value: ModelId) => void;
 }
 
-const STORAGE_KEY = "falcon-preferred-model";
-
 const providerLabel: Record<string, { name: string; color: string }> = {
   claude: { name: "Anthropic", color: "text-amber-600" },
   gpt: { name: "OpenAI", color: "text-green-600" },
