@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     }
 
     // 2. Platform capabilities (always allowed, skip permission check)
-    const isPlatformCapability = dataSourceId === "llm" || dataSourceId === "tooldb";
+    const isPlatformCapability = dataSourceId === "llm" || dataSourceId === "tooldb" || dataSourceId === "scrape";
 
     // 3. For non-platform calls, check data source permissions
     let toolName: string | undefined;
@@ -40,7 +40,17 @@ export async function POST(req: Request) {
     if (!isPlatformCapability) {
       let allowedSources: string[];
 
-      if (toolId) {
+      if (previewDataSources && Array.isArray(previewDataSources)) {
+        // Preview mode (or preview with toolId): use the provided list
+        allowedSources = previewDataSources;
+        if (toolId) {
+          const tool = await prisma.tool.findUnique({
+            where: { id: toolId },
+            select: { name: true },
+          });
+          toolName = tool?.name;
+        }
+      } else if (toolId) {
         // Published mode: look up from Tool.dataSources
         const tool = await prisma.tool.findUnique({
           where: { id: toolId },
@@ -51,9 +61,6 @@ export async function POST(req: Request) {
         }
         allowedSources = (tool.dataSources as string[]) || [];
         toolName = tool.name;
-      } else if (previewDataSources && Array.isArray(previewDataSources)) {
-        // Preview mode: use the provided list
-        allowedSources = previewDataSources;
       } else {
         return NextResponse.json(
           { error: "Either toolId or dataSources is required" },

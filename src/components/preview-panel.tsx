@@ -97,7 +97,7 @@ export function PreviewPanel({ code, toolId, dataSources, onError, onShare, onCo
       }
 
       if (event.data?.type !== "api-bridge") return;
-      const isPlatform = event.data.dataSourceId === "llm" || event.data.dataSourceId === "tooldb";
+      const isPlatform = event.data.dataSourceId === "llm" || event.data.dataSourceId === "tooldb" || event.data.dataSourceId === "scrape";
       if (!isPlatform && !hasDataSources) return;
 
       const { id, dataSourceId, action, params } = event.data;
@@ -108,7 +108,8 @@ export function PreviewPanel({ code, toolId, dataSources, onError, onShare, onCo
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            ...(toolId ? { toolId } : { dataSources }),
+            ...(toolId ? { toolId } : {}),
+            dataSources,
             dataSourceId,
             action,
             params,
