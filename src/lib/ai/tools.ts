@@ -76,5 +76,27 @@ export function createStudioTools(userId: string, conversationId?: string) {
   };
 }
 
+/**
+ * Tool for AI to suggest data sources when the user's request
+ * requires a data source that is not currently enabled.
+ */
+export const suggestDataSourcesTool = {
+  suggestDataSources: tool({
+    description:
+      "Suggest data sources that the user should enable. Call this INSTEAD of telling the user to enable data sources manually. The frontend will render a selection UI.",
+    inputSchema: z.object({
+      sources: z
+        .array(z.string())
+        .describe("Data source IDs to suggest, e.g. meta_ads, notion, google_sheets"),
+      reason: z
+        .string()
+        .describe("Brief explanation in Traditional Chinese of why these sources are needed"),
+    }),
+    execute: async ({ sources, reason }) => {
+      return { type: "suggest_data_sources", sources, reason };
+    },
+  }),
+};
+
 // Backwards compatibility — tools without draft context
 export const studioTools = createStudioTools("", undefined);

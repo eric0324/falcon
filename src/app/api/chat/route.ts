@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/session";
 import { streamText } from "ai";
 import { getModel, ModelId, defaultModel } from "@/lib/ai/models";
-import { createStudioTools } from "@/lib/ai/tools";
+import { createStudioTools, suggestDataSourcesTool } from "@/lib/ai/tools";
 import { createGoogleTools } from "@/lib/ai/google-tools";
 import { createNotionTools } from "@/lib/ai/notion-tools";
 import { createSlackTools } from "@/lib/ai/slack-tools";
@@ -14,6 +14,14 @@ import { createYouTubeTools } from "@/lib/ai/youtube-tools";
 import { createVimeoTools } from "@/lib/ai/vimeo-tools";
 import { createExternalDbTools } from "@/lib/ai/external-db-tools";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
+import { isNotionConfigured } from "@/lib/integrations/notion";
+import { isSlackConfigured } from "@/lib/integrations/slack";
+import { isAsanaConfigured } from "@/lib/integrations/asana";
+import { isPlausibleConfigured } from "@/lib/integrations/plausible";
+import { isGA4Configured } from "@/lib/integrations/ga4";
+import { isMetaAdsConfigured } from "@/lib/integrations/meta-ads";
+import { isGitHubConfigured } from "@/lib/integrations/github";
+import { isVimeoConfigured } from "@/lib/integrations/vimeo";
 import { createKnowledgeBaseTools } from "@/lib/ai/knowledge-base-tools";
 import { shouldCompact, estimateTokens, trimMessagesToFit } from "@/lib/ai/token-utils";
 import { compactMessages } from "@/lib/ai/compact";
@@ -223,10 +231,26 @@ export async function POST(req: Request) {
         filteredTools = { ...filteredTools, ...kbTools };
       }
     }
-    // If no data sources selected, only use studioTools (no external data access)
+    // Always register suggestDataSources tool
+    filteredTools = { ...filteredTools, ...suggestDataSourcesTool };
 
-    // Build dynamic system prompt based on selected data sources
-    let systemPrompt = buildSystemPrompt(dataSources);
+    // Build list of available-but-unselected data sources for AI to suggest
+    const selectedSet = new Set((dataSources as string[]) || []);
+    const integrationChecks = await Promise.all([
+      isNotionConfigured().then((ok) => ok ? "notion" : null),
+      isSlackConfigured().then((ok) => ok ? "slack" : null),
+      isAsanaConfigured().then((ok) => ok ? "asana" : null),
+      isPlausibleConfigured().then((ok) => ok ? "plausible" : null),
+      isGA4Configured().then((ok) => ok ? "ga4" : null),
+      isMetaAdsConfigured().then((ok) => ok ? "meta_ads" : null),
+      isGitHubConfigured().then((ok) => ok ? "github" : null),
+      isVimeoConfigured().then((ok) => ok ? "vimeo" : null),
+    ]);
+    const availableSources = integrationChecks
+      .filter((id) => id !== null && !selectedSet.has(id)) as string[];
+
+    // Build dynamic system prompt based on selected data sources + available unselected
+    let systemPrompt = buildSystemPrompt(dataSources, availableSources);
 
     // Append skill prompt if provided
     if (skillPrompt && typeof skillPrompt === "string") {
@@ -318,6 +342,9 @@ export async function POST(req: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
+        const enqueue = (data: string) => {
+          try { controller.enqueue(encoder.encode(data)); } catch { /* client disconnected */ }
+        };
         const MAX_STEPS = 15;
         const currentMessages = [...messagesToSend];
         let step = 0;
@@ -328,13 +355,13 @@ export async function POST(req: Request) {
 
         // Send conversationId (and title if newly created) so frontend can use it
         if (conversationId) {
-          controller.enqueue(encoder.encode(`i:${JSON.stringify({ conversationId, title: generatedTitle })}\n`));
+          enqueue(`i:${JSON.stringify({ conversationId, title: generatedTitle })}\n`);
         }
 
         // Send compact event if compaction occurred
         if (compactInfo) {
           const compactLine = `c:${JSON.stringify(compactInfo)}\n`;
-          controller.enqueue(encoder.encode(compactLine));
+          enqueue(compactLine);
         }
 
         while (step < MAX_STEPS) {
@@ -424,7 +451,7 @@ export async function POST(req: Request) {
             }
 
             if (line) {
-              controller.enqueue(encoder.encode(line));
+              enqueue(line);
             }
           }
 
@@ -486,7 +513,7 @@ export async function POST(req: Request) {
 
           for await (const part of finalResult.fullStream) {
             if (part.type === "text-delta") {
-              controller.enqueue(encoder.encode(`0:${JSON.stringify(part.text)}\n`));
+              enqueue(`0:${JSON.stringify(part.text)}\n`);
             }
           }
 
@@ -536,7 +563,7 @@ export async function POST(req: Request) {
             // Send updated quota status
             try {
               const updatedQuota = await checkQuota(userId);
-              controller.enqueue(encoder.encode(`q:${JSON.stringify(updatedQuota)}\n`));
+              enqueue(`q:${JSON.stringify(updatedQuota)}\n`);
             } catch (qe) {
               console.error(`[Chat API] Failed to get quota status:`, qe);
             }
@@ -546,11 +573,15 @@ export async function POST(req: Request) {
         }
 
         } catch (streamError) {
+          // Ignore abort errors — client disconnected
+          if (streamError instanceof Error && streamError.name === "AbortError") return;
           console.error(`[Chat API] Stream error:`, streamError);
-          const errorMsg = streamError instanceof Error ? streamError.message : String(streamError);
-          controller.enqueue(encoder.encode(`e:${JSON.stringify({ error: errorMsg })}\n`));
+          try {
+            const errorMsg = streamError instanceof Error ? streamError.message : String(streamError);
+            enqueue(`e:${JSON.stringify({ error: errorMsg })}\n`);
+          } catch { /* controller already closed */ }
         } finally {
-          controller.close();
+          try { controller.close(); } catch { /* already closed */ }
         }
       },
     });

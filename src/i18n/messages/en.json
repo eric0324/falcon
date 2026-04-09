@@ -286,7 +286,8 @@
     "canWrite": "Write",
     "clearAll": "Clear all",
     "externalDb": "Databases",
-    "knowledgeBase": "Knowledge Base"
+    "knowledgeBase": "Knowledge Base",
+    "enableAndRequery": "Enable and re-query"
   },
   "google": {
     "title": "Google",

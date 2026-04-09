@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Send, Loader2, CornerDownLeft, ChevronDown, Star, Pencil, Trash2 } from "lucide-react";
+import { Send, Loader2, CornerDownLeft, ChevronDown, Star, Pencil, Trash2, PlugZap, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -67,6 +67,84 @@ function useIsMobileChat() {
   return isMobile;
 }
 
+const SOURCE_NAMES: Record<string, string> = {
+  google_sheets: "Google Sheets",
+  google_drive: "Google Drive",
+  google_calendar: "Google Calendar",
+  google_gmail: "Gmail",
+  google_youtube: "YouTube",
+  notion: "Notion",
+  slack: "Slack",
+  asana: "Asana",
+  github: "GitHub",
+  vimeo: "Vimeo",
+  plausible: "Plausible Analytics",
+  ga4: "Google Analytics 4",
+  meta_ads: "Meta Ads",
+};
+
+function SuggestSourcesCard({
+  sources,
+  reason,
+  onConfirm,
+  onDismiss,
+}: {
+  sources: string[];
+  reason: string;
+  onConfirm: (sources: string[]) => void;
+  onDismiss: () => void;
+}) {
+  const t = useTranslations("dataSource");
+  const [selected, setSelected] = useState<Set<string>>(new Set(sources));
+
+  const toggle = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  return (
+    <div className="p-4 space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2">
+          <PlugZap className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+          <p className="text-sm text-blue-800 dark:text-blue-300">{reason}</p>
+        </div>
+        <button onClick={onDismiss} className="text-neutral-400 hover:text-neutral-600 shrink-0">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="space-y-1">
+        {sources.map((id) => (
+          <label
+            key={id}
+            className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer transition-colors"
+          >
+            <input
+              type="checkbox"
+              checked={selected.has(id)}
+              onChange={() => toggle(id)}
+              className="h-4 w-4 rounded border-neutral-300"
+            />
+            <span className="text-sm">{SOURCE_NAMES[id] || id}</span>
+          </label>
+        ))}
+      </div>
+      <Button
+        size="sm"
+        onClick={() => onConfirm(Array.from(selected))}
+        disabled={selected.size === 0}
+        className="w-full"
+      >
+        {t("enableAndRequery")}
+      </Button>
+    </div>
+  );
+}
+
 function StudioContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -84,6 +162,7 @@ function StudioContent() {
   const [docContent, setDocContent] = useState<{ markdown: string; title: string } | null>(null);
   const [draftToolId, setDraftToolId] = useState<string | null>(null);
   const [currentToolCalls, setCurrentToolCalls] = useState<ToolCall[]>([]);
+  const [suggestedSources, setSuggestedSources] = useState<{ sources: string[]; reason: string } | null>(null);
   const [showDeployDialog, setShowDeployDialog] = useState(false);
   const [toolName, setToolName] = useState("");
   const [toolDescription, setToolDescription] = useState("");
@@ -187,6 +266,7 @@ function StudioContent() {
     setUploadedFiles([]);
     setSelectedDataSources([]);
     setUsedDataSources([]);
+    setSuggestedSources(null);
     setCompactInfo(null);
   }, []);
 
@@ -328,7 +408,7 @@ function StudioContent() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, suggestedSources]);
 
   // Extract code from response - handles both markdown and plain code
   const extractCode = useCallback((text: string): string | null => {
@@ -375,6 +455,52 @@ function StudioContent() {
     }
   }, []);
 
+  const pendingSuggestRef = useRef<{ sources: string[]; reason: string } | null>(null);
+  const resendMessageRef = useRef<string | null>(null);
+
+  // Handle confirm from suggest data sources overlay
+  const handleConfirmSuggestedSources = useCallback((sources: string[]) => {
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+    if (!lastUserMsg) return;
+
+    const merged = Array.from(new Set([...selectedDataSources, ...sources]));
+    setSelectedDataSources(merged);
+    setSuggestedSources(null);
+    resendMessageRef.current = lastUserMsg.content;
+  }, [messages, selectedDataSources]);
+
+  // Show suggest card after streaming ends
+  useEffect(() => {
+    if (!isLoading && pendingSuggestRef.current) {
+      setSuggestedSources(pendingSuggestRef.current);
+      pendingSuggestRef.current = null;
+    }
+  }, [isLoading]);
+
+  // Trigger resend after state settles
+  useEffect(() => {
+    if (resendMessageRef.current && !suggestedSources && !isLoading) {
+      const msg = resendMessageRef.current;
+      resendMessageRef.current = null;
+      setInput(msg);
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const form = document.querySelector("form");
+          if (form) form.requestSubmit();
+        }, 50);
+      });
+    }
+  }, [suggestedSources, isLoading]);
+
+  // Handle actions from tool call displays
+  const handleToolAction = useCallback((action: string, payload: unknown) => {
+    if (action === "enableDataSources") {
+      handleConfirmSuggestedSources(payload as string[]);
+    }
+  }, [handleConfirmSuggestedSources]);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -385,6 +511,14 @@ function StudioContent() {
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setIsLoading(true);
     setCurrentToolCalls([]);
+    setSuggestedSources(null);
+
+    // Abort previous request if still running
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     // Prepare files for API
     const filesToSend = uploadedFiles.map((f) => ({
@@ -400,6 +534,7 @@ function StudioContent() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           message: userMessage,
           model: selectedModel,
@@ -511,6 +646,14 @@ function StudioContent() {
                     if (result.markdown && result.title) {
                       setDocContent({ markdown: result.markdown, title: result.title });
                       setCode("");
+                    }
+                  }
+
+                  // Handle suggestDataSources — store for later, show after stream ends
+                  if (existing.name === "suggestDataSources" && typeof resultData.result === "object" && resultData.result) {
+                    const result = resultData.result as { sources?: string[]; reason?: string };
+                    if (result.sources && result.reason) {
+                      pendingSuggestRef.current = { sources: result.sources, reason: result.reason };
                     }
                   }
 
@@ -737,6 +880,13 @@ function StudioContent() {
                       if (result.markdown && result.title) {
                         setDocContent({ markdown: result.markdown, title: result.title });
                         setCode("");
+                      }
+                    }
+
+                    if (existing.name === "suggestDataSources" && typeof resultData.result === "object" && resultData.result) {
+                      const result = resultData.result as { sources?: string[]; reason?: string };
+                      if (result.sources && result.reason) {
+                        setSuggestedSources({ sources: result.sources, reason: result.reason });
                       }
                     }
                   }
@@ -1057,7 +1207,7 @@ function StudioContent() {
                     {hasToolCalls && (
                       <div className="space-y-2">
                         {toolCallsToShow.map((toolCall) => (
-                          <ToolCallDisplay key={toolCall.id} toolCall={toolCall} />
+                          <ToolCallDisplay key={toolCall.id} toolCall={toolCall} onAction={handleToolAction} />
                         ))}
                       </div>
                     )}
@@ -1077,7 +1227,7 @@ function StudioContent() {
                   {currentToolCalls.length > 0 ? (
                     <div className="space-y-2">
                       {currentToolCalls.map((toolCall) => (
-                        <ToolCallDisplay key={toolCall.id} toolCall={toolCall} />
+                        <ToolCallDisplay key={toolCall.id} toolCall={toolCall} onAction={handleToolAction} />
                       ))}
                     </div>
                   ) : (
@@ -1089,10 +1239,22 @@ function StudioContent() {
                 </div>
               )}
             </div>
+
           </ScrollArea>
 
           {/* Input Area */}
-          <div className="border-t">
+          <div className="relative border-t">
+            {/* Suggest data sources — covers input area */}
+            {suggestedSources && (
+              <div className="absolute bottom-0 left-0 right-0 z-50 bg-background border-t shadow-[0_-4px_12px_rgba(0,0,0,0.1)] p-4">
+                <SuggestSourcesCard
+                  sources={suggestedSources.sources}
+                  reason={suggestedSources.reason}
+                  onConfirm={handleConfirmSuggestedSources}
+                  onDismiss={() => setSuggestedSources(null)}
+                />
+              </div>
+            )}
             {/* Quota warning/blocked banner */}
             {quotaStatus?.status === "warning" && (
               <div className="px-4 py-2 bg-yellow-50 dark:bg-yellow-950 border-b border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200 text-sm">

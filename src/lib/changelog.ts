@@ -16,10 +16,11 @@ export const changelog: ChangelogEntry[] = [
   {
     version: "v0.22.0",
     date: "2026-04-09",
-    title: "Claude Opus 4.6 + 訊息複製",
+    title: "智慧資料來源建議",
     summary:
-      "新增 Claude Opus 4.6 模型，Anthropic 最強大的模型，適合複雜推理和長文分析。對話訊息也新增了一鍵複製功能。",
+      "不知道要開哪個資料來源？現在 AI 會自動判斷你的問題需要哪些資料來源，直接在對話中推薦，一鍵開啟後自動重新查詢。",
     items: [
+      "智慧資料來源建議：AI 自動偵測並推薦需要的資料來源",
       "新增 Claude Opus 4.6 模型支援",
       "對話訊息一鍵複製：hover 訊息即可複製內容",
     ],

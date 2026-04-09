@@ -845,10 +845,43 @@ useEffect(() => {
 `;
 }
 
+const SOURCE_LABELS: Record<string, string> = {
+  google_sheets: "Google Sheets",
+  google_drive: "Google Drive",
+  google_calendar: "Google Calendar",
+  google_gmail: "Gmail",
+  google_youtube: "YouTube",
+  notion: "Notion",
+  slack: "Slack",
+  asana: "Asana",
+  github: "GitHub",
+  vimeo: "Vimeo",
+  plausible: "Plausible Analytics",
+  ga4: "Google Analytics 4",
+  meta_ads: "Meta Ads",
+};
+
+function buildSuggestDataSourcesInstructions(availableSources: string[]): string {
+  const sourceList = availableSources
+    .map((id) => `- ${id} (${SOURCE_LABELS[id] || id})`)
+    .join("\n");
+
+  return `
+
+## Data Source Suggestion
+
+If the user's request requires data from a service not currently enabled, call the \`suggestDataSources\` tool. Do NOT tell them to enable it manually.
+
+Available but not enabled:
+${sourceList}
+
+Only suggest sources from the list above.`;
+}
+
 /**
  * Build system prompt based on selected data sources
  */
-export function buildSystemPrompt(dataSources?: string[]): string {
+export function buildSystemPrompt(dataSources?: string[], availableSources?: string[]): string {
   const now = new Date();
   const dateStr = now.toLocaleDateString("zh-TW", {
     year: "numeric",
@@ -867,7 +900,11 @@ export function buildSystemPrompt(dataSources?: string[]): string {
   let prompt = BASE_PROMPT + `\n\n## Current Time\n現在是 ${dateStr} ${timeStr}（台北時間）。請根據此時間判斷「今天」「這週」「這個月」等相對時間。`;
 
   if (!dataSources || dataSources.length === 0) {
-    prompt += NO_DATA_SOURCE_INSTRUCTIONS;
+    if (availableSources && availableSources.length > 0) {
+      prompt += buildSuggestDataSourcesInstructions(availableSources);
+    } else {
+      prompt += NO_DATA_SOURCE_INSTRUCTIONS;
+    }
     prompt += LLM_BRIDGE_INSTRUCTIONS;
     prompt += TOOLDB_INSTRUCTIONS;
     return prompt;
@@ -940,6 +977,11 @@ export function buildSystemPrompt(dataSources?: string[]): string {
 
   // companyAPI instructions for tool building with live data
   prompt += buildCompanyApiInstructions(dataSources);
+
+  // Suggest data sources for unselected but available services
+  if (availableSources && availableSources.length > 0) {
+    prompt += buildSuggestDataSourcesInstructions(availableSources);
+  }
 
   // LLM bridge — always available regardless of data source selection
   prompt += LLM_BRIDGE_INSTRUCTIONS;

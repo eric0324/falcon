@@ -15,6 +15,7 @@ export interface ToolCall {
 
 interface ToolCallDisplayProps {
   toolCall: ToolCall;
+  onAction?: (action: string, payload: unknown) => void;
 }
 
 const toolIcons: Record<string, React.ReactNode> = {
@@ -39,53 +40,60 @@ const toolIcons: Record<string, React.ReactNode> = {
 
 // Labels when tool is being called (in progress)
 const toolCallingLabels: Record<string, string> = {
-  listDataSources: "正在取得資料來源...",
-  getDataSourceSchema: "正在分析資料結構...",
-  querySampleData: "正在查詢資料...",
-  updateCode: "正在思考...",
-  googleSearch: "正在搜尋 Google 資料...",
-  googleWrite: "正在寫入資料...",
-  googleStatus: "正在檢查連接狀態...",
-  notionSearch: "正在搜尋 Notion 資料...",
-  slackSearch: "正在搜尋 Slack 資料...",
-  asanaSearch: "正在搜尋 Asana 資料...",
-  plausibleQuery: "正在查詢 Plausible 流量數據...",
-  ga4Query: "正在查詢 GA4 流量數據...",
-  metaAdsQuery: "正在查詢 Meta 廣告數據...",
-  githubQuery: "正在查詢 GitHub 資料...",
-  listTables: "正在查看可用的資料表...",
-  getTableSchema: "正在分析資料表結構...",
-  queryDatabase: "正在查詢資料庫...",
+  listDataSources: "Fetching data sources...",
+  getDataSourceSchema: "Analyzing schema...",
+  querySampleData: "Querying data...",
+  updateCode: "Thinking...",
+  updateDocument: "Writing document...",
+  googleSearch: "Searching Google...",
+  googleWrite: "Writing to Google...",
+  googleStatus: "Checking connection...",
+  notionSearch: "Searching Notion...",
+  slackSearch: "Searching Slack...",
+  asanaSearch: "Searching Asana...",
+  plausibleQuery: "Querying Plausible...",
+  ga4Query: "Querying GA4...",
+  metaAdsQuery: "Querying Meta Ads...",
+  githubQuery: "Querying GitHub...",
+  listTables: "Listing tables...",
+  getTableSchema: "Analyzing table schema...",
+  queryDatabase: "Querying database...",
+  suggestDataSources: "Checking data sources...",
 };
 
 // Labels when tool is completed
 const toolCompletedLabels: Record<string, string> = {
-  listDataSources: "已列出資料來源",
-  getDataSourceSchema: "已取得資料結構",
-  querySampleData: "已查詢範例資料",
-  updateCode: "已生成程式碼",
-  googleSearch: "已搜尋 Google 資料",
-  googleWrite: "已寫入資料",
-  googleStatus: "已檢查連接狀態",
-  notionSearch: "已搜尋 Notion 資料",
-  slackSearch: "已搜尋 Slack 資料",
-  asanaSearch: "已搜尋 Asana 資料",
-  plausibleQuery: "已查詢 Plausible 流量數據",
-  ga4Query: "已查詢 GA4 流量數據",
-  metaAdsQuery: "已查詢 Meta 廣告數據",
-  githubQuery: "已查詢 GitHub 資料",
-  listTables: "已列出可用資料表",
-  getTableSchema: "已取得資料表結構",
-  queryDatabase: "已查詢資料庫",
+  listDataSources: "Fetched data sources",
+  getDataSourceSchema: "Schema analyzed",
+  querySampleData: "Data queried",
+  updateCode: "Code generated",
+  updateDocument: "Document written",
+  googleSearch: "Google search complete",
+  googleWrite: "Written to Google",
+  googleStatus: "Connection checked",
+  notionSearch: "Notion search complete",
+  slackSearch: "Slack search complete",
+  asanaSearch: "Asana search complete",
+  plausibleQuery: "Plausible query complete",
+  ga4Query: "GA4 query complete",
+  metaAdsQuery: "Meta Ads query complete",
+  githubQuery: "GitHub query complete",
+  listTables: "Tables listed",
+  getTableSchema: "Table schema analyzed",
+  queryDatabase: "Database queried",
+  suggestDataSources: "Data sources suggested",
 };
 
-export function ToolCallDisplay({ toolCall }: ToolCallDisplayProps) {
+export function ToolCallDisplay({ toolCall, onAction }: ToolCallDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Hide suggestDataSources from tool call list (rendered as overlay in chat page)
+  if (toolCall.name === "suggestDataSources") return null;
 
   const icon = toolIcons[toolCall.name] || <Code className="h-4 w-4" />;
   const label = toolCall.status === "calling"
-    ? (toolCallingLabels[toolCall.name] || `正在執行 ${toolCall.name}...`)
-    : (toolCompletedLabels[toolCall.name] || `已完成 ${toolCall.name}`);
+    ? (toolCallingLabels[toolCall.name] || `Running ${toolCall.name}...`)
+    : (toolCompletedLabels[toolCall.name] || `${toolCall.name} complete`);
 
   // Check if result indicates needs connection
   const result = toolCall.result as { needsConnection?: boolean; service?: string; error?: string } | undefined;
@@ -161,7 +169,7 @@ export function ToolCallDisplay({ toolCall }: ToolCallDisplayProps) {
           <div className="flex items-center gap-3 pt-3">
             <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
             <p className="text-sm text-amber-700 dark:text-amber-300 flex-1">
-              {result?.error || `需要連接 Google ${serviceToConnect} 才能使用此功能`}
+              {result?.error || `Google ${serviceToConnect} connection required`}
             </p>
             <Button
               size="sm"
@@ -169,7 +177,7 @@ export function ToolCallDisplay({ toolCall }: ToolCallDisplayProps) {
               className="shrink-0 gap-1.5"
             >
               <ExternalLink className="h-3 w-3" />
-              立即連接
+              Connect
             </Button>
           </div>
         </div>
