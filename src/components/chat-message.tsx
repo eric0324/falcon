@@ -20,6 +20,11 @@ interface ChatMessageProps {
   toolCalls?: ToolCallInfo[];
 }
 
+// Strip YAML front matter that can swallow content
+function stripFrontMatter(text: string): string {
+  return text.replace(/^---\n[\s\S]*?\n---\n?/, "");
+}
+
 // Remove code blocks from message for display
 function formatMessageContent(content: string, isAssistant: boolean): string {
   if (!isAssistant) return content;
@@ -46,7 +51,7 @@ function formatMessageContent(content: string, isAssistant: boolean): string {
     formatted = "✨ 程式碼已生成，請查看右側預覽";
   }
 
-  return formatted;
+  return stripFrontMatter(formatted);
 }
 
 function CopyButton({ text }: { text: string }) {

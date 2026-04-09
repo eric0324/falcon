@@ -39,9 +39,12 @@ export function DocumentPanel({ markdown, title, onCollapsedChange }: DocumentPa
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isFullscreen]);
 
+  // Strip YAML front matter to prevent content being swallowed
+  const cleanMarkdown = markdown.replace(/^---\n[\s\S]*?\n---\n?/, "");
+
   const markdownContent = (
     <div className="prose prose-sm dark:prose-invert max-w-none">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanMarkdown}</ReactMarkdown>
     </div>
   );
 

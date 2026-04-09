@@ -23,6 +23,7 @@ export const changelog: ChangelogEntry[] = [
       "智慧資料來源建議：AI 自動偵測並推薦需要的資料來源",
       "新增 Claude Opus 4.6 模型支援",
       "對話訊息一鍵複製：hover 訊息即可複製內容",
+      "修正：Markdown 分隔線導致內容被截斷的問題",
     ],
   },
   {
