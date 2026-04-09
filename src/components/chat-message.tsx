@@ -1,5 +1,8 @@
+"use client";
+
+import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Copy, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -46,6 +49,25 @@ function formatMessageContent(content: string, isAssistant: boolean): string {
   return formatted;
 }
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="p-1 rounded hover:bg-neutral-200 text-neutral-400 hover:text-neutral-600 transition-colors"
+    >
+      {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+    </button>
+  );
+}
+
 export function ChatMessage({ message, isStreaming = false, toolCalls = [] }: ChatMessageProps) {
   const isUser = message.role === "user";
   const displayContent = formatMessageContent(message.content, !isUser);
@@ -68,10 +90,15 @@ export function ChatMessage({ message, isStreaming = false, toolCalls = [] }: Ch
   // User message - with bubble on right, no avatar
   if (isUser) {
     return (
-      <div className="flex justify-end pr-8">
-        <div className="rounded-2xl px-4 py-2 max-w-[85%] text-sm bg-primary text-primary-foreground">
-          <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-invert">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayContent}</ReactMarkdown>
+      <div className="flex justify-end pr-8 group">
+        <div className="flex items-start gap-1">
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity pt-2">
+            <CopyButton text={message.content} />
+          </div>
+          <div className="rounded-2xl px-4 py-2 max-w-[85%] text-sm bg-primary text-primary-foreground">
+            <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-invert">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayContent}</ReactMarkdown>
+            </div>
           </div>
         </div>
       </div>
@@ -80,13 +107,18 @@ export function ChatMessage({ message, isStreaming = false, toolCalls = [] }: Ch
 
   // Assistant message - no bubble, no avatar, just text
   return (
-    <div className="text-sm">
+    <div className="text-sm group">
       <div className={cn(
         "prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0",
         "dark:prose-invert"
       )}>
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayContent}</ReactMarkdown>
       </div>
+      {!isStreaming && displayContent && (
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+          <CopyButton text={message.content} />
+        </div>
+      )}
       {isGeneratingCode && (
         <div className="inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 text-xs font-medium">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
