@@ -248,6 +248,10 @@
   },
   "models": {
     "selectModel": "Select Model",
+    "claude-opus": {
+      "name": "Claude Opus 4.6",
+      "description": "Most powerful model for complex reasoning and long analysis"
+    },
     "claude-sonnet": {
       "name": "Claude Sonnet 4.6",
       "description": "Balanced speed and quality, suitable for most tasks"

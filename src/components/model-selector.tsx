@@ -47,18 +47,11 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
 
   useEffect(() => {
     setMounted(true);
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && stored in modelInfo) {
-      onChange(stored as ModelId);
-    } else if (stored) {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  }, [onChange]);
+  }, []);
 
   const handleChange = (newValue: string) => {
     if (newValue in modelInfo) {
       onChange(newValue as ModelId);
-      localStorage.setItem(STORAGE_KEY, newValue);
     }
   };
 

@@ -248,6 +248,10 @@
   },
   "models": {
     "selectModel": "選擇模型",
+    "claude-opus": {
+      "name": "Claude Opus 4.6",
+      "description": "最強模型，適合複雜推理和長文分析"
+    },
     "claude-sonnet": {
       "name": "Claude Sonnet 4.6",
       "description": "平衡速度與品質，適合大多數任務"

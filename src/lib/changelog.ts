@@ -16,10 +16,11 @@ export const changelog: ChangelogEntry[] = [
   {
     version: "v0.22.0",
     date: "2026-04-09",
-    title: "對話訊息一鍵複製",
+    title: "Claude Opus 4.6 + 訊息複製",
     summary:
-      "滑鼠移到對話訊息上就會出現複製按鈕，一鍵複製訊息內容，方便貼到其他地方使用。",
+      "新增 Claude Opus 4.6 模型，Anthropic 最強大的模型，適合複雜推理和長文分析。對話訊息也新增了一鍵複製功能。",
     items: [
+      "新增 Claude Opus 4.6 模型支援",
       "對話訊息一鍵複製：hover 訊息即可複製內容",
     ],
   },
