@@ -494,7 +494,7 @@ const result = await window.companyAPI.execute("llm", "classify", {
 });
 \`\`\`
 
-Available models: claude-sonnet, claude-haiku, gpt-5-mini, gpt-5-nano, gemini-flash, gemini-pro.
+Available models: claude-opus, claude-sonnet, claude-haiku, gpt-5-mini, gpt-5-nano, gemini-flash, gemini-pro.
 
 Important:
 - LLM calls take 2-10 seconds — always show a loading state while waiting
