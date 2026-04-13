@@ -105,7 +105,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { message, model, files, conversationId: incomingConversationId, dataSources, skillPrompt } = await req.json();
+    const { message, model, files, conversationId: incomingConversationId, dataSources, skillPrompt, currentCode } = await req.json();
 
     // Use specified model or default
     const selectedModel = await getModel((model as ModelId) || defaultModel);
@@ -256,6 +256,11 @@ export async function POST(req: Request) {
     // Append skill prompt if provided
     if (skillPrompt && typeof skillPrompt === "string") {
       systemPrompt += `\n\n--- Skill ---\n${skillPrompt}`;
+    }
+
+    // Inject current code so AI always knows the latest code when editing
+    if (currentCode && typeof currentCode === "string") {
+      systemPrompt += `\n\n## Current Tool Code\nThe user is editing an existing tool. Here is the current code:\n\`\`\`jsx\n${currentCode}\n\`\`\`\nYou can see and modify this code. When the user asks for changes, call updateCode with the full updated code.`;
     }
 
     // Process messages to include files and reconstruct tool call history

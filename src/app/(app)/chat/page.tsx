@@ -536,6 +536,7 @@ function StudioContent() {
           conversationId: convId || undefined,
           dataSources: selectedDataSources.length > 0 ? selectedDataSources : undefined,
           skillPrompt: selectedSkill?.prompt || undefined,
+          currentCode: code || undefined,
         }),
       });
 
