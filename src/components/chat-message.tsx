@@ -101,9 +101,7 @@ export function ChatMessage({ message, isStreaming = false, toolCalls = [] }: Ch
             <CopyButton text={message.content} />
           </div>
           <div className="rounded-2xl px-4 py-2 max-w-[85%] text-sm bg-primary text-primary-foreground">
-            <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-invert">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayContent}</ReactMarkdown>
-            </div>
+            <div className="whitespace-pre-wrap break-words">{displayContent}</div>
           </div>
         </div>
       </div>

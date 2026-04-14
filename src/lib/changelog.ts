@@ -14,6 +14,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.23.1",
+    date: "2026-04-14",
+    title: "修正使用者訊息換行顯示",
+    summary: "修正聊天中使用者訊息的換行與空白會跑掉的問題。",
+    items: [
+      "修正：使用者訊息內的換行、空白原樣保留，不再被吃掉",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.23.0",
     date: "2026-04-09",
     title: "網頁抓取",
