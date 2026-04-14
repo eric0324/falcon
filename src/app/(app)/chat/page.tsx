@@ -36,6 +36,9 @@ import {
 } from "@/components/ui/dialog";
 import { ModelId, defaultModel } from "@/lib/ai/models";
 import { ToolDataSource } from "@/types/data-source";
+import { PageTour } from "@/components/onboarding/page-tour";
+import { TourButton } from "@/components/onboarding/tour-button";
+import { chatSteps } from "@/components/onboarding/steps/chat";
 
 interface Message {
   role: "user" | "assistant";
@@ -1069,9 +1072,10 @@ function StudioContent() {
   };
 
   return (
+    <PageTour pageKey="chat" steps={chatSteps} hideButton>
     <div className="h-full flex flex-col">
       {/* Header */}
-      <header className="border-b px-4 py-2 flex items-center shrink-0 bg-background">
+      <header data-tour="chat-welcome" className="border-b px-4 py-2 flex items-center gap-2 shrink-0 bg-background">
         <div className="flex items-center gap-1 min-w-0">
           <h1 className="font-semibold truncate">
             {editId ? t("title.edit") : convTitle || t("title.new")}
@@ -1104,6 +1108,7 @@ function StudioContent() {
             </DropdownMenu>
           )}
         </div>
+        <TourButton className="ml-auto" />
       </header>
 
       {/* Rename dialog */}
@@ -1278,6 +1283,7 @@ function StudioContent() {
               <div className="relative">
                 <Textarea
                   ref={textareaRef}
+                  data-tour="chat-input"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -1301,24 +1307,30 @@ function StudioContent() {
 
               {/* Toolbar */}
               <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <ModelSelector value={selectedModel} onChange={setSelectedModel} />
-                <SkillSelector
-                  value={selectedSkill}
-                  onSelect={(skill) => {
-                    setSelectedSkill(skill);
-                    if (skill && skill.requiredDataSources.length > 0) {
-                      setSelectedDataSources((prev) =>
-                        Array.from(new Set([...prev, ...skill.requiredDataSources]))
-                      );
-                    }
-                  }}
-                  disabled={isLoading || isQuotaBlocked}
-                />
-                <DataSourceSelector
-                  value={selectedDataSources}
-                  onChange={setSelectedDataSources}
-                  disabled={isLoading}
-                />
+                <div data-tour="chat-model">
+                  <ModelSelector value={selectedModel} onChange={setSelectedModel} />
+                </div>
+                <div data-tour="chat-skill">
+                  <SkillSelector
+                    value={selectedSkill}
+                    onSelect={(skill) => {
+                      setSelectedSkill(skill);
+                      if (skill && skill.requiredDataSources.length > 0) {
+                        setSelectedDataSources((prev) =>
+                          Array.from(new Set([...prev, ...skill.requiredDataSources]))
+                        );
+                      }
+                    }}
+                    disabled={isLoading || isQuotaBlocked}
+                  />
+                </div>
+                <div data-tour="chat-data-sources">
+                  <DataSourceSelector
+                    value={selectedDataSources}
+                    onChange={setSelectedDataSources}
+                    disabled={isLoading}
+                  />
+                </div>
                 <FileUpload
                   files={uploadedFiles}
                   onChange={setUploadedFiles}
@@ -1396,6 +1408,7 @@ function StudioContent() {
         usesLLM={/execute\(["']llm["']/.test(code)}
       />
     </div>
+    </PageTour>
   );
 }
 

@@ -11,6 +11,7 @@ import { SearchBar } from "@/components/search-bar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, Star, Eye, Sparkles, Clock } from "lucide-react";
 import { HeroGreeting } from "@/components/hero-greeting";
+import { MarketplaceTour } from "@/components/onboarding/marketplace-tour";
 
 export const metadata = { title: "首頁" };
 
@@ -107,8 +108,10 @@ export default async function HomePage() {
     }
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {tools.map((tool) => (
-          <MarketplaceToolCard key={tool.id} tool={formatTool(tool)} />
+        {tools.map((tool, i) => (
+          <div key={tool.id} {...(i === 0 ? { "data-tour": "marketplace-tool-card" } : {})}>
+            <MarketplaceToolCard tool={formatTool(tool)} />
+          </div>
         ))}
       </div>
     );
@@ -118,9 +121,10 @@ export default async function HomePage() {
   const tCategories = await getTranslations("categories");
 
   return (
+    <MarketplaceTour>
     <div className="p-4 sm:p-6">
       {/* Hero Section */}
-      <div className="text-center mt-8 sm:mt-16 mb-8">
+      <div data-tour="marketplace-hero" className="text-center mt-8 sm:mt-16 mb-8">
         <HeroGreeting userName={session.user.name || ""} />
         <p className="text-muted-foreground text-sm sm:text-lg">
           {t("hero.description")}
@@ -128,7 +132,7 @@ export default async function HomePage() {
       </div>
 
       {/* Search */}
-      <div className="max-w-xl mx-auto mb-12">
+      <div data-tour="marketplace-search" className="max-w-xl mx-auto mb-12">
         <SearchBar />
       </div>
 
@@ -160,7 +164,7 @@ export default async function HomePage() {
           </TabsList>
           </div>
 
-          <TabsContent value="trending">
+          <TabsContent value="trending" data-tour="marketplace-tool-list">
             {renderToolGrid(trendingTools, t("empty.trending"))}
           </TabsContent>
           <TabsContent value="top-rated">
@@ -181,7 +185,7 @@ export default async function HomePage() {
       <hr className="border-border mb-12 mx-auto w-1/3" />
 
       {/* Categories */}
-      <section className="mb-12">
+      <section data-tour="marketplace-categories" className="mb-12">
         <div className="overflow-x-auto scrollbar-hide">
           <div className="flex sm:justify-center gap-3 pb-2">
             {TOOL_CATEGORIES.map((category) => (
@@ -199,5 +203,6 @@ export default async function HomePage() {
       </section>
 
     </div>
+    </MarketplaceTour>
   );
 }

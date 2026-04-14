@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.24.0",
+    date: "2026-04-14",
+    title: "新手引導 Tour",
+    summary:
+      "第一次用 Falcon 不知道怎麼開始？現在五大功能頁都有互動式引導，會直接指著實際按鈕帶你走一遍。",
+    items: [
+      "新增：首頁／對話／技能／工具／知識庫五頁的互動式引導 tour",
+      "新增：首次進入該頁會自動跳 tour，之後隨時可點「？操作說明」重新播放",
+      "新增：每個 tour 結尾可一鍵前往下一個功能頁，繼續探索",
+      "改善：新使用者第一次進站時，會先跑 tour，What's New 彈窗順延到之後再顯示",
+    ],
+  },
+  {
     version: "v0.23.1",
     date: "2026-04-14",
     title: "修正使用者訊息換行顯示",

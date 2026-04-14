@@ -6,6 +6,7 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { changelog, CURRENT_VERSION } from "@/lib/changelog";
+import { TOUR_STORAGE_PREFIX } from "@/components/onboarding/tour-storage";
 
 const LS_KEY = "falcon-last-seen-version";
 
@@ -165,6 +166,12 @@ export function WhatsNewDialog() {
   const latest = changelog.find((e) => e.showDialog !== false);
 
   useEffect(() => {
+    // Tour takes priority: if the user hasn't seen the marketplace onboarding tour yet,
+    // suppress the What's New dialog for this visit so the two don't clash.
+    const hasSeenMarketplaceTour =
+      localStorage.getItem(`${TOUR_STORAGE_PREFIX}marketplace`) === "seen";
+    if (!hasSeenMarketplaceTour) return;
+
     const lastSeen = localStorage.getItem(LS_KEY);
     if (lastSeen !== CURRENT_VERSION) {
       // Only open dialog if the latest displayable entry is newer than last seen

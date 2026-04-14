@@ -387,7 +387,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
         </div>
 
         {/* Navigation */}
-        <nav className="px-3 space-y-0.5">
+        <nav data-tour="sidebar-nav" className="px-3 space-y-0.5">
           {navItems.map((item) => {
             const isActive = item.neverActive
               ? false
@@ -396,11 +396,13 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                 : pathname.startsWith(item.href) && item.href !== "/";
             const Icon = item.icon;
 
+            const tourKey = item.href === "/" ? undefined : `sidebar-nav-${item.href.slice(1)}`;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={(e) => handleNavClick(e, item.href)}
+                data-tour={tourKey}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
                   isActive
@@ -421,7 +423,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
         </div>
 
         {/* Conversations */}
-        <div className="flex-1 flex flex-col min-h-0">
+        <div data-tour="sidebar-conversations" className="flex-1 flex flex-col min-h-0">
           <ScrollArea className="flex-1 px-3">
             {conversations.length === 0 ? (
               <p className="text-neutral-500 dark:text-neutral-400 text-sm px-3 py-4">
@@ -530,7 +532,7 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
         </div>
 
         {/* User Menu */}
-        <div className="p-3 border-t border-neutral-200 dark:border-neutral-800">
+        <div data-tour="sidebar-user-menu" className="p-3 border-t border-neutral-200 dark:border-neutral-800">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">

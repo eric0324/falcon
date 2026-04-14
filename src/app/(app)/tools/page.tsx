@@ -7,6 +7,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToolCard } from "@/components/tool-card";
+import { ToolsTour } from "@/components/onboarding/tools-tour";
 
 export const metadata = { title: "我的工具" };
 
@@ -33,13 +34,14 @@ export default async function ToolsPage() {
   const t = await getTranslations("myTools");
 
   return (
+    <ToolsTour>
     <div className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6 sm:mb-8 gap-4">
         <div className="min-w-0">
           <h2 className="text-xl sm:text-2xl font-bold">{t("title")}</h2>
           <p className="text-muted-foreground text-sm sm:text-base">{t("description")}</p>
         </div>
-        <Button asChild className="shrink-0">
+        <Button asChild className="shrink-0" data-tour="tools-create">
           <Link href="/chat">
             <Plus className="mr-2 h-4 w-4" />
             <span className="hidden sm:inline">{t("newChat")}</span>
@@ -67,11 +69,14 @@ export default async function ToolsPage() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {tools.map((tool) => (
-            <ToolCard key={tool.id} tool={tool} />
+          {tools.map((tool, i) => (
+            <div key={tool.id} {...(i === 0 ? { "data-tour": "tools-card" } : {})}>
+              <ToolCard tool={tool} />
+            </div>
           ))}
         </div>
       )}
     </div>
+    </ToolsTour>
   );
 }

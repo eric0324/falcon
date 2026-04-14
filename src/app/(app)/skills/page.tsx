@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Plus, Pencil, Trash2, Loader2, Wand2, Eye, EyeOff, Users, HelpCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Wand2, Eye, EyeOff, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SkillsTour } from "@/components/onboarding/skills-tour";
 
 const CATEGORIES = ["analytics", "marketing", "project-management", "writing", "other"] as const;
 
@@ -40,7 +41,6 @@ export default function SkillsPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
   const [saving, setSaving] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -142,18 +142,13 @@ export default function SkillsPage() {
   }
 
   return (
+    <SkillsTour>
     <div className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6 sm:mb-8 gap-4">
         <div className="min-w-0 flex items-center gap-2">
           <h2 className="text-xl sm:text-2xl font-bold">{t("title")}</h2>
-          <button
-            onClick={() => setHelpOpen(true)}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <HelpCircle className="h-5 w-5" />
-          </button>
         </div>
-        <Button onClick={openCreate} className="shrink-0">
+        <Button onClick={openCreate} className="shrink-0" data-tour="skills-create">
           <Plus className="mr-2 h-4 w-4" />
           {t("create")}
         </Button>
@@ -177,8 +172,8 @@ export default function SkillsPage() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {skills.map((skill) => (
-            <Card key={skill.id} className="group relative">
+          {skills.map((skill, i) => (
+            <Card key={skill.id} className="group relative" {...(i === 0 ? { "data-tour": "skills-card" } : {})}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-base">{skill.name}</CardTitle>
@@ -196,7 +191,7 @@ export default function SkillsPage() {
               <CardContent className="pt-0">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="bg-muted px-2 py-0.5 rounded-full">{t(`categories.${skill.category}`)}</span>
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1" {...(i === 0 ? { "data-tour": "skills-visibility" } : {})}>
                     {skill.visibility === "public" ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
                     {t(skill.visibility)}
                   </span>
@@ -291,39 +286,7 @@ export default function SkillsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Help Dialog */}
-      <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Wand2 className="h-5 w-5" />
-              {t("helpTitle")}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 text-sm text-muted-foreground">
-            <p>{t("helpIntro")}</p>
-            <div>
-              <p className="font-medium text-foreground mb-2">{t("helpExamplesTitle")}</p>
-              <ul className="space-y-1.5 list-disc list-inside">
-                <li>{t("helpExample1")}</li>
-                <li>{t("helpExample2")}</li>
-                <li>{t("helpExample3")}</li>
-              </ul>
-            </div>
-            <div>
-              <p className="font-medium text-foreground mb-2">{t("helpHowTitle")}</p>
-              <ol className="space-y-1.5 list-decimal list-inside">
-                <li>{t("helpStep1")}</li>
-                <li>{t("helpStep2")}</li>
-                <li>{t("helpStep3")}</li>
-              </ol>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setHelpOpen(false)}>{t("helpGotIt")}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
+    </SkillsTour>
   );
 }

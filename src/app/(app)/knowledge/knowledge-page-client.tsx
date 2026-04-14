@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { KnowledgeTour } from "@/components/onboarding/knowledge-tour";
 
 interface KnowledgeBase {
   id: string;
@@ -107,13 +108,14 @@ export function KnowledgePageClient() {
   }
 
   return (
+    <KnowledgeTour>
     <div className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6 sm:mb-8 gap-4">
         <div className="min-w-0">
           <h2 className="text-xl sm:text-2xl font-bold">{t("title")}</h2>
           <p className="text-muted-foreground text-sm sm:text-base">{t("description")}</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="shrink-0">
+        <Button onClick={() => setShowCreate(true)} className="shrink-0" data-tour="knowledge-create">
           <Plus className="mr-2 h-4 w-4" />
           <span className="hidden sm:inline">{t("create")}</span>
           <span className="sm:hidden">{t("createShort")}</span>
@@ -135,11 +137,12 @@ export function KnowledgePageClient() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {knowledgeBases.map((kb) => (
+          {knowledgeBases.map((kb, i) => (
             <Card
               key={kb.id}
               className="cursor-pointer hover:shadow-md transition-shadow"
               onClick={() => router.push(`/knowledge/${kb.id}`)}
+              {...(i === 0 ? { "data-tour": "knowledge-card" } : {})}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -212,5 +215,6 @@ export function KnowledgePageClient() {
         </DialogContent>
       </Dialog>
     </div>
+    </KnowledgeTour>
   );
 }
