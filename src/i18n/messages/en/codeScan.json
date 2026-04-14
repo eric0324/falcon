@@ -1,0 +1,22 @@
+{
+  "title": "Code Scans",
+  "totalCount": "{count} scan records",
+  "noScans": "No scan records",
+  "filters": {
+    "all": "All",
+    "fail": "FAIL",
+    "warn": "WARN",
+    "pass": "PASS"
+  },
+  "table": {
+    "toolName": "Tool Name",
+    "author": "Author",
+    "status": "Status",
+    "findings": "Findings",
+    "scannedAt": "Scanned At",
+    "actions": "Actions"
+  },
+  "rescan": "Rescan",
+  "llmSummary": "AI Summary",
+  "noFindings": "No issues found"
+}

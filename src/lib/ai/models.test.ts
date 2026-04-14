@@ -18,12 +18,14 @@ vi.mock("@ai-sdk/google", () => ({
 
 vi.mock("@/lib/config", () => ({
   getConfig: vi.fn((key: string) => Promise.resolve(`mock-${key}`)),
+  getConfigRequired: vi.fn((key: string) => Promise.resolve(`mock-${key}`)),
 }));
 
 import { MODEL_IDS, modelInfo, defaultModel, getModel } from "./models";
 
 describe("MODEL_IDS", () => {
   it("contains expected model keys", () => {
+    expect(MODEL_IDS).toContain("claude-opus");
     expect(MODEL_IDS).toContain("claude-sonnet");
     expect(MODEL_IDS).toContain("claude-haiku");
     expect(MODEL_IDS).toContain("gpt-5-mini");
@@ -32,8 +34,8 @@ describe("MODEL_IDS", () => {
     expect(MODEL_IDS).toContain("gemini-pro");
   });
 
-  it("has exactly 6 models", () => {
-    expect(MODEL_IDS).toHaveLength(6);
+  it("has exactly 7 models", () => {
+    expect(MODEL_IDS).toHaveLength(7);
   });
 });
 

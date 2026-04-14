@@ -1,0 +1,20 @@
+{
+  "noTools": {
+    "title": "還沒有工具",
+    "description": "成為第一個在這裡分享工具的人吧！",
+    "action": "Open Studio"
+  },
+  "noResults": {
+    "title": "找不到相關結果",
+    "description": "試試其他關鍵字，或瀏覽分類",
+    "action": "瀏覽市集"
+  },
+  "noReviews": {
+    "title": "還沒有評論",
+    "description": "成為第一個評論的人吧！"
+  },
+  "noTrending": {
+    "title": "還沒有熱門工具",
+    "description": "使用更多工具來幫助它們上榜！"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "title": "Data Tables",
+  "columns": "Column Definitions",
+  "columnName": "Column",
+  "columnType": "Type",
+  "columnOptions": "Options",
+  "preview": "Data Preview",
+  "rows": "rows",
+  "backTo": "Back to",
+  "tableTitle": "Data Tables",
+  "noData": "—",
+  "viewData": "View Data"
+}

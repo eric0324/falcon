@@ -1,0 +1,19 @@
+{
+  "title": "API Keys",
+  "description": "產生 API Key 讓外部服務查詢你的知識庫",
+  "create": "產生 Key",
+  "createTitle": "產生 API Key",
+  "nameLabel": "用途說明",
+  "namePlaceholder": "例如：客服後台",
+  "creating": "產生中...",
+  "cancel": "取消",
+  "empty": "尚未產生任何 API Key",
+  "activeKeys": "有效的 Keys",
+  "created": "建立",
+  "lastUsed": "最後使用",
+  "deleteConfirm": "確定要撤銷此 API Key？撤銷後無法復原。",
+  "deleted": "已撤銷",
+  "keyCreated": "API Key 已產生",
+  "keyCreatedWarning": "請立即複製並保存此 Key，關閉後將無法再次查看。",
+  "done": "完成"
+}

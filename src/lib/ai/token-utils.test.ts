@@ -7,11 +7,11 @@ import {
 } from "./token-utils";
 
 describe("estimateTokens", () => {
-  it("estimates English text at ~0.25 tokens per char", () => {
-    const text = "Hello world"; // 11 chars → ~3 tokens
+  it("estimates English text at ~0.4 tokens per char", () => {
+    const text = "Hello world"; // 11 chars → ceil(4.4) = 5
     const tokens = estimateTokens(text);
     expect(tokens).toBeGreaterThan(0);
-    expect(tokens).toBe(Math.ceil(11 * 0.25));
+    expect(tokens).toBe(Math.ceil(11 * 0.4));
   });
 
   it("estimates CJK text at ~1 token per char", () => {
@@ -23,7 +23,7 @@ describe("estimateTokens", () => {
   it("handles mixed CJK and English text", () => {
     const text = "Hello你好"; // 5 English chars + 2 CJK chars
     const tokens = estimateTokens(text);
-    const expected = Math.ceil(5 * 0.25) + 2; // 2 + 2 = 4
+    const expected = Math.ceil(5 * 0.4 + 2); // ceil(4) = 4
     expect(tokens).toBe(expected);
   });
 
@@ -31,9 +31,9 @@ describe("estimateTokens", () => {
     expect(estimateTokens("")).toBe(0);
   });
 
-  it("handles whitespace and punctuation as English chars", () => {
-    const text = "a b c!"; // 6 chars → ceil(1.5) = 2
-    expect(estimateTokens(text)).toBe(Math.ceil(6 * 0.25));
+  it("handles whitespace and punctuation as non-CJK chars", () => {
+    const text = "a b c!"; // 6 chars → ceil(2.4) = 3
+    expect(estimateTokens(text)).toBe(Math.ceil(6 * 0.4));
   });
 });
 

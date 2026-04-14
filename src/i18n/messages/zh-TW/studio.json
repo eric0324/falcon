@@ -1,0 +1,33 @@
+{
+  "title": {
+    "edit": "編輯工具",
+    "new": "新對話"
+  },
+  "welcome": {
+    "title": "有什麼我可以幫你的？",
+    "description": "問我任何問題、查詢資料，或描述你想建立的工具。"
+  },
+  "input": {
+    "placeholder": "問點什麼，或描述你想要的功能...",
+    "enterToSend": "Enter 送出"
+  },
+  "thinking": "思考中...",
+  "editTitle": "編輯標題",
+  "editTitlePlaceholder": "輸入標題",
+  "deleteConversation": "刪除對話",
+  "deleteDescription": "確定要刪除這個對話嗎？此操作無法復原。",
+  "deleteCancel": "取消",
+  "deleteConfirm": "刪除",
+  "toast": {
+    "error": "錯誤",
+    "loadToolError": "無法載入工具",
+    "loadConversationError": "無法載入對話",
+    "responseError": "無法取得回應，請重試。",
+    "saveError": "儲存失敗，請重試。",
+    "toolUpdated": "工具已更新",
+    "toolPublished": "工具已發布",
+    "toolSaveSuccess": "「{name}」已{action}成功。",
+    "codeScanFailed": "弱點掃描阻擋部署（{count} 個嚴重問題）",
+    "codeScanWarning": "已部署，但有 {count} 個警告"
+  }
+}

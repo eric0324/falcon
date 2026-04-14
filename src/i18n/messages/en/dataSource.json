@@ -1,0 +1,12 @@
+{
+  "title": "Data Sources",
+  "select": "Select data source",
+  "loading": "Loading...",
+  "selectedCount": "{count} selected",
+  "canRead": "Read",
+  "canWrite": "Write",
+  "clearAll": "Clear all",
+  "externalDb": "Databases",
+  "knowledgeBase": "Knowledge Base",
+  "enableAndRequery": "Enable and re-query"
+}

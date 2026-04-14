@@ -1,0 +1,20 @@
+{
+  "details": {
+    "statistics": "統計數據"
+  },
+  "stats": {
+    "totalUsage": "總使用次數",
+    "weeklyUsage": "本週使用",
+    "averageRating": "平均評分",
+    "totalReviews": "評論數"
+  },
+  "card": {
+    "noDescription": "No description",
+    "deleteTitle": "Delete Tool",
+    "deleteDescription": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+    "deleteSuccess": "Tool deleted",
+    "deleteSuccessDescription": "The tool has been deleted successfully.",
+    "deleteError": "Error",
+    "deleteErrorDescription": "Failed to delete tool. Please try again."
+  }
+}

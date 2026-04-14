@@ -1,0 +1,36 @@
+{
+  "title": "Google",
+  "description": "Connect to Google services to use your data",
+  "sheets": {
+    "name": "Google Sheets",
+    "description": "Search and browse spreadsheets"
+  },
+  "drive": {
+    "name": "Google Drive",
+    "description": "Search and browse files"
+  },
+  "calendar": {
+    "name": "Google Calendar",
+    "description": "View events and schedules"
+  },
+  "gmail": {
+    "name": "Gmail",
+    "description": "Search and browse emails"
+  },
+  "youtube": {
+    "name": "YouTube",
+    "description": "Search videos, view stats, and channel analytics"
+  },
+  "connect": "Connect",
+  "disconnect": "Disconnect",
+  "connected": "Connected",
+  "notConnected": "Not connected",
+  "connecting": "Connecting...",
+  "selectSpreadsheet": "Select Spreadsheet",
+  "selectFolder": "Select Folder",
+  "selectCalendar": "Select Calendar",
+  "noSpreadsheets": "No spreadsheets found",
+  "noFolders": "No folders found",
+  "noCalendars": "No calendars found",
+  "loadingResources": "Loading..."
+}

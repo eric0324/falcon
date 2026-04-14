@@ -1,0 +1,36 @@
+{
+  "title": "Google",
+  "description": "連接 Google 服務以使用你的資料",
+  "sheets": {
+    "name": "Google 試算表",
+    "description": "搜尋和瀏覽試算表"
+  },
+  "drive": {
+    "name": "Google 雲端硬碟",
+    "description": "搜尋和瀏覽檔案"
+  },
+  "calendar": {
+    "name": "Google 日曆",
+    "description": "查詢活動和行程"
+  },
+  "gmail": {
+    "name": "Gmail",
+    "description": "搜尋和瀏覽郵件"
+  },
+  "youtube": {
+    "name": "YouTube",
+    "description": "搜尋影片、查看統計和頻道分析"
+  },
+  "connect": "連接",
+  "disconnect": "中斷連接",
+  "connected": "已連接",
+  "notConnected": "未連接",
+  "connecting": "連接中...",
+  "selectSpreadsheet": "選擇試算表",
+  "selectFolder": "選擇資料夾",
+  "selectCalendar": "選擇日曆",
+  "noSpreadsheets": "找不到試算表",
+  "noFolders": "找不到資料夾",
+  "noCalendars": "找不到日曆",
+  "loadingResources": "載入中..."
+}

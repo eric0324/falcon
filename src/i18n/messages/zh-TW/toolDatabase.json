@@ -1,0 +1,13 @@
+{
+  "title": "資料表",
+  "columns": "欄位定義",
+  "columnName": "欄位名稱",
+  "columnType": "型別",
+  "columnOptions": "選項",
+  "preview": "資料預覽",
+  "rows": "筆",
+  "backTo": "返回",
+  "tableTitle": "資料表",
+  "noData": "—",
+  "viewData": "查看資料"
+}

@@ -1,0 +1,26 @@
+{
+  "title": "評論",
+  "sort": {
+    "newest": "最新",
+    "rating": "評分最高"
+  },
+  "form": {
+    "updateTitle": "更新你的評論",
+    "createTitle": "撰寫評論",
+    "rating": "評分",
+    "ratingRequired": "請選擇評分",
+    "content": "評論",
+    "contentOptional": "(選填)",
+    "contentPlaceholder": "分享你的使用心得...",
+    "submit": "送出評論",
+    "update": "更新評論",
+    "submitting": "提交中..."
+  },
+  "list": {
+    "empty": "還沒有評論，成為第一個評論的人吧！",
+    "author": "作者",
+    "replyPlaceholder": "回覆這則評論...",
+    "reply": "回覆"
+  },
+  "error": "發生錯誤"
+}

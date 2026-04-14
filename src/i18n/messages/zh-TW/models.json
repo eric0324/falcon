@@ -1,0 +1,31 @@
+{
+  "selectModel": "選擇模型",
+  "claude-opus": {
+    "name": "Claude Opus 4.6",
+    "description": "最強模型，適合複雜推理和長文分析"
+  },
+  "claude-sonnet": {
+    "name": "Claude Sonnet 4.6",
+    "description": "平衡速度與品質，適合大多數任務"
+  },
+  "claude-haiku": {
+    "name": "Claude Haiku 4.5",
+    "description": "快速回應，適合簡單任務"
+  },
+  "gpt-5-mini": {
+    "name": "GPT-5 Mini",
+    "description": "OpenAI 快速推理模型，性價比高"
+  },
+  "gpt-5-nano": {
+    "name": "GPT-5 Nano",
+    "description": "極速極便宜，適合簡單任務"
+  },
+  "gemini-flash": {
+    "name": "Gemini 2.5 Flash",
+    "description": "Google 快速模型，適合即時任務"
+  },
+  "gemini-pro": {
+    "name": "Gemini 2.5 Pro",
+    "description": "Google 最強模型，複雜推理能力"
+  }
+}

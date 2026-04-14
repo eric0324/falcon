@@ -107,7 +107,7 @@ export function ReviewList({
                 </span>
               </div>
               {review.content && (
-                <p className="mt-2 text-sm">{review.content}</p>
+                <p className="mt-2 text-sm whitespace-pre-wrap break-words">{review.content}</p>
               )}
 
               {/* Replies */}
@@ -139,7 +139,7 @@ export function ReviewList({
                             })}
                           </span>
                         </div>
-                        <p className="text-sm mt-1">{reply.content}</p>
+                        <p className="text-sm mt-1 whitespace-pre-wrap break-words">{reply.content}</p>
                       </div>
                     </div>
                   ))}

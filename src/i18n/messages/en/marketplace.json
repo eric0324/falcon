@@ -1,0 +1,28 @@
+{
+  "hero": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening",
+    "description": "Discover useful tools created by your colleagues, or build your own with AI"
+  },
+  "sections": {
+    "categories": "Browse Categories",
+    "leaderboard": "Leaderboard",
+    "trending": "Trending This Week",
+    "newest": "Newest"
+  },
+  "tabs": {
+    "trending": "Trending",
+    "topRated": "Top Rated",
+    "mostUsed": "Most Used",
+    "rising": "Rising Stars",
+    "newest": "Newest"
+  },
+  "empty": {
+    "trending": "No trending tools yet. Be the first to share a tool!",
+    "topRated": "No rated tools yet. Be the first to review!",
+    "mostUsed": "No tools have been used yet.",
+    "rising": "No rising stars yet.",
+    "newest": "No tools yet. Create one now!"
+  }
+}

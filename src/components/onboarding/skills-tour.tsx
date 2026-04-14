@@ -2,11 +2,12 @@
 
 import type { ReactNode } from "react";
 import { PageTour } from "./page-tour";
-import { skillsSteps } from "./steps/skills";
+import { useSkillsSteps } from "./steps/skills";
 
 export function SkillsTour({ children }: { children: ReactNode }) {
+  const steps = useSkillsSteps();
   return (
-    <PageTour pageKey="skills" steps={skillsSteps}>
+    <PageTour pageKey="skills" steps={steps}>
       {children}
     </PageTour>
   );

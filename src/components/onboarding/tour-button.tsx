@@ -2,6 +2,7 @@
 
 import { useTour } from "@reactour/tour";
 import { HelpCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 interface TourButtonProps {
@@ -9,7 +10,9 @@ interface TourButtonProps {
   label?: string;
 }
 
-export function TourButton({ className, label = "操作說明" }: TourButtonProps) {
+export function TourButton({ className, label }: TourButtonProps) {
+  const t = useTranslations("onboarding");
+  const resolvedLabel = label ?? t("button");
   const { setIsOpen, setCurrentStep } = useTour();
 
   return (
@@ -19,8 +22,8 @@ export function TourButton({ className, label = "操作說明" }: TourButtonProp
         setCurrentStep(0);
         setIsOpen(true);
       }}
-      aria-label={label}
-      title={label}
+      aria-label={resolvedLabel}
+      title={resolvedLabel}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white/80 backdrop-blur",
         "px-2.5 py-1.5 text-xs text-neutral-600 hover:text-neutral-900 hover:bg-white transition-colors",
@@ -29,7 +32,7 @@ export function TourButton({ className, label = "操作說明" }: TourButtonProp
       )}
     >
       <HelpCircle className="h-3.5 w-3.5" />
-      <span className="hidden sm:inline">{label}</span>
+      <span className="hidden sm:inline">{resolvedLabel}</span>
     </button>
   );
 }

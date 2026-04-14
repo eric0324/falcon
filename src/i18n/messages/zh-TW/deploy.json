@@ -1,0 +1,27 @@
+{
+  "title": {
+    "save": "Save Tool",
+    "deploy": "Deploy Tool"
+  },
+  "description": {
+    "save": "Update your tool's name and description.",
+    "deploy": "Give your tool a name and description so you can find it later."
+  },
+  "form": {
+    "name": "名稱",
+    "namePlaceholder": "例如：費用報銷工具",
+    "description": "描述 (選填)",
+    "descriptionPlaceholder": "例如：用於提交和追蹤費用報銷",
+    "category": "分類",
+    "categoryPlaceholder": "選擇分類",
+    "tags": "標籤 (最多 5 個，按 Enter 新增)",
+    "tagsPlaceholder": "輸入標籤...",
+    "visibility": "可見範圍"
+  },
+  "visibility": {
+    "private": "僅自己可見",
+    "group": "群組可見",
+    "company": "全公司可見",
+    "public": "公開"
+  }
+}

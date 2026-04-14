@@ -1,0 +1,5 @@
+{
+  "warning": "Monthly quota nearly exhausted (Used {used} / {limit})",
+  "blocked": "Monthly quota exceeded (Used {used} / {limit}). Please contact your admin.",
+  "inputDisabled": "Quota exceeded — input disabled"
+}

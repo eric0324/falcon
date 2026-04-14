@@ -1,0 +1,22 @@
+{
+  "title": "弱點掃描",
+  "totalCount": "共 {count} 筆掃描紀錄",
+  "noScans": "沒有掃描紀錄",
+  "filters": {
+    "all": "全部",
+    "fail": "FAIL",
+    "warn": "WARN",
+    "pass": "PASS"
+  },
+  "table": {
+    "toolName": "工具名稱",
+    "author": "作者",
+    "status": "狀態",
+    "findings": "Findings",
+    "scannedAt": "掃描時間",
+    "actions": "操作"
+  },
+  "rescan": "重新掃描",
+  "llmSummary": "AI 摘要",
+  "noFindings": "沒有發現問題"
+}

@@ -2,6 +2,7 @@
 
 import { TourProvider as ReactourProvider, type StepType } from "@reactour/tour";
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 
 interface OnboardingTourProviderProps {
   steps: StepType[];
@@ -9,6 +10,7 @@ interface OnboardingTourProviderProps {
 }
 
 export function OnboardingTourProvider({ steps, children }: OnboardingTourProviderProps) {
+  const t = useTranslations("onboarding");
   return (
     <ReactourProvider
       steps={steps}
@@ -65,7 +67,7 @@ export function OnboardingTourProvider({ steps, children }: OnboardingTourProvid
             onClick={() => setCurrentStep(currentStep - 1)}
             className="text-xs text-muted-foreground hover:text-foreground px-2 py-1"
           >
-            上一步
+            {t("prev")}
           </button>
         )
       }
@@ -77,7 +79,7 @@ export function OnboardingTourProvider({ steps, children }: OnboardingTourProvid
             onClick={() => setCurrentStep(currentStep + 1)}
             className="text-xs bg-primary text-primary-foreground rounded-md px-3 py-1.5 hover:opacity-90"
           >
-            下一步
+            {t("next")}
           </button>
         );
       }}

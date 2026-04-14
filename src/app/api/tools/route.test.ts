@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockGetSession = vi.hoisted(() => vi.fn());
 const prismaMock = vi.hoisted(() => ({
   user: { findUnique: vi.fn() },
-  tool: { findMany: vi.fn(), create: vi.fn() },
+  tool: { findMany: vi.fn(), create: vi.fn(), upsert: vi.fn() },
   toolStats: { create: vi.fn() },
 }));
 
@@ -110,7 +110,13 @@ describe("POST /api/tools", () => {
 
   it("links conversationId when provided", async () => {
     setLoggedIn();
-    prismaMock.tool.create.mockResolvedValue({ id: "t1", name: "Test" });
+    const now = new Date();
+    prismaMock.tool.upsert.mockResolvedValue({
+      id: "t1",
+      name: "Test",
+      createdAt: now,
+      updatedAt: now,
+    });
     prismaMock.toolStats.create.mockResolvedValue({});
 
     const req = new Request("http://localhost/api/tools", {
@@ -122,11 +128,10 @@ describe("POST /api/tools", () => {
       }),
     });
     await POST(req);
-    expect(prismaMock.tool.create).toHaveBeenCalledWith(
+    expect(prismaMock.tool.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          conversationId: "conv-1",
-        }),
+        where: { conversationId: "conv-1" },
+        create: expect.objectContaining({ conversationId: "conv-1" }),
       })
     );
   });

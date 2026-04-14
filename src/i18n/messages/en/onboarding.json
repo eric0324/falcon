@@ -1,0 +1,52 @@
+{
+  "button": "Help",
+  "prev": "Back",
+  "next": "Next",
+  "finish": "Done",
+  "marketplace": {
+    "welcome": "Welcome to Falcon! It's an AI collaboration platform where you build tools, write documents, and query data using natural language — and share what you make with teammates. Let me show you around.",
+    "toolList": "The homepage shows tools your teammates have built. Tap any to use it, or publish one of your own.",
+    "search": "Looking for something specific? Search by keyword, or switch categories below to browse. Don't reinvent the wheel — check here before building a new tool, someone may have already made it.",
+    "toolCard": "Each card is a tool — tap to use it. Ratings and usage counts help you gauge quality, and you can open a tool to see what others thought.",
+    "categories": "Browse by category to find a topic fast.",
+    "navChat": "\"Chat\" is the main entry for talking to AI — discuss ideas, build tools, write documents, or look things up.",
+    "navSkills": "\"Skills\" are AI's working modes or personas — like backend engineer, copywriter, or your own style. Switch with one click during chat.",
+    "navTools": "\"Tools\" lists the tools you've published. Open, edit, or share them with teammates anytime.",
+    "navKnowledge": "\"Knowledge\" is reference material for AI — docs, policies, FAQs — so answers fit your context.",
+    "conversations": "Your conversation history. Tap any to continue, or star, rename, and delete.",
+    "userMenu": "Tap your avatar at the bottom to switch theme, language, view the changelog, or sign out.",
+    "finishText": "That's the homepage tour! Next, try \"Chat\" to build a tool or write a document with AI.",
+    "finishCta": "Explore Chat"
+  },
+  "chat": {
+    "welcome": "This is the Chat page. Discuss ideas with AI, ask it to build tools or write documents, or query data. Here are a few key settings.",
+    "model": "Switch the AI model. Besides Claude (Opus for reasoning, Sonnet for speed, Haiku for cost), you can use OpenAI or Gemini — each has its strengths.",
+    "skill": "Skill sets AI's working mode — coding, writing, casual chat, or your own style. Picking the right skill makes a big difference. You can create your own in \"Skills\" on the left, or use ones others have shared.",
+    "dataSources": "Check data sources so AI can read your Notion, Google Drive, GA4, and more. Leave them off and it's just regular chat.",
+    "input": "Describe what you want in plain words — e.g. \"Build me a tool that summarizes this week's sales.\"",
+    "finishText": "That's the Chat page! Next, check out \"Skills\" to learn how to configure AI's working modes.",
+    "finishCta": "Explore Skills"
+  },
+  "skills": {
+    "welcome": "Skills are AI's working modes or personas. Write a prompt for each scenario to give AI a role — \"Backend engineer\", \"Copywriter\", or your own style — and switch between them in chat with one click.",
+    "create": "Tap \"New\" to create a skill: fill in name, description, and prompt, and it'll appear in the chat skill menu.",
+    "card": "Each card is a skill you've created. Hover to edit or delete — usage count is shown here too.",
+    "visibility": "Visibility controls who can use this skill: private is just you, public lets all teammates pick it in chat — great for sharing useful personas.",
+    "finishText": "That's the Skills page! Next, check out \"Tools\" to see where your creations and saved tools live.",
+    "finishCta": "Explore Tools"
+  },
+  "tools": {
+    "welcome": "The Tools page lists the tools you've built and published. Each is backed by AI-generated code, but you don't have to touch the code — just open and use.",
+    "create": "Want to build something new? Tap here to jump to Chat and describe what you want.",
+    "card": "Each card is a tool you've made. Tap to use, edit, delete, or adjust. When you're ready to share, set visibility here.",
+    "finishText": "Tools done! One more stop: \"Knowledge\" — learn how feeding it data makes AI answer more accurately.",
+    "finishCta": "Explore Knowledge"
+  },
+  "knowledge": {
+    "welcome": "Knowledge bases are reference material for AI — product docs, team policies, FAQs. After adding content, remember to check the knowledge base under \"Data Sources\" in Chat so AI actually reads it. You can also share with teammates.",
+    "create": "Tap here to create a new knowledge base — name it, and start adding content.",
+    "card": "Each card is a knowledge base showing number of points, members, creator, and rating. Tap in to import data (CSV or Notion sync), organize content, invite members, and set permissions. Note: content must be approved before AI will use it.",
+    "finishText": "You've toured all five main areas! Tap \"Help\" anytime to replay a tour.",
+    "finishCta": "Go Home"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "warning": "本月額度即將用盡（已用 {used} / {limit}）",
+  "blocked": "本月額度已超額（已用 {used} / {limit}），請聯繫管理員。",
+  "inputDisabled": "額度已超額 — 無法輸入"
+}

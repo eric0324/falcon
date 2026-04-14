@@ -1,0 +1,27 @@
+{
+  "title": {
+    "save": "Save Tool",
+    "deploy": "Deploy Tool"
+  },
+  "description": {
+    "save": "Update your tool's name and description.",
+    "deploy": "Give your tool a name and description so you can find it later."
+  },
+  "form": {
+    "name": "Name",
+    "namePlaceholder": "e.g., Expense Report Tool",
+    "description": "Description (optional)",
+    "descriptionPlaceholder": "e.g., For submitting and tracking expense reports",
+    "category": "Category",
+    "categoryPlaceholder": "Select category",
+    "tags": "Tags (max 5, press Enter to add)",
+    "tagsPlaceholder": "Enter tag...",
+    "visibility": "Visibility"
+  },
+  "visibility": {
+    "private": "Private",
+    "group": "Group",
+    "company": "Company-wide",
+    "public": "Public"
+  }
+}

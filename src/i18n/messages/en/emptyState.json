@@ -1,0 +1,20 @@
+{
+  "noTools": {
+    "title": "No tools yet",
+    "description": "Be the first to share a tool here!",
+    "action": "Open Studio"
+  },
+  "noResults": {
+    "title": "No results found",
+    "description": "Try different keywords or browse categories",
+    "action": "Browse Marketplace"
+  },
+  "noReviews": {
+    "title": "No reviews yet",
+    "description": "Be the first to review!"
+  },
+  "noTrending": {
+    "title": "No trending tools yet",
+    "description": "Use more tools to help them get on the list!"
+  }
+}

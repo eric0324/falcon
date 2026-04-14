@@ -1,0 +1,12 @@
+{
+  "title": "資料來源",
+  "select": "選擇資料來源",
+  "loading": "載入中...",
+  "selectedCount": "已選 {count} 個",
+  "canRead": "可讀取",
+  "canWrite": "可寫入",
+  "clearAll": "清除全部",
+  "externalDb": "資料庫",
+  "knowledgeBase": "知識庫",
+  "enableAndRequery": "開啟並重新查詢"
+}

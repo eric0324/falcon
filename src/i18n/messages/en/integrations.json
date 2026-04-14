@@ -1,0 +1,46 @@
+{
+  "title": "Integrations",
+  "description": "Manage third-party service connections",
+  "thirdParty": "Third-party Services",
+  "teamCollab": "Team Collaboration",
+  "dataAnalytics": "Website Analytics",
+  "adAnalytics": "Ad Analytics",
+  "notion": {
+    "name": "Notion",
+    "description": "Search and browse Notion databases and pages",
+    "search": "Search Notion"
+  },
+  "slack": {
+    "name": "Slack",
+    "description": "Search and browse Slack public channels"
+  },
+  "asana": {
+    "name": "Asana",
+    "description": "Read Asana projects, tasks and comments"
+  },
+  "plausible": {
+    "name": "Plausible Analytics",
+    "description": "Query website traffic and analytics data"
+  },
+  "ga4": {
+    "name": "Google Analytics 4",
+    "description": "Query GA4 website traffic and analytics data"
+  },
+  "meta_ads": {
+    "name": "Meta Ads",
+    "description": "Query Facebook/Instagram ad performance data"
+  },
+  "github": {
+    "name": "GitHub",
+    "description": "Access GitHub repositories and issues"
+  },
+  "vimeo": {
+    "name": "Vimeo",
+    "description": "Query Vimeo video data and view analytics"
+  },
+  "videoPlatform": "Video Platform",
+  "connected": "Connected",
+  "notConnected": "Not configured",
+  "configure": "Configure",
+  "adminOnly": "Admin only"
+}

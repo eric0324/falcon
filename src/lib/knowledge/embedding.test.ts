@@ -3,9 +3,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
+vi.mock("@/lib/config", () => ({
+  getConfig: vi.fn(async (key: string) =>
+    key === "VOYAGE_API_KEY" ? "test-voyage-key" : undefined,
+  ),
+}));
+
 beforeEach(() => {
   mockFetch.mockReset();
-  process.env.VOYAGE_API_KEY = "test-voyage-key";
 });
 
 async function importEmbedding() {

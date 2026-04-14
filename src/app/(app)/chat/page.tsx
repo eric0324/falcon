@@ -38,7 +38,7 @@ import { ModelId, defaultModel } from "@/lib/ai/models";
 import { ToolDataSource } from "@/types/data-source";
 import { PageTour } from "@/components/onboarding/page-tour";
 import { TourButton } from "@/components/onboarding/tour-button";
-import { chatSteps } from "@/components/onboarding/steps/chat";
+import { useChatSteps } from "@/components/onboarding/steps/chat";
 
 interface Message {
   role: "user" | "assistant";
@@ -175,6 +175,7 @@ function StudioContent() {
   const [toolAllowedGroupIds, setToolAllowedGroupIds] = useState<string[]>([]);
 
   // Enhancement state
+  const chatSteps = useChatSteps();
   const [selectedModel, setSelectedModel] = useState<ModelId>(defaultModel);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [selectedDataSources, setSelectedDataSources] = useState<string[]>([]);

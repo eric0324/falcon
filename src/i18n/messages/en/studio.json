@@ -1,0 +1,33 @@
+{
+  "title": {
+    "edit": "Edit Tool",
+    "new": "New Conversation"
+  },
+  "welcome": {
+    "title": "How can I help you?",
+    "description": "Ask me anything, search for data, or describe the tool you want to build."
+  },
+  "input": {
+    "placeholder": "Ask something, or describe the feature you want...",
+    "enterToSend": "Enter to send"
+  },
+  "thinking": "Thinking...",
+  "editTitle": "Edit Title",
+  "editTitlePlaceholder": "Enter title",
+  "deleteConversation": "Delete Conversation",
+  "deleteDescription": "Are you sure you want to delete this conversation? This action cannot be undone.",
+  "deleteCancel": "Cancel",
+  "deleteConfirm": "Delete",
+  "toast": {
+    "error": "Error",
+    "loadToolError": "Failed to load tool",
+    "loadConversationError": "Failed to load conversation",
+    "responseError": "Failed to get response. Please try again.",
+    "saveError": "Save failed. Please try again.",
+    "toolUpdated": "Tool updated",
+    "toolPublished": "Tool published",
+    "toolSaveSuccess": "\"{name}\" has been {action} successfully.",
+    "codeScanFailed": "Code scan blocked deploy ({count} critical issues)",
+    "codeScanWarning": "Deployed with {count} warning(s)"
+  }
+}

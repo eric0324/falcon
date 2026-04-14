@@ -1,0 +1,26 @@
+{
+  "title": "Reviews",
+  "sort": {
+    "newest": "Newest",
+    "rating": "Highest Rated"
+  },
+  "form": {
+    "updateTitle": "Update your review",
+    "createTitle": "Write a review",
+    "rating": "Rating",
+    "ratingRequired": "Please select a rating",
+    "content": "Review",
+    "contentOptional": "(optional)",
+    "contentPlaceholder": "Share your experience...",
+    "submit": "Submit Review",
+    "update": "Update Review",
+    "submitting": "Submitting..."
+  },
+  "list": {
+    "empty": "No reviews yet. Be the first to review!",
+    "author": "Author",
+    "replyPlaceholder": "Reply to this review...",
+    "reply": "Reply"
+  },
+  "error": "An error occurred"
+}
