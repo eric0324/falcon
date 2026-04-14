@@ -14,6 +14,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.24.1",
+    date: "2026-04-14",
+    title: "修正工具無法下載檔案",
+    summary: "修正工具在 preview 或執行時，按下載（例如匯出 CSV）沒有反應的問題。",
+    items: [
+      "修正：工具 iframe 放寬 sandbox 設定，允許觸發檔案下載與 window.open",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.24.0",
     date: "2026-04-14",
     title: "新手引導 Tour",

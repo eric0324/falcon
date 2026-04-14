@@ -154,7 +154,7 @@ export function ToolRunner({ code, toolId, dataSources }: ToolRunnerProps) {
           key={key}
           srcDoc={buildToolHtml(code, apiClientCode)}
           className="w-full h-full border-0"
-          sandbox="allow-scripts"
+          sandbox="allow-scripts allow-downloads allow-popups allow-popups-to-escape-sandbox"
           title="Tool Runner"
         />
       </div>

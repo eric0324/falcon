@@ -225,7 +225,7 @@ export function PreviewPanel({ code, toolId, dataSources, onError, onShare, onCo
             key={`fs-${key}`}
             srcDoc={buildPreviewHtml(displayCode, apiClientCode)}
             className="w-full h-full border-0"
-            sandbox="allow-scripts"
+            sandbox="allow-scripts allow-downloads allow-popups allow-popups-to-escape-sandbox"
             title="Preview"
           />
         </div>
@@ -260,7 +260,7 @@ export function PreviewPanel({ code, toolId, dataSources, onError, onShare, onCo
           key={key}
           srcDoc={buildPreviewHtml(displayCode, apiClientCode)}
           className="w-full h-full border-0"
-          sandbox="allow-scripts"
+          sandbox="allow-scripts allow-downloads allow-popups allow-popups-to-escape-sandbox"
           title="Preview"
         />
       </div>
