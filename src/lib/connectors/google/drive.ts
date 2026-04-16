@@ -156,4 +156,124 @@ export class GoogleDriveConnector extends GoogleBaseConnector {
       },
     };
   }
+
+  // ===== Knowledge-base import helpers =====
+
+  /**
+   * Search the user's Drive for importable Docs and Sheets.
+   * Resolves each result's parent folder name (one fetch per unique parent).
+   */
+  async searchImportableFiles(params: {
+    query: string;
+    cursor?: string;
+    pageSize?: number;
+  }): Promise<{
+    files: Array<{
+      id: string;
+      name: string;
+      mimeType: string;
+      modifiedTime: string;
+      webViewLink: string;
+      parentLabel: string;
+    }>;
+    nextCursor: string | null;
+    hasMore: boolean;
+  }> {
+    const { query, cursor, pageSize = 25 } = params;
+
+    const queryParts: string[] = [
+      "(mimeType='application/vnd.google-apps.document' or mimeType='application/vnd.google-apps.spreadsheet')",
+      "trashed=false",
+    ];
+    if (query) {
+      // Escape single quotes per Google Drive API query syntax
+      const escaped = query.replace(/'/g, "\\'");
+      queryParts.push(`fullText contains '${escaped}'`);
+    }
+
+    const url = new URL("https://www.googleapis.com/drive/v3/files");
+    url.searchParams.set("q", queryParts.join(" and "));
+    url.searchParams.set("pageSize", String(Math.min(pageSize, 100)));
+    url.searchParams.set("orderBy", "modifiedTime desc");
+    url.searchParams.set(
+      "fields",
+      "files(id,name,mimeType,parents,modifiedTime,webViewLink),nextPageToken"
+    );
+    url.searchParams.set("includeItemsFromAllDrives", "true");
+    url.searchParams.set("supportsAllDrives", "true");
+    url.searchParams.set("corpora", "allDrives");
+    if (cursor) url.searchParams.set("pageToken", cursor);
+
+    const result = await this.googleFetch<DriveListResponse>(url.toString());
+
+    // Resolve unique parent folder names (cache to avoid N+1)
+    const parentNames = new Map<string, string>();
+    const uniqueParents = new Set<string>();
+    for (const f of result.files) {
+      const pid = f.parents?.[0];
+      if (pid) uniqueParents.add(pid);
+    }
+    for (const pid of Array.from(uniqueParents)) {
+      try {
+        const meta = await this.googleFetch<{ id: string; name: string }>(
+          `https://www.googleapis.com/drive/v3/files/${pid}?fields=id,name&supportsAllDrives=true`
+        );
+        parentNames.set(pid, meta.name || "—");
+      } catch {
+        parentNames.set(pid, "—");
+      }
+    }
+
+    return {
+      files: result.files.map((f) => ({
+        id: f.id,
+        name: f.name,
+        mimeType: f.mimeType,
+        modifiedTime: f.modifiedTime ?? "",
+        webViewLink: f.webViewLink ?? "",
+        parentLabel: f.parents?.[0] ? parentNames.get(f.parents[0]) ?? "" : "",
+      })),
+      nextCursor: result.nextPageToken ?? null,
+      hasMore: !!result.nextPageToken,
+    };
+  }
+
+  /**
+   * Export a Google Doc as Markdown text.
+   */
+  async exportDocAsMarkdown(fileId: string): Promise<string> {
+    return this.googleFetchText(
+      `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=${encodeURIComponent(
+        "text/markdown"
+      )}`
+    );
+  }
+
+  /**
+   * Export a Google Sheet as CSV text.
+   */
+  async exportSheetAsCsv(fileId: string): Promise<string> {
+    return this.googleFetchText(
+      `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=${encodeURIComponent(
+        "text/csv"
+      )}`
+    );
+  }
+
+  /**
+   * Authenticated Drive request that returns plain text (used for export endpoints).
+   */
+  private async googleFetchText(url: string): Promise<string> {
+    if (!this.accessToken) {
+      throw new Error("Not connected. Call connect() first.");
+    }
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${this.accessToken}` },
+    });
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Google API error (${response.status}): ${error}`);
+    }
+    return response.text();
+  }
 }

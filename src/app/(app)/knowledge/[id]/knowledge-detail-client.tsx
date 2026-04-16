@@ -23,6 +23,7 @@ import {
   Loader2,
   ExternalLink,
   FolderOpen,
+  HardDrive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -163,6 +164,28 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
   const [notionCursor, setNotionCursor] = useState<string | null>(null);
   const [notionHasMore, setNotionHasMore] = useState(false);
   const [notionLoadingMore, setNotionLoadingMore] = useState(false);
+
+  // Drive import state
+  const DRIVE_DOC_MIME = "application/vnd.google-apps.document";
+  const DRIVE_SHEET_MIME = "application/vnd.google-apps.spreadsheet";
+  const [showDriveImport, setShowDriveImport] = useState(false);
+  const [driveQuery, setDriveQuery] = useState("");
+  const [driveFiles, setDriveFiles] = useState<
+    Array<{
+      id: string;
+      name: string;
+      mimeType: string;
+      modifiedTime: string;
+      webViewLink: string;
+      parentLabel: string;
+    }>
+  >([]);
+  const [driveSearching, setDriveSearching] = useState(false);
+  const [driveImporting, setDriveImporting] = useState<string | null>(null);
+  const [driveCursor, setDriveCursor] = useState<string | null>(null);
+  const [driveHasMore, setDriveHasMore] = useState(false);
+  const [driveLoadingMore, setDriveLoadingMore] = useState(false);
+  const [driveAuthUrl, setDriveAuthUrl] = useState<string | null>(null);
 
   const canContribute = kb?.userRole === "ADMIN" || kb?.userRole === "CONTRIBUTOR";
 
@@ -410,6 +433,69 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
     }
   }
 
+  async function handleDriveSearch(append = false) {
+    if (append) {
+      if (driveLoadingMore || !driveCursor) return;
+      setDriveLoadingMore(true);
+    } else {
+      if (driveSearching) return;
+      setDriveSearching(true);
+      setDriveAuthUrl(null);
+    }
+    try {
+      const params = new URLSearchParams({ query: driveQuery });
+      if (append && driveCursor) params.set("cursor", driveCursor);
+      const res = await fetch(
+        `/api/knowledge-bases/${knowledgeBaseId}/import-drive?${params}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setDriveFiles((prev) => (append ? [...prev, ...data.files] : data.files));
+        setDriveCursor(data.nextCursor ?? null);
+        setDriveHasMore(!!data.hasMore);
+      } else if (res.status === 401) {
+        const data = await res.json().catch(() => ({}));
+        if (data.error === "needs_auth") {
+          setDriveAuthUrl(data.authUrl);
+          setDriveFiles([]);
+          setDriveCursor(null);
+          setDriveHasMore(false);
+        }
+      }
+    } finally {
+      setDriveSearching(false);
+      setDriveLoadingMore(false);
+    }
+  }
+
+  async function handleDriveImport(file: { id: string; name: string; mimeType: string }) {
+    setDriveImporting(file.id);
+    try {
+      const res = await fetch(`/api/knowledge-bases/${knowledgeBaseId}/import-drive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileId: file.id, fileName: file.name, mimeType: file.mimeType }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast({ title: t("parseComplete"), description: t("parseCompleteDesc", { count: data.pointCount }) });
+        setShowDriveImport(false);
+        setDriveQuery("");
+        setDriveFiles([]);
+        setDriveCursor(null);
+        setDriveHasMore(false);
+        loadPoints();
+        loadKb();
+        loadUploads();
+      } else {
+        const err = await res.json();
+        toast({ title: t("uploadError"), description: err.error || "", variant: "destructive" });
+      }
+    } finally {
+      setDriveImporting(null);
+    }
+  }
+
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -553,6 +639,9 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setShowNotionImport(true)}>
                   <BookOpen className="h-4 w-4 mr-1" />{t("notionImport")}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowDriveImport(true)}>
+                  <HardDrive className="h-4 w-4 mr-1" />{t("driveImport")}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setShowAddPoint(true)}>
                   <Plus className="h-4 w-4 mr-1" />{t("addManual")}
@@ -829,6 +918,110 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
                 </div>
               )}
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Drive Import Dialog */}
+      <Dialog open={showDriveImport} onOpenChange={setShowDriveImport}>
+        <DialogContent className="sm:max-w-4xl w-[90vw]">
+          <DialogHeader>
+            <DialogTitle>{t("driveImport")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {driveAuthUrl ? (
+              <div className="flex flex-col items-center gap-3 py-10">
+                <p className="text-sm text-muted-foreground">{t("driveNeedsAuth")}</p>
+                <Button asChild>
+                  <a href={driveAuthUrl}>{t("driveConnect")}</a>
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="flex gap-2">
+                  <input
+                    value={driveQuery}
+                    onChange={(e) => setDriveQuery(e.target.value)}
+                    placeholder={t("driveSearchPlaceholder")}
+                    className="flex-1 rounded-md border px-3 py-2 text-sm"
+                    autoFocus
+                    onKeyDown={(e) => { if (e.key === "Enter") handleDriveSearch(); }}
+                  />
+                  <Button onClick={() => handleDriveSearch()} disabled={driveSearching}>
+                    {driveSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <div className="max-h-[65vh] overflow-y-auto space-y-2 pr-1">
+                  {driveFiles.length === 0 && !driveSearching && (
+                    <p className="text-sm text-muted-foreground text-center py-10">{t("driveSearchHint")}</p>
+                  )}
+                  {driveFiles.map((file) => {
+                    const icon =
+                      file.mimeType === DRIVE_DOC_MIME ? "📄"
+                      : file.mimeType === DRIVE_SHEET_MIME ? "📊"
+                      : "📁";
+                    return (
+                      <div
+                        key={file.id}
+                        className="flex items-center gap-3 p-4 rounded-lg border hover:bg-muted/50 transition-colors"
+                      >
+                        <span className="text-2xl shrink-0 w-8 text-center leading-none">{icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{file.name}</p>
+                          <p className="text-xs text-muted-foreground truncate flex items-center gap-1.5 mt-1">
+                            {file.parentLabel && (
+                              <>
+                                <FolderOpen className="h-3.5 w-3.5 shrink-0" />
+                                <span className="truncate">{file.parentLabel}</span>
+                                <span aria-hidden>·</span>
+                              </>
+                            )}
+                            <span className="shrink-0">
+                              {new Date(file.modifiedTime).toLocaleDateString("zh-TW")}
+                            </span>
+                          </p>
+                        </div>
+                        <a
+                          href={file.webViewLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={t("driveOpenInDrive")}
+                          className="shrink-0 p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                        <Button
+                          variant="outline"
+                          disabled={driveImporting === file.id}
+                          onClick={() => handleDriveImport(file)}
+                        >
+                          {driveImporting === file.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            t("driveImportButton")
+                          )}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                  {driveHasMore && (
+                    <div className="pt-2 flex justify-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={driveLoadingMore}
+                        onClick={() => handleDriveSearch(true)}
+                      >
+                        {driveLoadingMore ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                        ) : null}
+                        {t("driveLoadMore")}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>

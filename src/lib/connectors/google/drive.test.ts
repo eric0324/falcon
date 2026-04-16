@@ -158,4 +158,171 @@ describe("GoogleDriveConnector", () => {
       );
     });
   });
+
+  describe("searchImportableFiles", () => {
+    beforeEach(async () => {
+      await connector.connect();
+    });
+
+    it("requests Docs and Sheets sorted by modifiedTime desc with given pageSize", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ files: [] }),
+      });
+
+      await connector.searchImportableFiles({ query: "會議", pageSize: 25 });
+
+      const url = new URL(mockFetch.mock.calls[0][0] as string);
+      expect(url.searchParams.get("orderBy")).toBe("modifiedTime desc");
+      expect(url.searchParams.get("pageSize")).toBe("25");
+      const q = url.searchParams.get("q") || "";
+      expect(q).toContain("application/vnd.google-apps.document");
+      expect(q).toContain("application/vnd.google-apps.spreadsheet");
+      expect(q).toContain("trashed=false");
+      expect(q).toContain("會議");
+    });
+
+    it("forwards pageToken when cursor is given", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ files: [] }),
+      });
+
+      await connector.searchImportableFiles({ query: "", cursor: "abc-cursor" });
+
+      const url = new URL(mockFetch.mock.calls[0][0] as string);
+      expect(url.searchParams.get("pageToken")).toBe("abc-cursor");
+    });
+
+    it("resolves parent folder names with one fetch per unique parent", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            files: [
+              {
+                id: "f1",
+                name: "Doc A",
+                mimeType: "application/vnd.google-apps.document",
+                parents: ["folder-1"],
+                modifiedTime: "2026-04-16T00:00:00Z",
+                webViewLink: "https://docs.google.com/document/d/f1/edit",
+              },
+              {
+                id: "f2",
+                name: "Doc B",
+                mimeType: "application/vnd.google-apps.document",
+                parents: ["folder-1"],
+                modifiedTime: "2026-04-15T00:00:00Z",
+                webViewLink: "https://docs.google.com/document/d/f2/edit",
+              },
+            ],
+            nextPageToken: "next-cursor",
+          }),
+      });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ id: "folder-1", name: "工程組" }),
+      });
+
+      const result = await connector.searchImportableFiles({ query: "doc" });
+
+      expect(result.files).toHaveLength(2);
+      expect(result.files[0].parentLabel).toBe("工程組");
+      expect(result.files[1].parentLabel).toBe("工程組");
+      expect(result.nextCursor).toBe("next-cursor");
+      expect(result.hasMore).toBe(true);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it("returns empty parentLabel when file has no parents", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            files: [
+              {
+                id: "f1",
+                name: "Doc A",
+                mimeType: "application/vnd.google-apps.document",
+                modifiedTime: "2026-04-16T00:00:00Z",
+                webViewLink: "https://docs.google.com/document/d/f1/edit",
+              },
+            ],
+          }),
+      });
+
+      const result = await connector.searchImportableFiles({ query: "" });
+      expect(result.files[0].parentLabel).toBe("");
+      expect(result.hasMore).toBe(false);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("falls back to '—' when parent fetch fails", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            files: [
+              {
+                id: "f1",
+                name: "Doc A",
+                mimeType: "application/vnd.google-apps.document",
+                parents: ["unknown-folder"],
+                modifiedTime: "2026-04-16T00:00:00Z",
+                webViewLink: "https://docs.google.com/document/d/f1/edit",
+              },
+            ],
+          }),
+      });
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        text: () => Promise.resolve("not found"),
+      });
+
+      const result = await connector.searchImportableFiles({ query: "" });
+      expect(result.files[0].parentLabel).toBe("—");
+    });
+  });
+
+  describe("exportDocAsMarkdown", () => {
+    beforeEach(async () => {
+      await connector.connect();
+    });
+
+    it("calls Drive export endpoint with text/markdown mime type", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve("# Title\n\nbody"),
+      });
+
+      const text = await connector.exportDocAsMarkdown("doc-1");
+
+      expect(text).toBe("# Title\n\nbody");
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain("/files/doc-1/export");
+      expect(url).toContain("mimeType=text%2Fmarkdown");
+    });
+  });
+
+  describe("exportSheetAsCsv", () => {
+    beforeEach(async () => {
+      await connector.connect();
+    });
+
+    it("calls Drive export endpoint with text/csv mime type", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve("name,age\n王小明,30\n"),
+      });
+
+      const csv = await connector.exportSheetAsCsv("sheet-1");
+
+      expect(csv).toBe("name,age\n王小明,30\n");
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain("/files/sheet-1/export");
+      expect(url).toContain("mimeType=text%2Fcsv");
+    });
+  });
 });

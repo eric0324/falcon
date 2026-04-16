@@ -14,6 +14,45 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.25.0",
+    date: "2026-04-16",
+    title: "從 Google Drive 匯入知識庫",
+    summary:
+      "知識庫支援從 Google Drive 匯入 Docs 與 Sheets。文件會自動切成知識點，試算表則每一列為一個知識點，方便用於 FAQ 與客服話術。",
+    items: [
+      "新增：知識庫詳情頁加入「從 Google Drive 匯入」按鈕",
+      "新增：支援 Google Docs（自動 chunking）與 Google Sheets（每列一個知識點）",
+      "新增：搜尋結果按最近修改倒序，顯示檔名、所在資料夾、最後修改時間",
+      "新增：未連結 Google Drive 時，會引導使用者一鍵授權",
+      "新增:「載入更多」按鈕方便瀏覽超過 25 筆的結果",
+    ],
+  },
+  {
+    version: "v0.24.3",
+    date: "2026-04-16",
+    title: "Notion 匯入體驗小改",
+    summary:
+      "Notion 匯入彈窗的搜尋結果現在會顯示所在資料夾、icon、「在 Notion 開啟」連結，同名頁面更容易區分。",
+    items: [
+      "改善：Notion 匯入彈窗放大，間距調整",
+      "改善：搜尋結果按最近編輯倒序",
+      "新增：每筆顯示 icon、所在資料夾",
+      "新增：「在 Notion 開啟」連結",
+      "新增：「載入更多」按鈕，可瀏覽超過 25 筆結果",
+    ],
+    showDialog: false,
+  },
+  {
+    version: "v0.24.2",
+    date: "2026-04-16",
+    title: "修正引導 tour 與新功能公告同時出現",
+    summary: "修正第一次進入時，引導 tour 跟新功能公告會同時跳出來打架的問題。",
+    items: [
+      "修正：引導 tour 自動開啟時，本次 page-load 不再顯示新功能公告，避免兩個彈窗重疊",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.24.1",
     date: "2026-04-14",
     title: "修正工具無法下載檔案",
