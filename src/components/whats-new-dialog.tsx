@@ -6,7 +6,7 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { changelog, CURRENT_VERSION } from "@/lib/changelog";
-import { isTourActiveThisSession } from "@/components/onboarding/tour-storage";
+import { isTourAutoOpenedThisPageLoad } from "@/components/onboarding/tour-storage";
 
 const LS_KEY = "falcon-last-seen-version";
 
@@ -166,10 +166,11 @@ export function WhatsNewDialog() {
   const latest = changelog.find((e) => e.showDialog !== false);
 
   useEffect(() => {
-    // Tour takes priority: if any onboarding tour was auto-opened in this browser session,
-    // suppress the What's New dialog so the two don't clash. The flag lives in sessionStorage
-    // and is set by useAutoTour the moment a tour auto-opens.
-    if (isTourActiveThisSession(window.sessionStorage)) return;
+    // Tour takes priority: if any onboarding tour auto-opened during the current page load,
+    // suppress the What's New dialog so the two don't clash. Scope is intentionally one
+    // page load only — after a refresh the tour won't auto-open again (already seen)
+    // so the dialog is free to appear next time.
+    if (isTourAutoOpenedThisPageLoad()) return;
 
     const lastSeen = localStorage.getItem(LS_KEY);
     if (lastSeen !== CURRENT_VERSION) {

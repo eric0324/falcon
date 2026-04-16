@@ -3,9 +3,9 @@ import {
   shouldAutoOpenTour,
   markTourSeen,
   TOUR_STORAGE_PREFIX,
-  TOUR_ACTIVE_SESSION_KEY,
-  markTourActiveThisSession,
-  isTourActiveThisSession,
+  markTourAutoOpenedThisPageLoad,
+  isTourAutoOpenedThisPageLoad,
+  __resetTourAutoOpenedFlagForTests,
 } from "./tour-storage";
 
 function createMemoryStorage(): Storage {
@@ -64,27 +64,30 @@ describe("tour-storage", () => {
     });
   });
 
-  describe("tour active session flag", () => {
-    it("isTourActiveThisSession returns false initially", () => {
-      expect(isTourActiveThisSession(storage)).toBe(false);
+  describe("tour auto-opened this page load flag", () => {
+    beforeEach(() => {
+      __resetTourAutoOpenedFlagForTests();
     });
 
-    it("isTourActiveThisSession returns true after markTourActiveThisSession", () => {
-      markTourActiveThisSession(storage);
-      expect(isTourActiveThisSession(storage)).toBe(true);
+    it("isTourAutoOpenedThisPageLoad returns false initially", () => {
+      expect(isTourAutoOpenedThisPageLoad()).toBe(false);
     });
 
-    it("markTourActiveThisSession writes the expected key", () => {
-      markTourActiveThisSession(storage);
-      expect(storage.getItem(TOUR_ACTIVE_SESSION_KEY)).toBe("1");
+    it("isTourAutoOpenedThisPageLoad returns true after mark", () => {
+      markTourAutoOpenedThisPageLoad();
+      expect(isTourAutoOpenedThisPageLoad()).toBe(true);
     });
 
-    it("isTourActiveThisSession returns false when storage is unavailable", () => {
-      expect(isTourActiveThisSession(null)).toBe(false);
+    it("flag persists across multiple reads within the same page load", () => {
+      markTourAutoOpenedThisPageLoad();
+      expect(isTourAutoOpenedThisPageLoad()).toBe(true);
+      expect(isTourAutoOpenedThisPageLoad()).toBe(true);
     });
 
-    it("markTourActiveThisSession is a no-op when storage is unavailable", () => {
-      expect(() => markTourActiveThisSession(null)).not.toThrow();
+    it("__resetTourAutoOpenedFlagForTests clears the flag", () => {
+      markTourAutoOpenedThisPageLoad();
+      __resetTourAutoOpenedFlagForTests();
+      expect(isTourAutoOpenedThisPageLoad()).toBe(false);
     });
   });
 });
