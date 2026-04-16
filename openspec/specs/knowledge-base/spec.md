@@ -2,12 +2,10 @@
 
 ## Purpose
 知識庫功能讓任何使用者建立知識庫、貢獻者上傳文件自動轉為知識點並向量化，一般使用者在 Chat 介面選取知識庫進行 RAG 問答，並提供對外 API 讓外部服務查詢。使用者可以對知識庫評價，幫助其他人找到高品質的知識庫。
-
 ## Requirements
-
 ### Requirement: 知識庫 CRUD + 權限
 
-任何使用者可建立知識庫，並設定誰可以貢獻（上傳/編輯/刪除知識點）、誰可以查詢。
+系統 SHALL 允許任何使用者建立知識庫，並 MUST 提供誰可以貢獻（上傳/編輯/刪除知識點）、誰可以查詢的權限設定。
 
 #### 資料模型
 
@@ -66,7 +64,7 @@ enum KnowledgeBaseRole {
 
 ### Requirement: 知識庫評價
 
-使用者可以對有 VIEWER 以上權限的知識庫進行評價，幫助其他人判斷知識庫品質。
+系統 SHALL 允許使用者對有 VIEWER 以上權限的知識庫進行評價，以幫助其他人判斷知識庫品質。
 
 #### 資料模型
 
@@ -116,7 +114,7 @@ KnowledgeBase model 需加入 relation：
 
 ### Requirement: 檔案上傳與處理
 
-貢獻者可上傳 Excel、CSV、PDF 檔案，系統自動解析並切割為知識點。
+系統 SHALL 允許貢獻者上傳 Excel、CSV、PDF 檔案，並 MUST 自動解析並切割為知識點。
 
 #### 資料模型
 
@@ -177,7 +175,7 @@ enum UploadStatus {
 
 ### Requirement: 知識點管理與審核
 
-知識點是知識庫的最小單位，自動產生後需人工審核才會被向量化並可供查詢。
+知識點 SHALL 是知識庫的最小單位，且自動產生後 MUST 經人工審核才會被向量化並可供查詢。
 
 #### 資料模型
 
@@ -238,7 +236,7 @@ enum PointStatus {
 
 ### Requirement: 向量化與搜尋
 
-使用 Voyage AI 產生 embedding，存入 pgvector，支援 hybrid search（向量 + 全文）。
+系統 SHALL 使用 Voyage AI 產生 embedding 並存入 pgvector，並 MUST 支援 hybrid search（向量 + 全文）。
 
 #### 技術細節
 
@@ -262,7 +260,7 @@ enum PointStatus {
 
 ### Requirement: Chat RAG 整合
 
-使用者在 Chat 介面選取知識庫作為 dataSource，查詢時自動檢索相關知識點並注入 LLM context。每個知識庫可設定自訂系統提示詞，引導 LLM 的回答風格和行為。
+系統 SHALL 允許使用者在 Chat 介面選取知識庫作為 dataSource，查詢時 MUST 自動檢索相關知識點並注入 LLM context。每個知識庫 MAY 設定自訂系統提示詞，引導 LLM 的回答風格與行為。
 
 #### Scenario: 選取知識庫
 - WHEN 使用者在 Chat 介面選取知識庫作為資料來源
@@ -307,7 +305,7 @@ enum PointStatus {
 
 ### Requirement: 外部 API
 
-提供 RESTful API 讓外部服務（如客服後台）查詢知識庫。
+系統 SHALL 提供 RESTful API 讓外部服務查詢知識庫。
 
 #### 資料模型
 
@@ -355,7 +353,7 @@ model UserApiKey {
 
 ### Requirement: 背景任務處理
 
-檔案解析、向量化等耗時操作使用 BullMQ + Redis 背景任務處理，worker 跑在同一台 EC2。
+檔案解析、向量化等耗時操作 SHALL 使用 BullMQ + Redis 背景任務處理，worker MUST 跑在同一台 EC2。
 
 #### 任務佇列
 
@@ -373,6 +371,97 @@ model UserApiKey {
 - WHEN 背景任務執行中
 - THEN 前端可透過 API polling 查詢 KnowledgeUpload.status
 - AND 任務完成或失敗時更新對應 record
+
+### Requirement: Google Drive 檔案搜尋
+
+API SHALL 提供端點供使用者搜尋自己 Drive 中可匯入的檔案（限 Docs / Sheets），並 MUST 支援按最近修改時間排序與 cursor 分頁。
+
+#### Scenario: 搜尋 Drive 檔案
+- WHEN 使用者帶 `?query=xxx` 呼叫 GET `/api/knowledge-bases/:id/import-drive`
+- AND 使用者已連結 Google Drive
+- THEN 系統呼叫 Drive `/files` API
+- AND 過濾條件包含 `mimeType in ('application/vnd.google-apps.document', 'application/vnd.google-apps.spreadsheet')`
+- AND 排序為 `modifiedTime desc`
+- AND 回傳 25 筆，含 `id, name, mimeType, icon, parentLabel, modifiedTime, url, nextCursor, hasMore`
+
+#### Scenario: 載入下一頁
+- WHEN 帶 `?cursor=<nextCursor>` 再次呼叫
+- THEN 回傳下一頁結果
+
+#### Scenario: 未連結 Google Drive
+- WHEN 使用者尚未授權 Google Drive scope
+- THEN 回應 401
+- AND body 為 `{ error: "needs_auth", authUrl: "<google oauth url>" }`
+
+#### Scenario: parent folder 名稱
+- WHEN 結果項目有 parent folder
+- THEN `parentLabel` 為該 folder 的名稱
+- WHEN 沒有 parent（根目錄）
+- THEN `parentLabel` 為空字串
+
+---
+
+### Requirement: Google Docs 匯入
+
+POST 匯入端點 SHALL 將 Google Docs 整份內容 export 為 markdown 後切 chunk 並建立知識點。
+
+#### Scenario: 匯入 Doc
+- WHEN POST `/api/knowledge-bases/:id/import-drive` with `{ fileId, fileName, mimeType: "application/vnd.google-apps.document" }`
+- THEN 系統呼叫 Drive export `text/markdown` 取得內容
+- AND 建立 `KnowledgeUpload`（fileName = `Drive Doc: {name}`, fileType = `gdoc`, status = `PENDING_REVIEW`）
+- AND 內容透過 `chunkSegments` 切割
+- AND 為每個 chunk 建立 `KnowledgePoint`（metadata.source = `Drive Doc: {name}`, status = `PENDING`）
+
+#### Scenario: 空 Doc
+- WHEN export 內容為空
+- THEN 回應 400 與訊息「此文件沒有可匯入的內容」
+
+---
+
+### Requirement: Google Sheets 匯入
+
+POST 匯入端點 SHALL 將 Google Sheets export 為 CSV，每一列建立一筆知識點，metadata 記錄列號。
+
+#### Scenario: 匯入 Sheet
+- WHEN POST `/api/knowledge-bases/:id/import-drive` with `{ fileId, fileName, mimeType: "application/vnd.google-apps.spreadsheet" }`
+- THEN 系統呼叫 Drive export `text/csv` 取得內容
+- AND parse CSV 取得 rows（包含 header）
+- AND 建立 `KnowledgeUpload`（fileName = `Drive Sheet: {name}`, fileType = `gsheet`）
+- AND 為每個 data row 建立 `KnowledgePoint`：
+  - `content` = 列內容（欄位名 + 欄位值文字化，例：`姓名: 王小明 | 部門: 工程`）
+  - `metadata.source` = `Drive Sheet: {name} - 第 {rowNumber} 列`
+  - `metadata.row` = rowNumber（從 1 起算，header 為 0）
+
+#### Scenario: 空 Sheet
+- WHEN sheet 沒有 data row（只有 header 或完全空）
+- THEN 回應 400 與訊息「此試算表沒有可匯入的內容」
+
+---
+
+### Requirement: Drive 匯入 UI
+
+UI SHALL 在知識庫詳情頁提供「從 Google Drive 匯入」按鈕與對應彈窗，行為對齊 Notion 匯入。
+
+#### Scenario: 觸發按鈕
+- WHEN 使用者開啟知識庫詳情頁
+- AND 為 CONTRIBUTOR 以上角色
+- THEN 顯示「從 Google Drive 匯入」按鈕
+
+#### Scenario: 結果項目
+- WHEN dialog 顯示搜尋結果
+- THEN 每筆顯示 icon（📄 Doc / 📊 Sheet）、檔名、parent folder、最後修改時間
+- AND 提供「在 Drive 開啟」連結（target=_blank to file url）
+
+#### Scenario: 未授權提示
+- WHEN GET 回應 `needs_auth`
+- THEN dialog 顯示「請先連結 Google Drive」訊息
+- AND 提供按鈕導向 `authUrl`
+
+#### Scenario: 載入更多
+- WHEN 回應 `hasMore = true`
+- THEN dialog 底部顯示「載入更多」按鈕
+- WHEN 點擊
+- THEN 帶 cursor 重新呼叫並 append 結果
 
 ## API Endpoints（內部）
 
