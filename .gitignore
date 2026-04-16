@@ -35,7 +35,8 @@ yarn-error.log*
 next-env.d.ts
 
 # Prisma
-/prisma/migrations/
+# prisma/migrations/ is intentionally tracked so schema changes have version history
+# and can be applied to production via `prisma migrate deploy`.
 
 # IDE
 .idea
