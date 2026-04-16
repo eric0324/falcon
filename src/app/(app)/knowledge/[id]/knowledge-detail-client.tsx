@@ -21,6 +21,8 @@ import {
   BookOpen,
   Search,
   Loader2,
+  ExternalLink,
+  FolderOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -145,9 +147,22 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
   // Notion import state
   const [showNotionImport, setShowNotionImport] = useState(false);
   const [notionQuery, setNotionQuery] = useState("");
-  const [notionPages, setNotionPages] = useState<Array<{ id: string; title: string; url: string; lastEditedTime: string }>>([]);
+  const [notionPages, setNotionPages] = useState<
+    Array<{
+      id: string;
+      title: string;
+      url: string;
+      lastEditedTime: string;
+      icon: { type: string; emoji?: string } | null;
+      parentLabel: string;
+      parentType: "workspace" | "page" | "database";
+    }>
+  >([]);
   const [notionSearching, setNotionSearching] = useState(false);
   const [notionImporting, setNotionImporting] = useState<string | null>(null);
+  const [notionCursor, setNotionCursor] = useState<string | null>(null);
+  const [notionHasMore, setNotionHasMore] = useState(false);
+  const [notionLoadingMore, setNotionLoadingMore] = useState(false);
 
   const canContribute = kb?.userRole === "ADMIN" || kb?.userRole === "CONTRIBUTOR";
 
@@ -341,19 +356,29 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
     }
   }
 
-  async function handleNotionSearch() {
-    if (notionSearching) return;
-    setNotionSearching(true);
+  async function handleNotionSearch(append = false) {
+    if (append) {
+      if (notionLoadingMore || !notionCursor) return;
+      setNotionLoadingMore(true);
+    } else {
+      if (notionSearching) return;
+      setNotionSearching(true);
+    }
     try {
+      const params = new URLSearchParams({ query: notionQuery });
+      if (append && notionCursor) params.set("cursor", notionCursor);
       const res = await fetch(
-        `/api/knowledge-bases/${knowledgeBaseId}/import-notion?query=${encodeURIComponent(notionQuery)}`
+        `/api/knowledge-bases/${knowledgeBaseId}/import-notion?${params}`
       );
       if (res.ok) {
         const data = await res.json();
-        setNotionPages(data.pages);
+        setNotionPages((prev) => (append ? [...prev, ...data.pages] : data.pages));
+        setNotionCursor(data.nextCursor ?? null);
+        setNotionHasMore(!!data.hasMore);
       }
     } finally {
       setNotionSearching(false);
+      setNotionLoadingMore(false);
     }
   }
 
@@ -371,6 +396,8 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
         setShowNotionImport(false);
         setNotionQuery("");
         setNotionPages([]);
+        setNotionCursor(null);
+        setNotionHasMore(false);
         loadPoints();
         loadKb();
         loadUploads();
@@ -525,7 +552,7 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
                   <Upload className="h-4 w-4 mr-1" />{uploading ? t("uploading") : t("uploadFile")}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setShowNotionImport(true)}>
-                  <BookOpen className="h-4 w-4 mr-1" />Notion
+                  <BookOpen className="h-4 w-4 mr-1" />{t("notionImport")}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => setShowAddPoint(true)}>
                   <Plus className="h-4 w-4 mr-1" />{t("addManual")}
@@ -711,7 +738,7 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
 
       {/* Notion Import Dialog */}
       <Dialog open={showNotionImport} onOpenChange={setShowNotionImport}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-4xl w-[90vw]">
           <DialogHeader>
             <DialogTitle>{t("notionImport")}</DialogTitle>
           </DialogHeader>
@@ -725,39 +752,82 @@ export function KnowledgeDetailClient({ knowledgeBaseId }: { knowledgeBaseId: st
                 autoFocus
                 onKeyDown={(e) => { if (e.key === "Enter") handleNotionSearch(); }}
               />
-              <Button onClick={handleNotionSearch} disabled={notionSearching} size="sm">
+              <Button onClick={() => handleNotionSearch()} disabled={notionSearching}>
                 {notionSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               </Button>
             </div>
-            <div className="max-h-80 overflow-y-auto space-y-1">
+            <div className="max-h-[65vh] overflow-y-auto space-y-2 pr-1">
               {notionPages.length === 0 && !notionSearching && (
-                <p className="text-sm text-muted-foreground text-center py-6">{t("notionSearchHint")}</p>
+                <p className="text-sm text-muted-foreground text-center py-10">{t("notionSearchHint")}</p>
               )}
-              {notionPages.map((page) => (
-                <div
-                  key={page.id}
-                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{page.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(page.lastEditedTime).toLocaleDateString("zh-TW")}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={notionImporting === page.id}
-                    onClick={() => handleNotionImport(page.id, page.title)}
+              {notionPages.map((page) => {
+                const parentText =
+                  page.parentType === "workspace"
+                    ? t("notionParentWorkspace")
+                    : page.parentLabel;
+                return (
+                  <div
+                    key={page.id}
+                    className="flex items-center gap-3 p-4 rounded-lg border hover:bg-muted/50 transition-colors"
                   >
-                    {notionImporting === page.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      t("notionImportButton")
-                    )}
+                    <span className="text-2xl shrink-0 w-8 text-center leading-none">
+                      {page.icon?.type === "emoji" && page.icon.emoji
+                        ? page.icon.emoji
+                        : "📄"}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{page.title}</p>
+                      <p className="text-xs text-muted-foreground truncate flex items-center gap-1.5 mt-1">
+                        {parentText && (
+                          <>
+                            <FolderOpen className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{parentText}</span>
+                            <span aria-hidden>·</span>
+                          </>
+                        )}
+                        <span className="shrink-0">
+                          {new Date(page.lastEditedTime).toLocaleDateString("zh-TW")}
+                        </span>
+                      </p>
+                    </div>
+                    <a
+                      href={page.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={t("notionOpenInNotion")}
+                      className="shrink-0 p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                    <Button
+                      variant="outline"
+                      disabled={notionImporting === page.id}
+                      onClick={() => handleNotionImport(page.id, page.title)}
+                    >
+                      {notionImporting === page.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        t("notionImportButton")
+                      )}
+                    </Button>
+                  </div>
+                );
+              })}
+              {notionHasMore && (
+                <div className="pt-2 flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={notionLoadingMore}
+                    onClick={() => handleNotionSearch(true)}
+                  >
+                    {notionLoadingMore ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                    ) : null}
+                    {t("notionLoadMore")}
                   </Button>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </DialogContent>

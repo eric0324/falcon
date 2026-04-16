@@ -4,7 +4,15 @@ vi.mock("@/lib/config", () => ({
   getConfig: vi.fn((key: string) => Promise.resolve(process.env[key])),
 }));
 
-import { getBlockChildren, getBlockChildrenDeep, blocksToText } from "./client";
+import {
+  getBlockChildren,
+  getBlockChildrenDeep,
+  blocksToText,
+  getDatabase,
+  resolveParentLabel,
+  createParentCache,
+} from "./client";
+import type { NotionPage } from "./client";
 
 // Mock global fetch
 const mockFetch = vi.fn();
@@ -361,5 +369,119 @@ describe("blocksToText", () => {
     const text = blocksToText(blocks);
     expect(text).toContain("可讀文字");
     // Should not throw
+  });
+});
+
+describe("getDatabase", () => {
+  it("fetches a database by id and returns its payload", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          id: "db-1",
+          title: [{ plain_text: "Engineering Wiki" }],
+          description: [],
+          url: "https://notion.so/db-1",
+        }),
+    });
+
+    const db = await getDatabase("db-1");
+    expect(db.title[0].plain_text).toBe("Engineering Wiki");
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/databases/db-1"),
+      expect.any(Object)
+    );
+  });
+});
+
+describe("resolveParentLabel", () => {
+  function pageWithParent(parent: NotionPage["parent"]): NotionPage {
+    return { id: "p", url: "u", parent, properties: {} } as NotionPage;
+  }
+
+  it("returns empty label for workspace parent without fetching", async () => {
+    const cache = createParentCache();
+    const result = await resolveParentLabel(
+      pageWithParent({ type: "workspace" }),
+      cache
+    );
+    expect(result).toEqual({ label: "", type: "workspace" });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("fetches title for page parent", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          id: "parent-page-1",
+          properties: {
+            Name: { type: "title", title: [{ plain_text: "工程文件" }] },
+          },
+        }),
+    });
+
+    const cache = createParentCache();
+    const result = await resolveParentLabel(
+      pageWithParent({ type: "page_id", page_id: "parent-page-1" }),
+      cache
+    );
+    expect(result).toEqual({ label: "工程文件", type: "page" });
+  });
+
+  it("fetches title for database parent", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          id: "parent-db-1",
+          title: [{ plain_text: "請假紀錄" }],
+          description: [],
+          url: "https://notion.so/parent-db-1",
+        }),
+    });
+
+    const cache = createParentCache();
+    const result = await resolveParentLabel(
+      pageWithParent({ type: "database_id", database_id: "parent-db-1" }),
+      cache
+    );
+    expect(result).toEqual({ label: "請假紀錄", type: "database" });
+  });
+
+  it("uses cache to avoid duplicate fetches", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          id: "parent-page-1",
+          properties: {
+            Name: { type: "title", title: [{ plain_text: "工程文件" }] },
+          },
+        }),
+    });
+
+    const cache = createParentCache();
+    const page = pageWithParent({ type: "page_id", page_id: "parent-page-1" });
+
+    await resolveParentLabel(page, cache);
+    await resolveParentLabel(page, cache);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns dash when parent fetch fails", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      json: () => Promise.resolve({ message: "Not found" }),
+    });
+
+    const cache = createParentCache();
+    const result = await resolveParentLabel(
+      pageWithParent({ type: "page_id", page_id: "deleted-page" }),
+      cache
+    );
+    expect(result).toEqual({ label: "—", type: "page" });
   });
 });

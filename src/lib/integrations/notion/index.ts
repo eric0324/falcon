@@ -6,11 +6,14 @@ export {
   queryDatabaseAll,
   buildTitleContainsFilter,
   getPage,
+  getDatabase,
   getBlockChildren,
   getBlockChildrenDeep,
   blocksToText,
   createPage,
   updatePage,
+  resolveParentLabel,
+  createParentCache,
 } from "./client";
 
 export type {
@@ -19,4 +22,7 @@ export type {
   NotionSearchResult,
   NotionQueryResult,
   NotionBlockResult,
+  NotionParentType,
+  NotionParentInfo,
+  NotionParentCache,
 } from "./client";

@@ -56,6 +56,9 @@
   "notionSearchPlaceholder": "搜尋 Notion 頁面...",
   "notionSearchHint": "輸入關鍵字搜尋 Notion 頁面",
   "notionImportButton": "匯入",
+  "notionParentWorkspace": "Workspace",
+  "notionOpenInNotion": "在 Notion 開啟",
+  "notionLoadMore": "載入更多",
   "backToList": "返回列表",
   "settings": {
     "title": "知識庫設定",

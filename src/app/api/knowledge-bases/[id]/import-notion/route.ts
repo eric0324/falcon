@@ -8,7 +8,10 @@ import {
   getPage,
   getBlockChildrenDeep,
   blocksToText,
+  resolveParentLabel,
+  createParentCache,
 } from "@/lib/integrations/notion";
+import type { NotionPage } from "@/lib/integrations/notion";
 import { chunkSegments } from "@/lib/knowledge/chunker";
 import type { ParsedSegment } from "@/lib/knowledge/parsers";
 
@@ -35,30 +38,48 @@ export async function GET(req: Request, context: RouteContext) {
 
   const url = new URL(req.url);
   const query = url.searchParams.get("query") || "";
+  const cursor = url.searchParams.get("cursor") || undefined;
 
   const result = await notionSearch({
     query,
     filter: { property: "object", value: "page" },
-    page_size: 10,
+    sort: { direction: "descending", timestamp: "last_edited_time" },
+    page_size: 25,
+    start_cursor: cursor,
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pages = result.results.map((page: any) => {
-    // Extract title from properties
-    const titleProp = Object.values(page.properties || {}).find(
-      (p: unknown) => (p as Record<string, unknown>).type === "title"
-    ) as { title: Array<{ plain_text: string }> } | undefined;
-    const title = titleProp?.title?.map((t) => t.plain_text).join("") || "Untitled";
+  const parentCache = createParentCache();
 
-    return {
-      id: page.id,
-      title,
-      url: page.url,
-      lastEditedTime: page.last_edited_time,
-    };
+  const pages = await Promise.all(
+    result.results
+      .filter((r): r is NotionPage => (r as { object?: string }).object !== "database")
+      .map(async (page) => {
+        const titleProp = Object.values(page.properties || {}).find(
+          (p: unknown) => (p as Record<string, unknown>).type === "title"
+        ) as { title: Array<{ plain_text: string }> } | undefined;
+        const title =
+          titleProp?.title?.map((t) => t.plain_text).join("") || "Untitled";
+
+        const parent = await resolveParentLabel(page, parentCache);
+
+        return {
+          id: page.id,
+          title,
+          url: page.url,
+          lastEditedTime: (page as unknown as { last_edited_time: string })
+            .last_edited_time,
+          icon: page.icon ?? null,
+          parentLabel: parent.label,
+          parentType: parent.type,
+        };
+      })
+  );
+
+  return NextResponse.json({
+    pages,
+    nextCursor: result.next_cursor,
+    hasMore: result.has_more,
   });
-
-  return NextResponse.json({ pages });
 }
 
 // POST /api/knowledge-bases/:id/import-notion — import a Notion page

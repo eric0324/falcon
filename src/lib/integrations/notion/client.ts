@@ -87,6 +87,7 @@ async function notionFetch<T>(
 export async function notionSearch(params: {
   query?: string;
   filter?: { property: "object"; value: "page" | "database" };
+  sort?: { direction: "ascending" | "descending"; timestamp: "last_edited_time" };
   page_size?: number;
   start_cursor?: string;
 }): Promise<NotionSearchResult> {
@@ -176,6 +177,75 @@ export function buildTitleContainsFilter(
  */
 export async function getPage(pageId: string): Promise<NotionPage> {
   return notionFetch<NotionPage>(`/pages/${pageId}`);
+}
+
+/**
+ * Get a database by ID
+ */
+export async function getDatabase(databaseId: string): Promise<NotionDatabase> {
+  return notionFetch<NotionDatabase>(`/databases/${databaseId}`);
+}
+
+export type NotionParentType = "workspace" | "page" | "database";
+export interface NotionParentInfo {
+  label: string;
+  type: NotionParentType;
+}
+
+// Per-request cache: parentId → resolved label. Prevents N+1 fetches when
+// many search results share the same parent.
+export type NotionParentCache = Map<string, string>;
+
+export function createParentCache(): NotionParentCache {
+  return new Map();
+}
+
+/**
+ * Resolve a page's parent into a human-readable label so search results
+ * showing the same title can still be told apart.
+ *
+ * - workspace parent → empty label (UI handles the i18n string)
+ * - page / database parent → fetch one level up and use its title
+ * - on failure → "—" so the UI degrades gracefully without blocking import
+ */
+export async function resolveParentLabel(
+  page: NotionPage,
+  cache: NotionParentCache
+): Promise<NotionParentInfo> {
+  const parent = page.parent;
+
+  if (parent.type === "workspace") {
+    return { label: "", type: "workspace" };
+  }
+
+  const parentType: NotionParentType =
+    parent.type === "database_id" ? "database" : "page";
+  const parentId = parent.database_id || parent.page_id || "";
+  if (!parentId) return { label: "—", type: parentType };
+
+  const cached = cache.get(parentId);
+  if (cached !== undefined) {
+    return { label: cached, type: parentType };
+  }
+
+  try {
+    let label: string;
+    if (parentType === "database") {
+      const db = await getDatabase(parentId);
+      label = db.title?.map((t) => t.plain_text).join("") || "—";
+    } else {
+      const p = await getPage(parentId);
+      const props = (p.properties || {}) as Record<string, unknown>;
+      const titleProp = Object.values(props).find(
+        (val) => (val as Record<string, unknown>).type === "title"
+      ) as { title: Array<{ plain_text: string }> } | undefined;
+      label = titleProp?.title?.map((t) => t.plain_text).join("") || "—";
+    }
+    cache.set(parentId, label);
+    return { label, type: parentType };
+  } catch {
+    return { label: "—", type: parentType };
+  }
 }
 
 /**

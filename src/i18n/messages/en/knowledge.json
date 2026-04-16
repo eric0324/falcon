@@ -56,6 +56,9 @@
   "notionSearchPlaceholder": "Search Notion pages...",
   "notionSearchHint": "Enter a keyword to search Notion pages",
   "notionImportButton": "Import",
+  "notionParentWorkspace": "Workspace",
+  "notionOpenInNotion": "Open in Notion",
+  "notionLoadMore": "Load more",
   "backToList": "Back to list",
   "settings": {
     "title": "Knowledge Base Settings",
