@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useTour } from "@reactour/tour";
-import { shouldAutoOpenTour, markTourSeen } from "./tour-storage";
+import { shouldAutoOpenTour, markTourSeen, markTourActiveThisSession } from "./tour-storage";
 
 export function useAutoTour(pageKey: string) {
   const { setIsOpen, setCurrentStep } = useTour();
@@ -18,6 +18,7 @@ export function useAutoTour(pageKey: string) {
     setCurrentStep(0);
     setIsOpen(true);
     markTourSeen(pageKey, window.localStorage);
+    markTourActiveThisSession(window.sessionStorage);
 
     if (forced) {
       params.delete("tour");

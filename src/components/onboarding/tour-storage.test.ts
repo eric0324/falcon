@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { shouldAutoOpenTour, markTourSeen, TOUR_STORAGE_PREFIX } from "./tour-storage";
+import {
+  shouldAutoOpenTour,
+  markTourSeen,
+  TOUR_STORAGE_PREFIX,
+  TOUR_ACTIVE_SESSION_KEY,
+  markTourActiveThisSession,
+  isTourActiveThisSession,
+} from "./tour-storage";
 
 function createMemoryStorage(): Storage {
   const store = new Map<string, string>();
@@ -54,6 +61,30 @@ describe("tour-storage", () => {
 
     it("is a no-op when storage is unavailable", () => {
       expect(() => markTourSeen("marketplace", null)).not.toThrow();
+    });
+  });
+
+  describe("tour active session flag", () => {
+    it("isTourActiveThisSession returns false initially", () => {
+      expect(isTourActiveThisSession(storage)).toBe(false);
+    });
+
+    it("isTourActiveThisSession returns true after markTourActiveThisSession", () => {
+      markTourActiveThisSession(storage);
+      expect(isTourActiveThisSession(storage)).toBe(true);
+    });
+
+    it("markTourActiveThisSession writes the expected key", () => {
+      markTourActiveThisSession(storage);
+      expect(storage.getItem(TOUR_ACTIVE_SESSION_KEY)).toBe("1");
+    });
+
+    it("isTourActiveThisSession returns false when storage is unavailable", () => {
+      expect(isTourActiveThisSession(null)).toBe(false);
+    });
+
+    it("markTourActiveThisSession is a no-op when storage is unavailable", () => {
+      expect(() => markTourActiveThisSession(null)).not.toThrow();
     });
   });
 });

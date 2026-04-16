@@ -6,7 +6,7 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { changelog, CURRENT_VERSION } from "@/lib/changelog";
-import { TOUR_STORAGE_PREFIX } from "@/components/onboarding/tour-storage";
+import { isTourActiveThisSession } from "@/components/onboarding/tour-storage";
 
 const LS_KEY = "falcon-last-seen-version";
 
@@ -166,11 +166,10 @@ export function WhatsNewDialog() {
   const latest = changelog.find((e) => e.showDialog !== false);
 
   useEffect(() => {
-    // Tour takes priority: if the user hasn't seen the marketplace onboarding tour yet,
-    // suppress the What's New dialog for this visit so the two don't clash.
-    const hasSeenMarketplaceTour =
-      localStorage.getItem(`${TOUR_STORAGE_PREFIX}marketplace`) === "seen";
-    if (!hasSeenMarketplaceTour) return;
+    // Tour takes priority: if any onboarding tour was auto-opened in this browser session,
+    // suppress the What's New dialog so the two don't clash. The flag lives in sessionStorage
+    // and is set by useAutoTour the moment a tour auto-opens.
+    if (isTourActiveThisSession(window.sessionStorage)) return;
 
     const lastSeen = localStorage.getItem(LS_KEY);
     if (lastSeen !== CURRENT_VERSION) {
