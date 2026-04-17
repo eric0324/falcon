@@ -2,19 +2,23 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ---- Mocks ----
 
-const mockGenerateImage = vi.fn((..._args: unknown[]): unknown => undefined);
+const mockGenerateImage = vi.fn<(...args: unknown[]) => unknown>();
 vi.mock("ai", () => ({
   generateImage: (...args: unknown[]) => mockGenerateImage(...args),
 }));
 
 const mockGoogleImage = vi.fn((id: string) => ({ __provider: "google", id }));
-const mockCreateGoogle = vi.fn((..._args: unknown[]) => ({ image: mockGoogleImage }));
+const mockCreateGoogle = vi.fn<(...args: unknown[]) => { image: typeof mockGoogleImage }>(
+  () => ({ image: mockGoogleImage })
+);
 vi.mock("@ai-sdk/google", () => ({
   createGoogleGenerativeAI: (...args: unknown[]) => mockCreateGoogle(...args),
 }));
 
 const mockOpenAIImage = vi.fn((id: string) => ({ __provider: "openai", id }));
-const mockCreateOpenAI = vi.fn((..._args: unknown[]) => ({ image: mockOpenAIImage }));
+const mockCreateOpenAI = vi.fn<(...args: unknown[]) => { image: typeof mockOpenAIImage }>(
+  () => ({ image: mockOpenAIImage })
+);
 vi.mock("@ai-sdk/openai", () => ({
   createOpenAI: (...args: unknown[]) => mockCreateOpenAI(...args),
 }));
