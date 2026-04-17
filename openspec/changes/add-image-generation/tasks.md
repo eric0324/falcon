@@ -15,11 +15,15 @@
 
 ## 3. 圖片生成核心
 
-- [ ] 3.1 建立 `src/lib/ai/image-generation.ts`：定義 `ImageProvider` 型別與 `ImageGenerationResult`
-- [ ] 3.2 實作 `generateFromText(prompt, provider)`：分別呼叫 Imagen 4、GPT-Image-1
-- [ ] 3.3 實作 `generateFromImage(prompt, sourceImageKey, provider)`：讀 S3 原圖 → 送 provider → 上傳結果
-- [ ] 3.4 `src/lib/ai/models.ts` 新增 image pricing 表（`imagen-4`、`gpt-image-1`）
-- [ ] 3.5 為 image-generation 寫 unit test（mock provider SDK，驗證輸入輸出與錯誤）
+- [x] 3.1 `src/lib/storage/s3.ts` 新增 `getObjectBuffer(key)`：讀 S3 物件回 Buffer（圖生圖讀原圖用）
+- [x] 3.2 建立 `src/lib/ai/image-generation.ts`：定義 `ImageProvider` 型別與 `ImageGenerationResult`
+- [x] 3.3 實作 `generateFromText(prompt, provider, userId)`：走 AI SDK `generateImage`，Imagen 4 / GPT-Image-1 → 上傳 S3 → 回傳 `{ s3Key, presignedUrl, provider, modelUsed }`
+- [x] 3.4 實作 `generateFromImage(prompt, sourceImageKey, provider, userId)`：讀 S3 原圖 → 走原生 REST：
+  - `imagen` → `gemini-2.5-flash-image:generateContent`（base64 inlineData）
+  - `gpt-image` → `POST /v1/images/edits`（multipart）
+  - 含 ownership 檢查（key 必須以 `images/<userId>/` 開頭）
+- [x] 3.5 `src/lib/ai/models.ts` 新增 image pricing：`imagen-4`、`gpt-image-1`、`gemini-2.5-flash-image`；`estimateCost` 對圖片模型以張數計費
+- [x] 3.6 為 image-generation 寫 unit test（mock AI SDK 與 fetch，驗證輸入輸出與錯誤）
 
 ## 4. Chat Tool 與 API
 

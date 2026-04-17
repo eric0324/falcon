@@ -31,7 +31,7 @@ vi.mock("@/lib/config", () => ({
   getConfigRequired: (key: string) => mockGetConfigRequired(key),
 }));
 
-import { uploadImage, getPresignedUrl } from "./s3";
+import { uploadImage, getPresignedUrl, getObjectBuffer } from "./s3";
 
 describe("s3 storage", () => {
   beforeEach(() => {
@@ -128,6 +128,32 @@ describe("s3 storage", () => {
       await expect(getPresignedUrl({ key: "k" })).rejects.toThrow(
         /AWS_ACCESS_KEY_ID/
       );
+    });
+  });
+
+  describe("getObjectBuffer", () => {
+    it("reads object body as Buffer", async () => {
+      const bytes = new Uint8Array([1, 2, 3, 4]);
+      mockSend.mockResolvedValue({
+        Body: {
+          transformToByteArray: async () => bytes,
+        },
+      });
+
+      const buf = await getObjectBuffer({ key: "images/u/a.png" });
+
+      expect(getObjectCtor).toHaveBeenCalledWith({
+        Bucket: "test-bucket",
+        Key: "images/u/a.png",
+      });
+      expect(Buffer.isBuffer(buf)).toBe(true);
+      expect(buf.equals(Buffer.from(bytes))).toBe(true);
+    });
+
+    it("throws when object has no body", async () => {
+      mockSend.mockResolvedValue({ Body: undefined });
+
+      await expect(getObjectBuffer({ key: "k" })).rejects.toThrow(/empty|body/i);
     });
   });
 });

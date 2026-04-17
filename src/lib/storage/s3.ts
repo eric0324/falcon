@@ -39,6 +39,26 @@ export async function uploadImage(params: {
   );
 }
 
+export async function getObjectBuffer(params: {
+  key: string;
+}): Promise<Buffer> {
+  const { client, bucket } = await getClientAndBucket();
+
+  const response = await client.send(
+    new GetObjectCommand({ Bucket: bucket, Key: params.key })
+  );
+
+  const body = response.Body as
+    | { transformToByteArray: () => Promise<Uint8Array> }
+    | undefined;
+  if (!body) {
+    throw new Error(`S3 object ${params.key} returned empty body`);
+  }
+
+  const bytes = await body.transformToByteArray();
+  return Buffer.from(bytes);
+}
+
 export async function getPresignedUrl(params: {
   key: string;
   ttlSeconds?: number;

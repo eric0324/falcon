@@ -21,7 +21,7 @@ vi.mock("@/lib/config", () => ({
   getConfigRequired: vi.fn((key: string) => Promise.resolve(`mock-${key}`)),
 }));
 
-import { MODEL_IDS, modelInfo, defaultModel, getModel } from "./models";
+import { MODEL_IDS, modelInfo, defaultModel, getModel, estimateCost, imagePricing } from "./models";
 
 describe("MODEL_IDS", () => {
   it("contains expected model keys", () => {
@@ -84,5 +84,34 @@ describe("defaultModel", () => {
 
   it("is claude-haiku", () => {
     expect(defaultModel).toBe("claude-haiku");
+  });
+});
+
+describe("estimateCost", () => {
+  it("computes per-1M-token cost for text models", () => {
+    // claude-haiku: input $1, output $5 per 1M tokens
+    expect(estimateCost("claude-haiku", 1_000_000, 0)).toBeCloseTo(1, 5);
+    expect(estimateCost("claude-haiku", 0, 1_000_000)).toBeCloseTo(5, 5);
+  });
+
+  it("computes per-image cost for image models", () => {
+    // outputTokens is the image count for image models
+    expect(estimateCost("imagen-4", 0, 1)).toBe(imagePricing["imagen-4"]);
+    expect(estimateCost("gpt-image-1", 0, 3)).toBeCloseTo(
+      imagePricing["gpt-image-1"] * 3,
+      5
+    );
+  });
+
+  it("returns 0 for unknown model", () => {
+    expect(estimateCost("unknown-model", 1000, 1000)).toBe(0);
+  });
+});
+
+describe("imagePricing", () => {
+  it("has entries for imagen-4, gpt-image-1 and gemini-2.5-flash-image", () => {
+    expect(imagePricing["imagen-4"]).toBeGreaterThan(0);
+    expect(imagePricing["gpt-image-1"]).toBeGreaterThan(0);
+    expect(imagePricing["gemini-2.5-flash-image"]).toBeGreaterThan(0);
   });
 });

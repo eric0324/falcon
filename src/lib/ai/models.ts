@@ -66,12 +66,23 @@ export const modelPricing: Record<string, { input: number; output: number }> = {
   "gemini-pro": { input: 1.25, output: 10 },
 };
 
-/** Estimate cost in USD from token counts and model name */
+/** Pricing per generated image in USD (applied to outputTokens as image count) */
+export const imagePricing: Record<string, number> = {
+  "imagen-4": 0.04,
+  "gpt-image-1": 0.04,
+  "gemini-2.5-flash-image": 0.03,
+};
+
+/** Estimate cost in USD. For image models, `outputTokens` is treated as image count. */
 export function estimateCost(
   model: string,
   inputTokens: number,
   outputTokens: number
 ): number {
+  const perImage = imagePricing[model];
+  if (perImage !== undefined) {
+    return perImage * outputTokens;
+  }
   const pricing = modelPricing[model];
   if (!pricing) return 0;
   return (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000;
