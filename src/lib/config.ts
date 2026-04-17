@@ -62,6 +62,12 @@ export const CONFIG_DEFINITIONS: Record<string, ConfigDef[]> = {
     { key: "META_ADS_ACCESS_TOKEN", description: "Access Token", sensitive: true },
     { key: "META_ADS_ACCOUNT_IDS", description: "Account IDs", sensitive: false },
   ],
+  aws_s3: [
+    { key: "AWS_S3_BUCKET", description: "S3 Bucket name", sensitive: false },
+    { key: "AWS_S3_REGION", description: "S3 Region (e.g. ap-northeast-1)", sensitive: false },
+    { key: "AWS_ACCESS_KEY_ID", description: "AWS Access Key ID", sensitive: true },
+    { key: "AWS_SECRET_ACCESS_KEY", description: "AWS Secret Access Key", sensitive: true },
+  ],
   general: [
     { key: "DEFAULT_MONTHLY_QUOTA_USD", description: "Default monthly quota (USD)", sensitive: false },
     { key: "PG_TEXT_SEARCH_CONFIG", description: "PostgreSQL text search config", sensitive: false, options: ["simple", "english"] },

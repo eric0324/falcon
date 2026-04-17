@@ -188,6 +188,18 @@ describe("config", () => {
         })
       );
     });
+
+    it("auto-detects aws_s3 group for AWS S3 keys", async () => {
+      mockUpsert.mockResolvedValue({});
+
+      await setConfig("AWS_S3_BUCKET", "my-bucket", { encrypted: false });
+
+      expect(mockUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ group: "aws_s3" }),
+        })
+      );
+    });
   });
 
   describe("deleteConfig", () => {
