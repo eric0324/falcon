@@ -18,6 +18,9 @@ const prismaMock = vi.hoisted(() => ({
 
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 
+const mockGetPresignedUrl = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/storage/s3", () => ({ getPresignedUrl: mockGetPresignedUrl }));
+
 import {
   getMessages,
   getMessageCount,
@@ -108,6 +111,78 @@ describe("conversation-messages", () => {
       expect(result[0]).not.toHaveProperty("tokenUsage");
     });
 
+    it("signs presigned URLs for attachments with s3Key", async () => {
+      mockGetPresignedUrl.mockResolvedValue("https://signed.example/a.png");
+      prismaMock.conversationMessage.findMany.mockResolvedValue([
+        {
+          orderIndex: 0,
+          role: "user",
+          content: "see this",
+          toolCalls: null,
+          attachments: [
+            { name: "cat.png", type: "image/png", size: 123, s3Key: "images/u/a.png" },
+            { name: "notes.pdf", type: "application/pdf", size: 456 },
+          ],
+          tokenUsages: [],
+        },
+      ]);
+
+      const result = await getMessages("conv-1");
+      expect(mockGetPresignedUrl).toHaveBeenCalledWith({ key: "images/u/a.png" });
+      expect(mockGetPresignedUrl).toHaveBeenCalledTimes(1);
+      expect(result[0].attachments).toEqual([
+        {
+          name: "cat.png",
+          type: "image/png",
+          size: 123,
+          s3Key: "images/u/a.png",
+          presignedUrl: "https://signed.example/a.png",
+        },
+        { name: "notes.pdf", type: "application/pdf", size: 456 },
+      ]);
+    });
+
+    it("tolerates presign failure and still returns attachment metadata", async () => {
+      mockGetPresignedUrl.mockRejectedValue(new Error("s3 down"));
+      prismaMock.conversationMessage.findMany.mockResolvedValue([
+        {
+          orderIndex: 0,
+          role: "user",
+          content: "m",
+          toolCalls: null,
+          attachments: [
+            { name: "a.png", type: "image/png", size: 1, s3Key: "images/u/a.png" },
+          ],
+          tokenUsages: [],
+        },
+      ]);
+
+      const result = await getMessages("conv-1");
+      expect(result[0].attachments?.[0]).toEqual({
+        name: "a.png",
+        type: "image/png",
+        size: 1,
+        s3Key: "images/u/a.png",
+      });
+      expect(result[0].attachments?.[0].presignedUrl).toBeUndefined();
+    });
+
+    it("omits attachments when the row has none", async () => {
+      prismaMock.conversationMessage.findMany.mockResolvedValue([
+        {
+          orderIndex: 0,
+          role: "user",
+          content: "hi",
+          toolCalls: null,
+          attachments: null,
+          tokenUsages: [],
+        },
+      ]);
+
+      const result = await getMessages("conv-1");
+      expect(result[0]).not.toHaveProperty("attachments");
+    });
+
     it("aggregates multiple tokenUsages into single tokenUsage", async () => {
       prismaMock.conversationMessage.findMany.mockResolvedValue([
         {
@@ -182,6 +257,7 @@ describe("conversation-messages", () => {
             role: "user",
             content: "hi",
             toolCalls: undefined,
+            attachments: undefined,
           },
           {
             conversationId: "conv-1",
@@ -189,6 +265,7 @@ describe("conversation-messages", () => {
             role: "assistant",
             content: "hello",
             toolCalls: undefined,
+            attachments: undefined,
           },
         ],
       });
@@ -234,6 +311,7 @@ describe("conversation-messages", () => {
             role: "user",
             content: "new question",
             toolCalls: undefined,
+            attachments: undefined,
           },
           {
             conversationId: "conv-1",
@@ -241,6 +319,7 @@ describe("conversation-messages", () => {
             role: "assistant",
             content: "new answer",
             toolCalls: undefined,
+            attachments: undefined,
           },
         ],
       });
@@ -280,6 +359,7 @@ describe("conversation-messages", () => {
             role: "user",
             content: "first message",
             toolCalls: undefined,
+            attachments: undefined,
           },
           {
             conversationId: "conv-1",
@@ -287,10 +367,64 @@ describe("conversation-messages", () => {
             role: "assistant",
             content: "first reply",
             toolCalls: undefined,
+            attachments: undefined,
           },
         ],
       });
       expect(result).toEqual(["msg-1"]);
+    });
+
+    it("persists attachments with client-only fields stripped", async () => {
+      const mockAggregate = vi.fn().mockResolvedValue({ _max: { orderIndex: -1 } });
+      const mockCreateMany = vi.fn().mockResolvedValue({ count: 1 });
+      const mockFindMany = vi.fn().mockResolvedValue([]);
+
+      prismaMock.$transaction.mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) => {
+          const tx = {
+            conversationMessage: {
+              aggregate: mockAggregate,
+              createMany: mockCreateMany,
+              findMany: mockFindMany,
+            },
+          };
+          return fn(tx);
+        }
+      );
+
+      await appendMessages("conv-1", [
+        {
+          role: "user",
+          content: "look",
+          attachments: [
+            {
+              name: "a.png",
+              type: "image/png",
+              size: 100,
+              s3Key: "images/u/a.png",
+              base64: "SHOULD_BE_STRIPPED",
+              presignedUrl: "SHOULD_BE_STRIPPED",
+            },
+            { name: "b.pdf", type: "application/pdf", size: 200 },
+          ],
+        },
+      ]);
+
+      expect(mockCreateMany).toHaveBeenCalledWith({
+        data: [
+          {
+            conversationId: "conv-1",
+            orderIndex: 0,
+            role: "user",
+            content: "look",
+            toolCalls: undefined,
+            attachments: [
+              { name: "a.png", type: "image/png", size: 100, s3Key: "images/u/a.png" },
+              { name: "b.pdf", type: "application/pdf", size: 200 },
+            ],
+          },
+        ],
+      });
     });
 
     it("includes toolCalls when present", async () => {
@@ -324,6 +458,7 @@ describe("conversation-messages", () => {
             role: "assistant",
             content: "result",
             toolCalls: toolCalls,
+            attachments: undefined,
           },
         ],
       });

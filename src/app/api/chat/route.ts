@@ -107,7 +107,20 @@ export async function POST(req: Request) {
       );
     }
 
-    const { message, model, files, conversationId: incomingConversationId, dataSources, skillPrompt, currentCode, imageProvider, attachedImageKeys } = await req.json();
+    const { message, model, files, conversationId: incomingConversationId, dataSources, skillPrompt, currentCode, imageProvider, attachedImageKeys, attachments: rawAttachments } = await req.json();
+
+    // Normalise attachments (persist only; LLM view remains driven by files + attachedImageKeys)
+    const attachments: import("@/types/message").MessageAttachment[] = Array.isArray(rawAttachments)
+      ? (rawAttachments as unknown[])
+          .filter((a): a is Record<string, unknown> => !!a && typeof a === "object")
+          .map((a) => ({
+            name: String(a.name ?? ""),
+            type: String(a.type ?? ""),
+            size: typeof a.size === "number" ? a.size : 0,
+            ...(typeof a.s3Key === "string" ? { s3Key: a.s3Key } : {}),
+          }))
+          .filter((a) => a.name && a.type)
+      : [];
 
     // Image generation is opt-in: only enabled when the user explicitly picks a provider.
     const imageProviderChoice: ImageProvider | null =
@@ -574,7 +587,11 @@ export async function POST(req: Request) {
         if (conversationId) {
           try {
             const newMessages: import("@/types/message").Message[] = [
-              { role: "user", content: message },
+              {
+                role: "user",
+                content: message,
+                ...(attachments.length > 0 ? { attachments } : {}),
+              },
               {
                 role: "assistant",
                 content: finalAssistantText,

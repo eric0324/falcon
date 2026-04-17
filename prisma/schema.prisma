@@ -164,6 +164,7 @@ model ConversationMessage {
   role           String
   content        String   @db.Text
   toolCalls      Json?
+  attachments    Json?
 
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   tokenUsages    TokenUsage[]

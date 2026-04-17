@@ -46,6 +46,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   toolCalls?: ToolCall[];
+  attachments?: import("@/types/message").MessageAttachment[];
 }
 
 interface CompactInfo {
@@ -509,9 +510,24 @@ function StudioContent() {
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
+    // Attachments for both local preview (with base64) and persistence payload
+    const messageAttachments = uploadedFiles.map((f) => ({
+      name: f.name,
+      type: f.type,
+      size: f.size,
+      ...(f.s3Key ? { s3Key: f.s3Key } : {}),
+      ...(f.type.startsWith("image/") ? { base64: f.base64 } : {}),
+    }));
     setInput("");
     isSubmittingRef.current = true;
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "user",
+        content: userMessage,
+        ...(messageAttachments.length > 0 ? { attachments: messageAttachments } : {}),
+      },
+    ]);
     setIsLoading(true);
     setCurrentToolCalls([]);
     setSuggestedSources(null);
@@ -549,6 +565,14 @@ function StudioContent() {
           imageProvider: imageProvider || undefined,
           files: filesToSend.length > 0 ? filesToSend : undefined,
           attachedImageKeys: attachedImageKeys.length > 0 ? attachedImageKeys : undefined,
+          attachments: messageAttachments.length > 0
+            ? messageAttachments.map(({ name, type, size, s3Key }) => ({
+                name,
+                type,
+                size,
+                ...(s3Key ? { s3Key } : {}),
+              }))
+            : undefined,
           conversationId: convId || undefined,
           dataSources: selectedDataSources.length > 0 ? selectedDataSources : undefined,
           skillPrompt: selectedSkill?.prompt || undefined,

@@ -82,7 +82,7 @@ function compressImage(file: File): Promise<string> {
   });
 }
 
-function getFileIcon(type: string) {
+export function getFileIcon(type: string) {
   if (type.startsWith("image/")) {
     return <ImageIcon className="h-3.5 w-3.5" />;
   }

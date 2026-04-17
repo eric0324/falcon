@@ -1,11 +1,44 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import type { Message } from "@/types/message";
+import { getPresignedUrl } from "@/lib/storage/s3";
+import type { Message, MessageAttachment } from "@/types/message";
 
 interface TokenUsageRow {
   model: string;
   inputTokens: number;
   outputTokens: number;
+}
+
+function toAttachmentsJson(
+  attachments: Message["attachments"]
+): Prisma.InputJsonValue | typeof Prisma.JsonNull | undefined {
+  if (!attachments || attachments.length === 0) return undefined;
+  // Strip client-only fields (base64, presignedUrl) before persisting.
+  const storable = attachments.map((a) => ({
+    name: a.name,
+    type: a.type,
+    size: a.size,
+    ...(a.s3Key ? { s3Key: a.s3Key } : {}),
+  }));
+  return storable as unknown as Prisma.InputJsonValue;
+}
+
+async function attachmentsWithUrls(
+  raw: unknown
+): Promise<MessageAttachment[] | undefined> {
+  if (!raw || !Array.isArray(raw)) return undefined;
+  const items = raw as MessageAttachment[];
+  return Promise.all(
+    items.map(async (a) => {
+      if (!a.s3Key) return a;
+      try {
+        const presignedUrl = await getPresignedUrl({ key: a.s3Key });
+        return { ...a, presignedUrl };
+      } catch {
+        return a;
+      }
+    })
+  );
 }
 
 /** 依 orderIndex 排序取得 conversation 的所有訊息 */
@@ -15,22 +48,30 @@ export async function getMessages(conversationId: string): Promise<Message[]> {
     orderBy: { orderIndex: "asc" },
     include: { tokenUsages: true },
   });
-  return rows.map((r) => {
-    const msg: Message = {
-      role: r.role as Message["role"],
-      content: r.content,
-      ...(r.toolCalls ? { toolCalls: r.toolCalls as unknown as Message["toolCalls"] } : {}),
-    };
-    const usages = (r as unknown as { tokenUsages: TokenUsageRow[] }).tokenUsages;
-    if (usages.length > 0) {
-      msg.tokenUsage = {
-        model: usages[0].model,
-        inputTokens: usages.reduce((sum, u) => sum + u.inputTokens, 0),
-        outputTokens: usages.reduce((sum, u) => sum + u.outputTokens, 0),
+
+  return Promise.all(
+    rows.map(async (r) => {
+      const msg: Message = {
+        role: r.role as Message["role"],
+        content: r.content,
+        ...(r.toolCalls ? { toolCalls: r.toolCalls as unknown as Message["toolCalls"] } : {}),
       };
-    }
-    return msg;
-  });
+      const row = r as unknown as { attachments?: unknown; tokenUsages: TokenUsageRow[] };
+      const attachments = await attachmentsWithUrls(row.attachments);
+      if (attachments && attachments.length > 0) {
+        msg.attachments = attachments;
+      }
+      const usages = row.tokenUsages;
+      if (usages.length > 0) {
+        msg.tokenUsage = {
+          model: usages[0].model,
+          inputTokens: usages.reduce((sum, u) => sum + u.inputTokens, 0),
+          outputTokens: usages.reduce((sum, u) => sum + u.outputTokens, 0),
+        };
+      }
+      return msg;
+    })
+  );
 }
 
 /** 取得 conversation 的訊息數量 */
@@ -64,6 +105,7 @@ export async function appendMessages(
         role: m.role,
         content: m.content,
         toolCalls: toToolCallsJson(m.toolCalls),
+        attachments: toAttachmentsJson(m.attachments),
       })),
     });
 
@@ -89,6 +131,7 @@ export async function replaceMessages(
         role: m.role,
         content: m.content,
         toolCalls: toToolCallsJson(m.toolCalls),
+        attachments: toAttachmentsJson(m.attachments),
       })),
     });
     const assistantMessages = await tx.conversationMessage.findMany({

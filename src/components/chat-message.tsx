@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { Check, Copy, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { getFileIcon } from "@/components/file-upload";
+import type { MessageAttachment } from "@/types/message";
 
 interface ToolCallInfo {
   name: string;
@@ -15,9 +17,79 @@ interface ChatMessageProps {
   message: {
     role: "user" | "assistant";
     content: string;
+    attachments?: MessageAttachment[];
   };
   isStreaming?: boolean;
   toolCalls?: ToolCallInfo[];
+}
+
+function AttachmentImage({ attachment }: { attachment: MessageAttachment }) {
+  const initialSrc =
+    (attachment.base64 ? `data:${attachment.type};base64,${attachment.base64}` : null) ??
+    attachment.presignedUrl ??
+    null;
+  const [src, setSrc] = useState<string | null>(initialSrc);
+  const [failed, setFailed] = useState(false);
+
+  const handleError = async () => {
+    if (failed || !attachment.s3Key) {
+      setFailed(true);
+      return;
+    }
+    try {
+      const res = await fetch(
+        `/api/chat/presign-image?key=${encodeURIComponent(attachment.s3Key)}`
+      );
+      if (res.ok) {
+        const body = (await res.json()) as { url: string };
+        setSrc(body.url);
+        return;
+      }
+    } catch {
+      // fall through
+    }
+    setFailed(true);
+  };
+
+  if (!src || failed) {
+    return (
+      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs bg-background/20 border border-current/20">
+        {getFileIcon(attachment.type)}
+        <span className="max-w-[160px] truncate">{attachment.name}</span>
+      </div>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={attachment.name}
+      onError={handleError}
+      className="max-h-32 rounded-md object-cover bg-background/30"
+    />
+  );
+}
+
+function MessageAttachments({ attachments }: { attachments: MessageAttachment[] }) {
+  if (attachments.length === 0) return null;
+  return (
+    <div className="mt-2 pt-2 border-t border-current/20 flex flex-wrap gap-1.5">
+      {attachments.map((a, i) =>
+        a.type.startsWith("image/") ? (
+          <AttachmentImage key={i} attachment={a} />
+        ) : (
+          <div
+            key={i}
+            className="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs bg-background/20 border border-current/20"
+          >
+            {getFileIcon(a.type)}
+            <span className="max-w-[160px] truncate">{a.name}</span>
+          </div>
+        )
+      )}
+    </div>
+  );
 }
 
 // Strip YAML front matter that can swallow content
@@ -102,6 +174,9 @@ export function ChatMessage({ message, isStreaming = false, toolCalls = [] }: Ch
           </div>
           <div className="rounded-2xl px-4 py-2 max-w-[85%] text-sm bg-primary text-primary-foreground">
             <div className="whitespace-pre-wrap break-words">{displayContent}</div>
+            {message.attachments && message.attachments.length > 0 && (
+              <MessageAttachments attachments={message.attachments} />
+            )}
           </div>
         </div>
       </div>
