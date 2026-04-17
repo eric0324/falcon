@@ -6,6 +6,8 @@ import {
   generateFromText,
   generateFromImage,
   type ImageProvider,
+  type AspectRatio,
+  type ImageQuality,
 } from "./image-generation";
 
 export function createImageTools(ctx: {
@@ -37,8 +39,22 @@ export function createImageTools(ctx: {
           .describe(
             "Explicit provider override. Usually omit this — the user's UI selection is used by default."
           ),
+        aspectRatio: z
+          .enum(["1:1", "16:9", "9:16", "4:3", "3:4"])
+          .optional()
+          .describe(
+            "Only pass this when the user explicitly asks for a shape (e.g. 'make it 16:9', '橫式海報', '長條'). Omit it otherwise — the default is 1:1 for text-to-image and match-source for image-to-image."
+          ),
+        quality: z
+          .enum(["low", "medium", "high"])
+          .optional()
+          .describe(
+            "Only pass when the user asks for a specific quality level (e.g. '高品質', '精細一點', '快速預覽'). " +
+              "'high' costs ~4x more than the default; use it only when the user explicitly wants better quality. " +
+              "Currently only applied to the gpt-image provider; Imagen/Gemini ignore this."
+          ),
       }),
-      execute: async ({ prompt, sourceImageKey, provider }) => {
+      execute: async ({ prompt, sourceImageKey, provider, aspectRatio, quality }) => {
         const used: ImageProvider = provider ?? ctx.defaultProvider;
 
         try {
@@ -48,11 +64,15 @@ export function createImageTools(ctx: {
                 sourceImageKey,
                 provider: used,
                 userId: ctx.userId,
+                aspectRatio: aspectRatio as AspectRatio | undefined,
+                quality: quality as ImageQuality | undefined,
               })
             : await generateFromText({
                 prompt,
                 provider: used,
                 userId: ctx.userId,
+                aspectRatio: aspectRatio as AspectRatio | undefined,
+                quality: quality as ImageQuality | undefined,
               });
 
           recordUsage(ctx.userId, result.modelUsed);

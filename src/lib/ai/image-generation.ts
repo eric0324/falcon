@@ -10,12 +10,25 @@ import {
 
 export type ImageProvider = "imagen" | "gpt-image";
 
+export type AspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
+
+export type ImageQuality = "low" | "medium" | "high";
+
 export interface ImageGenerationResult {
   s3Key: string;
   presignedUrl: string;
   provider: ImageProvider;
   modelUsed: string;
 }
+
+const OPENAI_EDIT_SIZE: Record<AspectRatio, string> = {
+  "1:1": "1024x1024",
+  "16:9": "1536x1024",
+  "9:16": "1024x1536",
+  // gpt-image-1 only supports 3 sizes; fall back for 4:3 and 3:4
+  "4:3": "1536x1024",
+  "3:4": "1024x1536",
+};
 
 const TEXT_MODEL: Record<ImageProvider, string> = {
   imagen: "imagen-4.0-generate-001",
@@ -39,14 +52,21 @@ export async function generateFromText(params: {
   prompt: string;
   provider: ImageProvider;
   userId: string;
+  aspectRatio?: AspectRatio;
+  quality?: ImageQuality;
 }): Promise<ImageGenerationResult> {
   const model = await getTextModel(params.provider);
+  const ratio = params.aspectRatio ?? "1:1";
 
   const result = await generateImage({
     model,
     prompt: params.prompt,
     n: 1,
-    size: "1024x1024",
+    aspectRatio: ratio,
+    // OpenAI image model uses provider option "quality"; Imagen ignores it.
+    ...(params.quality && params.provider === "gpt-image"
+      ? { providerOptions: { openai: { quality: params.quality } } }
+      : {}),
   });
 
   const buffer = Buffer.from(result.image.uint8Array);
@@ -68,6 +88,8 @@ export async function generateFromImage(params: {
   sourceImageKey: string;
   provider: ImageProvider;
   userId: string;
+  aspectRatio?: AspectRatio;
+  quality?: ImageQuality;
 }): Promise<ImageGenerationResult> {
   assertKeyOwnership(params.sourceImageKey, params.userId);
 
@@ -75,8 +97,13 @@ export async function generateFromImage(params: {
 
   const outputBuffer =
     params.provider === "imagen"
-      ? await editWithGemini(params.prompt, sourceBuffer)
-      : await editWithOpenAI(params.prompt, sourceBuffer);
+      ? await editWithGemini(params.prompt, sourceBuffer, params.aspectRatio)
+      : await editWithOpenAI(
+          params.prompt,
+          sourceBuffer,
+          params.aspectRatio,
+          params.quality
+        );
 
   const s3Key = buildS3Key(params.userId);
   await uploadImage({
@@ -106,10 +133,16 @@ async function getTextModel(provider: ImageProvider) {
 
 async function editWithGemini(
   prompt: string,
-  sourceBuffer: Buffer
+  sourceBuffer: Buffer,
+  aspectRatio?: AspectRatio
 ): Promise<Buffer> {
   const apiKey = await getConfigRequired("GOOGLE_GENERATIVE_AI_API_KEY");
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
+
+  // Gemini 2.5 Flash Image doesn't take a structured size param — steer via prompt.
+  const promptWithRatio = aspectRatio
+    ? `${prompt}\n\nOutput aspect ratio: ${aspectRatio}.`
+    : `${prompt}\n\nPreserve the aspect ratio of the input image.`;
 
   const response = await fetch(url, {
     method: "POST",
@@ -118,7 +151,7 @@ async function editWithGemini(
       contents: [
         {
           parts: [
-            { text: prompt },
+            { text: promptWithRatio },
             {
               inlineData: {
                 mimeType: "image/png",
@@ -128,6 +161,11 @@ async function editWithGemini(
           ],
         },
       ],
+      // Without this, the model replies with text describing the image
+      // instead of generating a new image.
+      generationConfig: {
+        responseModalities: ["IMAGE"],
+      },
     }),
   });
 
@@ -155,14 +193,18 @@ async function editWithGemini(
 
 async function editWithOpenAI(
   prompt: string,
-  sourceBuffer: Buffer
+  sourceBuffer: Buffer,
+  aspectRatio?: AspectRatio,
+  quality?: ImageQuality
 ): Promise<Buffer> {
   const apiKey = await getConfigRequired("OPENAI_API_KEY");
 
   const form = new FormData();
   form.append("model", "gpt-image-1");
   form.append("prompt", prompt);
-  form.append("size", "1024x1024");
+  // "auto" lets gpt-image-1 pick an output size based on the source image
+  form.append("size", aspectRatio ? OPENAI_EDIT_SIZE[aspectRatio] : "auto");
+  if (quality) form.append("quality", quality);
   form.append("n", "1");
   form.append(
     "image",

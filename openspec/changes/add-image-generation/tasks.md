@@ -43,12 +43,12 @@
 
 ## 6. UI
 
-- [ ] 6.1 Chat model 選擇器旁新增圖片 provider 選擇器元件（`imagen` / `gpt-image`）
-- [ ] 6.2 對話狀態保存 `imageProvider`，傳入 chat API request
-- [ ] 6.3 訊息輸入區新增圖檔上傳控制（拖拉 + 點擊選檔）
-- [ ] 6.4 訊息渲染支援 `image_generated` tool result：顯示圖片、載入失敗時重簽
-- [ ] 6.5 訊息渲染支援 `image_error` tool result：錯誤卡片
-- [ ] 6.6 為 UI 元件寫 component test
+- [x] 6.1 Chat model 選擇器旁新增 `ImageProviderSelector` 元件（`imagen` / `gpt-image`）
+- [x] 6.2 對話狀態保存 `imageProvider`，傳入 chat API request 的 body
+- [x] 6.3 擴充既有 `FileUpload`：圖檔上傳時額外 POST 到 `/api/chat/upload-image` 取得 `s3Key`，`UploadedFile` 加 `s3Key?`；送訊息時抽出 `attachedImageKeys` 送給 route；route 將 key 注入 user message 作為 LLM hint
+- [x] 6.4 `ToolCallDisplay` 渲染 `image_generated`：`ImageResultCard` 顯示圖片 + 下載按鈕，載入失敗自動打 `/api/chat/presign-image` 重簽
+- [x] 6.5 `ToolCallDisplay` 渲染 `image_error`：紅色錯誤卡片顯示 `reason`
+- [x] 6.6 專案無 jsdom / testing-library 設施，UI 殼不寫 DOM 測試。關鍵邏輯測試在 `upload-image-client.test.ts`（2 例）
 
 ## 7. 整合與驗證
 

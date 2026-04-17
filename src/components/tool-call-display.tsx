@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, CheckCircle2, Database, Code, List, Search, ChevronRight, Cloud, FileEdit, Wifi, AlertCircle, ExternalLink, BookOpen, BarChart3, LineChart, Megaphone, Github } from "lucide-react";
+import { Loader2, CheckCircle2, Database, Code, List, Search, ChevronRight, Cloud, FileEdit, Wifi, AlertCircle, ExternalLink, BookOpen, BarChart3, LineChart, Megaphone, Github, Image as ImageIcon, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +22,7 @@ const toolIcons: Record<string, React.ReactNode> = {
   getDataSourceSchema: <Database className="h-4 w-4" />,
   querySampleData: <Search className="h-4 w-4" />,
   updateCode: <Code className="h-4 w-4" />,
+  generateImage: <ImageIcon className="h-4 w-4" />,
   googleSearch: <Cloud className="h-4 w-4" />,
   googleWrite: <FileEdit className="h-4 w-4" />,
   googleStatus: <Wifi className="h-4 w-4" />,
@@ -43,6 +44,7 @@ const toolCallingLabels: Record<string, string> = {
   getDataSourceSchema: "Analyzing schema...",
   querySampleData: "Querying data...",
   updateCode: "Thinking...",
+  generateImage: "Generating image...",
   updateDocument: "Writing document...",
   googleSearch: "Searching Google...",
   googleWrite: "Writing to Google...",
@@ -66,6 +68,7 @@ const toolCompletedLabels: Record<string, string> = {
   getDataSourceSchema: "Schema analyzed",
   querySampleData: "Data queried",
   updateCode: "Code generated",
+  generateImage: "Image generated",
   updateDocument: "Document written",
   googleSearch: "Google search complete",
   googleWrite: "Written to Google",
@@ -88,6 +91,40 @@ export function ToolCallDisplay({ toolCall }: ToolCallDisplayProps) {
 
   // Hide suggestDataSources from tool call list (rendered as overlay in chat page)
   if (toolCall.name === "suggestDataSources") return null;
+
+  // Image generation: render the image directly when completed
+  if (toolCall.name === "generateImage" && toolCall.status === "completed") {
+    const res = toolCall.result as
+      | {
+          type: "image_generated";
+          s3Key: string;
+          presignedUrl: string;
+          provider: string;
+        }
+      | { type: "image_error"; reason: string }
+      | undefined;
+
+    if (res?.type === "image_generated") {
+      return <ImageResultCard s3Key={res.s3Key} initialUrl={res.presignedUrl} provider={res.provider} />;
+    }
+    if (res?.type === "image_error") {
+      return (
+        <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-lg p-3 text-sm">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <div className="font-medium text-red-700 dark:text-red-300">
+                Image generation failed
+              </div>
+              <div className="text-xs text-red-600 dark:text-red-400 mt-0.5">
+                {res.reason}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
 
   const icon = toolIcons[toolCall.name] || <Code className="h-4 w-4" />;
   const label = toolCall.status === "calling"
@@ -200,6 +237,70 @@ export function ToolCallDisplay({ toolCall }: ToolCallDisplayProps) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function ImageResultCard({
+  s3Key,
+  initialUrl,
+  provider,
+}: {
+  s3Key: string;
+  initialUrl: string;
+  provider: string;
+}) {
+  const [url, setUrl] = useState(initialUrl);
+  const [failed, setFailed] = useState(false);
+
+  const handleError = async () => {
+    if (failed) return;
+    try {
+      const res = await fetch(
+        `/api/chat/presign-image?key=${encodeURIComponent(s3Key)}`
+      );
+      if (res.ok) {
+        const body = (await res.json()) as { url: string };
+        setUrl(body.url);
+        return;
+      }
+    } catch {
+      // swallow — fall through to failed state
+    }
+    setFailed(true);
+  };
+
+  if (failed) {
+    return (
+      <div className="bg-muted/50 rounded-lg border text-sm p-3 text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="h-4 w-4" />
+          <span>Image expired and could not be refreshed</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border overflow-hidden bg-muted/30">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={url}
+        alt="Generated"
+        onError={handleError}
+        className="w-full max-h-[512px] object-contain bg-background"
+      />
+      <div className="flex items-center justify-between px-3 py-2 text-xs text-muted-foreground">
+        <span>{provider}</span>
+        <a
+          href={url}
+          download
+          className="inline-flex items-center gap-1 hover:text-foreground"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Download
+        </a>
+      </div>
     </div>
   );
 }

@@ -926,9 +926,16 @@ Only suggest sources from the list above.`;
 }
 
 /**
- * Build system prompt based on selected data sources
+ * Build system prompt based on selected data sources.
+ * Pass imageGenerationEnabled=true only when the user has explicitly
+ * selected an image provider — otherwise the instructions are omitted
+ * to keep the model from suggesting generateImage.
  */
-export function buildSystemPrompt(dataSources?: string[], availableSources?: string[]): string {
+export function buildSystemPrompt(
+  dataSources?: string[],
+  availableSources?: string[],
+  imageGenerationEnabled = false
+): string {
   const now = new Date();
   const dateStr = now.toLocaleDateString("zh-TW", {
     year: "numeric",
@@ -952,7 +959,9 @@ export function buildSystemPrompt(dataSources?: string[], availableSources?: str
     } else {
       prompt += NO_DATA_SOURCE_INSTRUCTIONS;
     }
-    prompt += IMAGE_GENERATION_INSTRUCTIONS;
+    if (imageGenerationEnabled) {
+      prompt += IMAGE_GENERATION_INSTRUCTIONS;
+    }
     prompt += LLM_BRIDGE_INSTRUCTIONS;
     prompt += SCRAPER_BRIDGE_INSTRUCTIONS;
     prompt += TOOLDB_INSTRUCTIONS;
@@ -1032,8 +1041,10 @@ export function buildSystemPrompt(dataSources?: string[], availableSources?: str
     prompt += buildSuggestDataSourcesInstructions(availableSources);
   }
 
-  // Image generation — always available
-  prompt += IMAGE_GENERATION_INSTRUCTIONS;
+  // Image generation — only when the user has selected a provider
+  if (imageGenerationEnabled) {
+    prompt += IMAGE_GENERATION_INSTRUCTIONS;
+  }
 
   // LLM bridge — always available regardless of data source selection
   prompt += LLM_BRIDGE_INSTRUCTIONS;

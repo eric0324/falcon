@@ -107,9 +107,24 @@ export async function POST(req: Request) {
       );
     }
 
-    const { message, model, files, conversationId: incomingConversationId, dataSources, skillPrompt, currentCode, imageProvider } = await req.json();
+    const { message, model, files, conversationId: incomingConversationId, dataSources, skillPrompt, currentCode, imageProvider, attachedImageKeys } = await req.json();
 
-    const imageProviderChoice: ImageProvider = imageProvider === "gpt-image" ? "gpt-image" : "imagen";
+    // Image generation is opt-in: only enabled when the user explicitly picks a provider.
+    const imageProviderChoice: ImageProvider | null =
+      imageProvider === "imagen" || imageProvider === "gpt-image"
+        ? imageProvider
+        : null;
+
+    // If the user uploaded images that landed in S3, surface the keys so the
+    // model can reference them as sourceImageKey when calling generateImage.
+    // Only attach the hint when image generation is actually enabled —
+    // otherwise there's no tool to consume the key.
+    const uploadedKeys = Array.isArray(attachedImageKeys)
+      ? (attachedImageKeys as unknown[]).filter((k): k is string => typeof k === "string")
+      : [];
+    const messageWithImageHints = imageProviderChoice && uploadedKeys.length > 0
+      ? `${message}\n\n[Uploaded images available as sourceImageKey for generateImage: ${uploadedKeys.join(", ")}]`
+      : message;
 
     // Use specified model or default
     const selectedModel = await getModel((model as ModelId) || defaultModel);
@@ -137,10 +152,11 @@ export async function POST(req: Request) {
       conversationId = conv.id;
     }
 
-    // Build messages array: history + new user message
+    // Build messages array: history + new user message.
+    // Append S3 key hints only to the LLM view — not the user-visible history.
     const messages = [
       ...historyMessages.map((m) => ({ role: m.role, content: m.content, toolCalls: m.toolCalls })),
-      { role: "user", content: message },
+      { role: "user", content: messageWithImageHints },
     ];
 
     // Create tools with user context (non-Google tools created eagerly)
@@ -236,17 +252,24 @@ export async function POST(req: Request) {
         filteredTools = { ...filteredTools, ...kbTools };
       }
     }
-    // Always register suggestDataSources, scraper and image generation tools
+    // Always register suggestDataSources and scraper tools
     filteredTools = {
       ...filteredTools,
       ...suggestDataSourcesTool,
       ...createScraperTools(),
-      ...createImageTools({
-        userId,
-        conversationId,
-        defaultProvider: imageProviderChoice,
-      }),
     };
+
+    // Image generation is opt-in: only register the tool when the user has selected a provider
+    if (imageProviderChoice) {
+      filteredTools = {
+        ...filteredTools,
+        ...createImageTools({
+          userId,
+          conversationId,
+          defaultProvider: imageProviderChoice,
+        }),
+      };
+    }
 
     // Build list of available-but-unselected data sources for AI to suggest
     const selectedSet = new Set((dataSources as string[]) || []);
@@ -264,7 +287,7 @@ export async function POST(req: Request) {
       .filter((id) => id !== null && !selectedSet.has(id)) as string[];
 
     // Build dynamic system prompt based on selected data sources + available unselected
-    let systemPrompt = buildSystemPrompt(dataSources, availableSources);
+    let systemPrompt = buildSystemPrompt(dataSources, availableSources, !!imageProviderChoice);
 
     // Append skill prompt if provided
     if (skillPrompt && typeof skillPrompt === "string") {

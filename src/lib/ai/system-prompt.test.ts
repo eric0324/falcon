@@ -37,9 +37,18 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain(String(new Date().getFullYear()));
   });
 
-  it("always includes generateImage tool guidance regardless of data sources", () => {
+  it("omits generateImage guidance when image generation is disabled", () => {
     const withoutDs = buildSystemPrompt();
     const withDs = buildSystemPrompt(["plausible"]);
+    for (const prompt of [withoutDs, withDs]) {
+      expect(prompt).not.toContain("generateImage");
+      expect(prompt).not.toMatch(/sourceImageKey/);
+    }
+  });
+
+  it("includes generateImage guidance when image generation is enabled", () => {
+    const withoutDs = buildSystemPrompt(undefined, undefined, true);
+    const withDs = buildSystemPrompt(["plausible"], undefined, true);
     for (const prompt of [withoutDs, withDs]) {
       expect(prompt).toContain("generateImage");
       expect(prompt).toMatch(/sourceImageKey/);

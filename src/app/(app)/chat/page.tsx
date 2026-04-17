@@ -14,6 +14,8 @@ import { ChatMessage } from "@/components/chat-message";
 import { useToast } from "@/components/ui/use-toast";
 import { ToolCallDisplay, ToolCall } from "@/components/tool-call-display";
 import { ModelSelector } from "@/components/model-selector";
+import { ImageProviderSelector } from "@/components/image-provider-selector";
+import type { ImageProvider } from "@/lib/ai/image-generation";
 import { DataSourceSelector } from "@/components/data-source-selector";
 import { SkillSelector } from "@/components/skill-selector";
 import { FileUpload, FileList, UploadedFile } from "@/components/file-upload";
@@ -177,6 +179,7 @@ function StudioContent() {
   // Enhancement state
   const chatSteps = useChatSteps();
   const [selectedModel, setSelectedModel] = useState<ModelId>(defaultModel);
+  const [imageProvider, setImageProvider] = useState<ImageProvider | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [selectedDataSources, setSelectedDataSources] = useState<string[]>([]);
   const [selectedSkill, setSelectedSkill] = useState<{ id: string; name: string; prompt: string; requiredDataSources: string[] } | null>(null);
@@ -272,6 +275,7 @@ function StudioContent() {
     setUsedDataSources([]);
     setSuggestedSources(null);
     setCompactInfo(null);
+    setImageProvider(null);
   }, []);
 
   // Reset state when navigating to /chat without id (new conversation)
@@ -358,6 +362,7 @@ function StudioContent() {
         if (conv.model) setSelectedModel(conv.model);
         setConvStarred(conv.starred ?? false);
         setSelectedDataSources(conv.dataSources || []);
+        setImageProvider(null);
 
         // Extract code or document from messages - check tool calls first, then content
         const messages = conv.messages || [];
@@ -525,6 +530,11 @@ function StudioContent() {
       base64: f.base64,
     }));
 
+    // Pull S3 keys of image uploads so generateImage can use them as sourceImageKey
+    const attachedImageKeys = uploadedFiles
+      .map((f) => f.s3Key)
+      .filter((k): k is string => !!k);
+
     // Clear uploaded files after sending
     setUploadedFiles([]);
 
@@ -536,7 +546,9 @@ function StudioContent() {
         body: JSON.stringify({
           message: userMessage,
           model: selectedModel,
+          imageProvider: imageProvider || undefined,
           files: filesToSend.length > 0 ? filesToSend : undefined,
+          attachedImageKeys: attachedImageKeys.length > 0 ? attachedImageKeys : undefined,
           conversationId: convId || undefined,
           dataSources: selectedDataSources.length > 0 ? selectedDataSources : undefined,
           skillPrompt: selectedSkill?.prompt || undefined,
@@ -792,6 +804,7 @@ function StudioContent() {
           body: JSON.stringify({
             messages: [...messages, { role: "user", content: fixMessage }],
             model: selectedModel,
+            imageProvider: imageProvider || undefined,
             conversationId: convId || undefined,
           }),
         });
@@ -1311,6 +1324,7 @@ function StudioContent() {
                 <div data-tour="chat-model">
                   <ModelSelector value={selectedModel} onChange={setSelectedModel} />
                 </div>
+                <ImageProviderSelector value={imageProvider} onChange={setImageProvider} />
                 <div data-tour="chat-skill">
                   <SkillSelector
                     value={selectedSkill}

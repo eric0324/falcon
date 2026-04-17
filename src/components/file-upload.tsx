@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Paperclip, X, FileText, Image as ImageIcon, Code } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { uploadImageToS3 } from "@/lib/chat/upload-image-client";
 
 export interface UploadedFile {
   id: string;
@@ -12,7 +13,11 @@ export interface UploadedFile {
   type: string;
   size: number;
   base64: string;
+  s3Key?: string;
 }
+
+// MIME types also accepted by /api/chat/upload-image so image-to-image works
+const S3_UPLOADABLE_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 interface FileUploadProps {
   files: UploadedFile[];
@@ -136,12 +141,25 @@ export function FileUpload({ files, onChange, disabled }: FileUploadProps) {
         });
       }
 
+      // For whitelisted image types, also upload the original to S3 so it can
+      // be used as sourceImageKey for generateImage. Failure is non-fatal —
+      // the file is still usable for vision understanding via base64.
+      let s3Key: string | undefined;
+      if (S3_UPLOADABLE_IMAGE_TYPES.has(file.type)) {
+        try {
+          s3Key = await uploadImageToS3(file);
+        } catch (err) {
+          console.warn("[FileUpload] S3 upload failed, continuing with base64 only:", err);
+        }
+      }
+
       newFiles.push({
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         name: file.name,
         type: file.type,
         size: file.size,
         base64,
+        s3Key,
       });
     }
 

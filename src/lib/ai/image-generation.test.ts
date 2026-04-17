@@ -71,7 +71,7 @@ describe("image-generation", () => {
       expect(mockGenerateImage).toHaveBeenCalledWith(
         expect.objectContaining({
           prompt: "a cat",
-          size: "1024x1024",
+          aspectRatio: "1:1",
           n: 1,
         })
       );
@@ -174,9 +174,14 @@ describe("image-generation", () => {
       expect(url).toContain("key=google-key");
       expect(options.method).toBe("POST");
       const body = JSON.parse(options.body);
+      const textPart = body.contents[0].parts.find(
+        (p: { text?: string }) => typeof p.text === "string"
+      );
+      expect(textPart.text).toContain("add a hat");
+      // No explicit aspectRatio passed, so prompt should ask to preserve source ratio
+      expect(textPart.text).toMatch(/preserve the aspect ratio/i);
       expect(body.contents[0].parts).toEqual(
         expect.arrayContaining([
-          { text: "add a hat" },
           {
             inlineData: {
               mimeType: "image/png",
@@ -185,6 +190,7 @@ describe("image-generation", () => {
           },
         ])
       );
+      expect(body.generationConfig?.responseModalities).toContain("IMAGE");
       expect(mockUploadImage).toHaveBeenCalledWith(
         expect.objectContaining({
           key: "images/user-1/test-uuid.png",
@@ -223,6 +229,94 @@ describe("image-generation", () => {
       );
       expect(result.provider).toBe("gpt-image");
       expect(result.modelUsed).toBe("gpt-image-1");
+    });
+
+    it("passes aspectRatio to Gemini prompt and OpenAI size mapping", async () => {
+      // Gemini path
+      const gBytes = Buffer.from([1]).toString("base64");
+      const gFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          candidates: [
+            { content: { parts: [{ inlineData: { data: gBytes } }] } },
+          ],
+        }),
+      });
+      vi.stubGlobal("fetch", gFetch);
+
+      await generateFromImage({
+        prompt: "widescreen",
+        sourceImageKey: "images/u/src.png",
+        provider: "imagen",
+        userId: "u",
+        aspectRatio: "16:9",
+      });
+
+      const gBody = JSON.parse(gFetch.mock.calls[0][1].body);
+      const gText = gBody.contents[0].parts.find(
+        (p: { text?: string }) => typeof p.text === "string"
+      ).text;
+      expect(gText).toMatch(/16:9/);
+      expect(gText).not.toMatch(/preserve the aspect ratio/i);
+
+      // OpenAI path
+      const oFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: [{ b64_json: gBytes }] }),
+      });
+      vi.stubGlobal("fetch", oFetch);
+
+      await generateFromImage({
+        prompt: "widescreen",
+        sourceImageKey: "images/u/src.png",
+        provider: "gpt-image",
+        userId: "u",
+        aspectRatio: "16:9",
+      });
+
+      const form = oFetch.mock.calls[0][1].body as FormData;
+      expect(form.get("size")).toBe("1536x1024");
+    });
+
+    it("defaults OpenAI edit size to 'auto' when no aspectRatio is given", async () => {
+      const b64 = Buffer.from([1]).toString("base64");
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: [{ b64_json: b64 }] }),
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      await generateFromImage({
+        prompt: "x",
+        sourceImageKey: "images/u/src.png",
+        provider: "gpt-image",
+        userId: "u",
+      });
+
+      const form = fetchMock.mock.calls[0][1].body as FormData;
+      expect(form.get("size")).toBe("auto");
+      // no quality by default — let provider use its own default
+      expect(form.get("quality")).toBeNull();
+    });
+
+    it("forwards quality to OpenAI edit when provided", async () => {
+      const b64 = Buffer.from([1]).toString("base64");
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: [{ b64_json: b64 }] }),
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      await generateFromImage({
+        prompt: "x",
+        sourceImageKey: "images/u/src.png",
+        provider: "gpt-image",
+        userId: "u",
+        quality: "high",
+      });
+
+      const form = fetchMock.mock.calls[0][1].body as FormData;
+      expect(form.get("quality")).toBe("high");
     });
 
     it("throws when REST response is not ok", async () => {

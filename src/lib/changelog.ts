@@ -14,6 +14,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.26.0",
+    date: "2026-04-17",
+    title: "AI 終於會畫圖了",
+    summary:
+      "接了 Google Imagen 4 和 OpenAI GPT-Image-1，現在可以跟 AI 說「畫一隻在打瞌睡的貓」，它真的會畫，丟一張照片叫它改也行。",
+    items: [
+      "新增圖片生成：文字生圖、上傳圖檔後請 AI 改圖",
+      "兩家 provider 任你選（Imagen 4 / GPT-Image-1），預設不選，要畫再挑",
+      "AI 會讀空氣調整比例和品質：講「16:9 海報」就橫式，講「高品質」就切高品質，沒提就用預設",
+      "圖片鎖在 private S3 bucket，用 presigned URL 顯示，連結到期會自己重簽",
+      "每張圖的費用自動入帳到 TokenUsage",
+    ],
+  },
+  {
     version: "v0.25.1",
     date: "2026-04-17",
     title: "新增 Claude Opus 4.7 模型",
