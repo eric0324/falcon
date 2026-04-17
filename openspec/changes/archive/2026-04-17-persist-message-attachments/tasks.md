@@ -32,11 +32,11 @@
 
 ## 6. 整合驗證
 
-- [ ] 6.1 端到端：上傳 2 張圖 + 1 個 PDF → 送出 → 訊息氣泡下顯示 2 縮圖 + PDF 檔名
-- [ ] 6.2 重整頁面：訊息氣泡下附件仍顯示（圖片走 presignedUrl、PDF 顯示檔名）
-- [ ] 6.3 presigned URL 過期：1 小時後重整，圖片 onError 觸發重簽並正常顯示
-- [ ] 6.4 跑 `openspec validate persist-message-attachments --strict`
+- [x] 6.1 端到端：上傳 2 張圖 + 1 個 PDF → 送出 → 訊息氣泡下顯示 2 縮圖 + PDF 檔名
+- [x] 6.2 重整頁面：訊息氣泡下附件仍顯示（圖片走 presignedUrl、PDF 顯示檔名）
+- [x] 6.3 presigned URL 過期：1 小時後重整，圖片 onError 觸發重簽並正常顯示
+- [x] 6.4 跑 `openspec validate persist-message-attachments --strict`
 
 ## 7. 歸檔
 
-- [ ] 7.1 所有任務完成後 `openspec archive persist-message-attachments --yes`
+- [x] 7.1 所有任務完成後 `openspec archive persist-message-attachments --yes`
