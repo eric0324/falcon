@@ -26,7 +26,7 @@ import { isMetaAdsConfigured } from "@/lib/integrations/meta-ads";
 import { isGitHubConfigured } from "@/lib/integrations/github";
 import { isVimeoConfigured } from "@/lib/integrations/vimeo";
 import { createKnowledgeBaseTools } from "@/lib/ai/knowledge-base-tools";
-import { shouldCompact, estimateTokens, trimMessagesToFit } from "@/lib/ai/token-utils";
+import { shouldCompact, estimateTokens, estimateMessagesTokens, trimMessagesToFit } from "@/lib/ai/token-utils";
 import { compactMessages } from "@/lib/ai/compact";
 import { generateConversationTitle } from "@/lib/ai/generate-title";
 import { prisma } from "@/lib/prisma";
@@ -41,6 +41,23 @@ interface FileData {
   name: string;
   type: string;
   base64: string;
+}
+
+// MIME types safe to decode as UTF-8 text. Binary files like PDF / zip must
+// NOT be decoded — the resulting garbage string would explode token estimates
+// and waste model context for no benefit.
+const TEXT_READABLE_MIME_PREFIXES = ["text/"];
+const TEXT_READABLE_MIME_EXACT = new Set([
+  "application/json",
+  "application/javascript",
+  "application/typescript",
+]);
+
+function isTextReadableMime(mime: string): boolean {
+  return (
+    TEXT_READABLE_MIME_PREFIXES.some((p) => mime.startsWith(p)) ||
+    TEXT_READABLE_MIME_EXACT.has(mime)
+  );
 }
 
 function buildMessageContent(
@@ -64,14 +81,18 @@ function buildMessageContent(
     }
   }
 
-  // Add text files as context
-  const textFiles = files.filter((f) => !f.type.startsWith("image/"));
+  // Add non-image files as context. Decode to UTF-8 only when it's a text-readable MIME
+  // (txt, md, csv, json, code, ...). For binary formats (pdf, etc.) keep a filename hint.
+  const nonImageFiles = files.filter((f) => !f.type.startsWith("image/"));
   let textContent = content;
-  if (textFiles.length > 0) {
-    const fileContext = textFiles
+  if (nonImageFiles.length > 0) {
+    const fileContext = nonImageFiles
       .map((f) => {
+        if (!isTextReadableMime(f.type)) {
+          return `[附件: ${f.name}]（${f.type}，二進位檔案，未解析內容）`;
+        }
         try {
-          return `[檔案: ${f.name}]\n${Buffer.from(f.base64, 'base64').toString('utf-8')}`;
+          return `[檔案: ${f.name}]\n${Buffer.from(f.base64, "base64").toString("utf-8")}`;
         } catch {
           return `[檔案: ${f.name}] (無法解析)`;
         }
@@ -363,10 +384,15 @@ export async function POST(req: Request) {
     let messagesToSend = processedMessages;
 
     // Estimate overhead from system prompt + tool definitions
-    const promptOverhead = estimateTokens(systemPrompt) + estimateTokens(JSON.stringify(filteredTools));
+    const systemTokens = estimateTokens(systemPrompt);
+    const toolsTokens = estimateTokens(JSON.stringify(filteredTools));
+    const promptOverhead = systemTokens + toolsTokens;
 
     if (shouldCompact(processedMessages, modelName, promptOverhead)) {
-      console.log(`[Chat API] Conversation exceeds compact threshold, compacting...`);
+      const messagesTokens = estimateMessagesTokens(processedMessages);
+      console.log(
+        `[Chat API] Compact triggered — messages=${messagesTokens} (${processedMessages.length} msgs) + system=${systemTokens} + tools=${toolsTokens} = ${messagesTokens + promptOverhead} / model=${modelName}`
+      );
       try {
         const result = await compactMessages(processedMessages);
         messagesToSend = result.compactedMessages;
