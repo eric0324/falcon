@@ -376,7 +376,11 @@ function StudioContent() {
           if (msg.role === "assistant") {
             if (msg.toolCalls) {
               for (const toolCall of msg.toolCalls) {
-                if (toolCall.name === "updateCode" && toolCall.result?.code) {
+                if (
+                  (toolCall.name === "updateCode" || toolCall.name === "editCode") &&
+                  toolCall.result?.code &&
+                  toolCall.result?.type !== "edit_code_error"
+                ) {
                   const extracted = extractCode(toolCall.result.code);
                   foundCode = extracted || toolCall.result.code;
                   break;
@@ -662,16 +666,17 @@ function StudioContent() {
                   toolCallsMap.set(existing.id, existing);
                   setCurrentToolCalls(Array.from(toolCallsMap.values()));
 
-                  // Handle updateCode tool result
-                  if (existing.name === "updateCode" && typeof resultData.result === "object" && resultData.result) {
-                    const result = resultData.result as { code?: string; toolId?: string };
-                    console.log("[Debug] updateCode result:", result);
-                    if (result.toolId) setDraftToolId(result.toolId);
-                    if (result.code) {
-                      const extracted = extractCode(result.code);
-                      const finalCode = extracted || result.code;
-                      setCode(finalCode);
-                      setDocContent(null);
+                  // Handle updateCode / editCode tool result
+                  if ((existing.name === "updateCode" || existing.name === "editCode") && typeof resultData.result === "object" && resultData.result) {
+                    const result = resultData.result as { type?: string; code?: string; toolId?: string };
+                    if (result.type !== "edit_code_error") {
+                      if (result.toolId) setDraftToolId(result.toolId);
+                      if (result.code) {
+                        const extracted = extractCode(result.code);
+                        const finalCode = extracted || result.code;
+                        setCode(finalCode);
+                        setDocContent(null);
+                      }
                     }
                   }
 
@@ -900,14 +905,16 @@ function StudioContent() {
                     toolCallsMap.set(existing.id, existing);
                     setCurrentToolCalls(Array.from(toolCallsMap.values()));
 
-                    if (existing.name === "updateCode" && typeof resultData.result === "object" && resultData.result) {
-                      const result = resultData.result as { code?: string; toolId?: string };
-                      if (result.toolId) setDraftToolId(result.toolId);
-                      if (result.code) {
-                        const extracted = extractCode(result.code);
-                        const finalCode = extracted || result.code;
-                        setCode(finalCode);
-                        setDocContent(null);
+                    if ((existing.name === "updateCode" || existing.name === "editCode") && typeof resultData.result === "object" && resultData.result) {
+                      const result = resultData.result as { type?: string; code?: string; toolId?: string };
+                      if (result.type !== "edit_code_error") {
+                        if (result.toolId) setDraftToolId(result.toolId);
+                        if (result.code) {
+                          const extracted = extractCode(result.code);
+                          const finalCode = extracted || result.code;
+                          setCode(finalCode);
+                          setDocContent(null);
+                        }
                       }
                     }
 
@@ -1428,6 +1435,10 @@ function StudioContent() {
                 onError={handlePreviewError}
                 onShare={() => setShowDeployDialog(true)}
                 onCollapsedChange={setPreviewCollapsed}
+                onCodeRestored={(restored) => {
+                  setCode(restored);
+                  setDocContent(null);
+                }}
               />
             )}
           </div>

@@ -14,6 +14,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.27.0",
+    date: "2026-04-17",
+    title: "不怕 AI 蓋掉你的工具了",
+    summary:
+      "跟 AI 說「改一下這個按鈕的顏色」，結果整個工具被重寫、原本的功能全消失？現在不會了。AI 會用新的 editCode 工具只動你提到的那段，其他部分原封不動；萬一真的被覆蓋，Preview 旁多了「版本歷史」一鍵還原，回到 20 步內的任一版。",
+    items: [
+      "新增 editCode：AI 做小改時只局部替換，不再整個檔案重生",
+      "每次程式碼更新前自動快照舊版，每個工具保留最近 20 筆",
+      "Preview 右上新增「版本歷史」icon，按下看紀錄，點「還原」就能切回該版（還原前會先存當前版，救得回來也後悔得了）",
+      "AI 改完程式碼、按還原後 Preview 立即同步，不用重新整理",
+      "強化 AI 指引：若真的要用 updateCode 整份重寫，必須逐字保留你沒提到的既有功能",
+    ],
+  },
+  {
     version: "v0.26.0",
     date: "2026-04-17",
     title: "AI 終於會畫圖了",

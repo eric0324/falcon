@@ -46,6 +46,19 @@ describe("buildSystemPrompt", () => {
     }
   });
 
+  it("instructs the model to prefer editCode for small changes", () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toContain("editCode");
+    expect(prompt).toMatch(/prefer editcode/i);
+  });
+
+  it("instructs updateCode to preserve existing features", () => {
+    const prompt = buildSystemPrompt();
+    // Must explicitly warn about preserving code when using updateCode
+    expect(prompt).toMatch(/preserve every part/i);
+    expect(prompt).toMatch(/do not drop features/i);
+  });
+
   it("includes generateImage guidance when image generation is enabled", () => {
     const withoutDs = buildSystemPrompt(undefined, undefined, true);
     const withDs = buildSystemPrompt(["plausible"], undefined, true);

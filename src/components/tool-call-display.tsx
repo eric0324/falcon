@@ -22,6 +22,7 @@ const toolIcons: Record<string, React.ReactNode> = {
   getDataSourceSchema: <Database className="h-4 w-4" />,
   querySampleData: <Search className="h-4 w-4" />,
   updateCode: <Code className="h-4 w-4" />,
+  editCode: <FileEdit className="h-4 w-4" />,
   generateImage: <ImageIcon className="h-4 w-4" />,
   googleSearch: <Cloud className="h-4 w-4" />,
   googleWrite: <FileEdit className="h-4 w-4" />,
@@ -44,6 +45,7 @@ const toolCallingLabels: Record<string, string> = {
   getDataSourceSchema: "Analyzing schema...",
   querySampleData: "Querying data...",
   updateCode: "Thinking...",
+  editCode: "Editing code...",
   generateImage: "Generating image...",
   updateDocument: "Writing document...",
   googleSearch: "Searching Google...",
@@ -68,6 +70,7 @@ const toolCompletedLabels: Record<string, string> = {
   getDataSourceSchema: "Schema analyzed",
   querySampleData: "Data queried",
   updateCode: "Code generated",
+  editCode: "Code edited",
   generateImage: "Image generated",
   updateDocument: "Document written",
   googleSearch: "Google search complete",
@@ -162,8 +165,8 @@ export function ToolCallDisplay({ toolCall }: ToolCallDisplayProps) {
     return JSON.stringify(toolCall.result, null, 2);
   };
 
-  // Hide internal details for certain tools
-  const hiddenTools = new Set(["updateCode", "listTables", "getTableSchema", "queryDatabase"]);
+  // Hide args / result for tools whose internals are noisy or not worth peeking at.
+  const hiddenTools = new Set(["updateCode", "editCode", "listTables", "getTableSchema", "queryDatabase"]);
   const args = toolCall.args || {};
   const shouldShowArgs = !hiddenTools.has(toolCall.name) && Object.keys(args).length > 0;
   const shouldShowResult = !hiddenTools.has(toolCall.name);

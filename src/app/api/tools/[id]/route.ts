@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { canUserAccessTool } from "@/lib/tool-visibility";
 import { runRuleScan } from "@/lib/code-scan/rules";
 import { scanOnDeploy } from "@/lib/code-scan";
+import { applyCodeUpdate } from "@/lib/tool-snapshot";
 
 async function getUserId(session: { user?: { email?: string | null } } | null) {
   if (!session?.user?.email) return null;
@@ -127,12 +128,17 @@ export async function PATCH(
       }
     }
 
+    // Snapshot + update code first so we capture the previous version.
+    // Other metadata goes through a separate tool.update below.
+    if (code) {
+      await applyCodeUpdate(id, code, "透過 PATCH 更新");
+    }
+
     const tool = await prisma.tool.update({
       where: { id },
       data: {
         ...(name && { name }),
         ...(description !== undefined && { description }),
-        ...(code && { code }),
         ...(category !== undefined && { category: category || null }),
         ...(tags !== undefined && { tags }),
         ...(visibility && { visibility }),

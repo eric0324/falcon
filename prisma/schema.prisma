@@ -95,11 +95,12 @@ model Tool {
 
   allowedGroups Group[] @relation("ToolAllowedGroups")
 
-  usages  ToolUsage[]
-  reviews ToolReview[]
-  stats   ToolStats?
-  scans   CodeScan[]
-  tables  ToolTable[]
+  usages    ToolUsage[]
+  reviews   ToolReview[]
+  stats     ToolStats?
+  scans     CodeScan[]
+  tables    ToolTable[]
+  snapshots ToolCodeSnapshot[]
 
   @@index([category])
   @@index([visibility])
@@ -155,6 +156,18 @@ model Conversation {
   @@index([userId, updatedAt])
   @@index([userId, starred, updatedAt])
   @@index([deletedAt])
+}
+
+model ToolCodeSnapshot {
+  id          String   @id @default(cuid())
+  toolId      String
+  code        String   @db.Text
+  explanation String?
+  createdAt   DateTime @default(now())
+
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId, createdAt])
 }
 
 model ConversationMessage {

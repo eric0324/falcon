@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { RefreshCw, Share2, Maximize2, Minimize2, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { VersionHistoryButton } from "@/components/version-history-button";
 import { generateSandboxApiClient } from "@/lib/sandbox-api-client";
 
 interface PreviewPanelProps {
@@ -12,6 +13,7 @@ interface PreviewPanelProps {
   onError?: (error: string | null) => void;
   onShare?: () => void;
   onCollapsedChange?: (collapsed: boolean) => void;
+  onCodeRestored?: (code: string) => void;
 }
 
 const DEFAULT_CODE = `export default function App() {
@@ -73,7 +75,7 @@ function buildPreviewHtml(code: string, apiClientCode?: string): string {
 </html>`;
 }
 
-export function PreviewPanel({ code, toolId, dataSources, onError, onShare, onCollapsedChange }: PreviewPanelProps) {
+export function PreviewPanel({ code, toolId, dataSources, onError, onShare, onCollapsedChange, onCodeRestored }: PreviewPanelProps) {
   const [key, setKey] = useState(0);
   const [, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -242,6 +244,12 @@ export function PreviewPanel({ code, toolId, dataSources, onError, onShare, onCo
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleRefresh}>
             <RefreshCw className="h-3.5 w-3.5" />
           </Button>
+          {toolId && (
+            <VersionHistoryButton
+              toolId={toolId}
+              onRestored={(tool) => onCodeRestored?.(tool.code)}
+            />
+          )}
           {code && onShare && (
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onShare}>
               <Share2 className="h-3.5 w-3.5" />
