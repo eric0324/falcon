@@ -3,6 +3,8 @@ import { streamText } from "ai";
 import { getModel, ModelId, defaultModel } from "@/lib/ai/models";
 import { createStudioTools, suggestDataSourcesTool } from "@/lib/ai/tools";
 import { createScraperTools } from "@/lib/ai/scraper-tools";
+import { createImageTools } from "@/lib/ai/image-tools";
+import type { ImageProvider } from "@/lib/ai/image-generation";
 import { createGoogleTools } from "@/lib/ai/google-tools";
 import { createNotionTools } from "@/lib/ai/notion-tools";
 import { createSlackTools } from "@/lib/ai/slack-tools";
@@ -105,7 +107,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const { message, model, files, conversationId: incomingConversationId, dataSources, skillPrompt, currentCode } = await req.json();
+    const { message, model, files, conversationId: incomingConversationId, dataSources, skillPrompt, currentCode, imageProvider } = await req.json();
+
+    const imageProviderChoice: ImageProvider = imageProvider === "gpt-image" ? "gpt-image" : "imagen";
 
     // Use specified model or default
     const selectedModel = await getModel((model as ModelId) || defaultModel);
@@ -232,8 +236,17 @@ export async function POST(req: Request) {
         filteredTools = { ...filteredTools, ...kbTools };
       }
     }
-    // Always register suggestDataSources and scraper tools
-    filteredTools = { ...filteredTools, ...suggestDataSourcesTool, ...createScraperTools() };
+    // Always register suggestDataSources, scraper and image generation tools
+    filteredTools = {
+      ...filteredTools,
+      ...suggestDataSourcesTool,
+      ...createScraperTools(),
+      ...createImageTools({
+        userId,
+        conversationId,
+        defaultProvider: imageProviderChoice,
+      }),
+    };
 
     // Build list of available-but-unselected data sources for AI to suggest
     const selectedSet = new Set((dataSources as string[]) || []);

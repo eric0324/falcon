@@ -27,12 +27,12 @@
 
 ## 4. Chat Tool 與 API
 
-- [ ] 4.1 建立 `src/lib/ai/image-tools.ts`：`generateImage` tool，input schema `{ prompt, provider, sourceImageKey? }`
-- [ ] 4.2 Tool execute：呼叫 image-generation → 寫 `TokenUsage`（`model="imagen-4"|"gpt-image-1"`，`outputTokens=1`，`costUsd`）→ 回傳 `{ type: "image_generated", s3Key, presignedUrl, provider }`
-- [ ] 4.3 錯誤處理：provider 失敗或內容審核拒絕 → 回傳 `{ type: "image_error", reason }`
-- [ ] 4.4 `src/app/api/chat/route.ts` 註冊 `generateImage` tool，從 request 讀 `imageProvider` 欄位
-- [ ] 4.5 `src/lib/ai/system-prompt.ts` 加入圖片生成使用指引（英文）
-- [ ] 4.6 為 image-tools 寫 unit test
+- [x] 4.1 建立 `src/lib/ai/image-tools.ts`：`generateImage` tool，input schema `{ prompt, provider, sourceImageKey? }`
+- [x] 4.2 Tool execute：呼叫 image-generation → 寫 `TokenUsage`（`model=modelUsed`，`outputTokens=1`，`costUsd` 由 `estimateCost`）→ 回傳 `{ type: "image_generated", s3Key, presignedUrl, provider }`
+- [x] 4.3 錯誤處理：provider 失敗或內容審核拒絕 → 回傳 `{ type: "image_error", reason }`；TokenUsage 不寫入
+- [x] 4.4 `src/app/api/chat/route.ts` 註冊 `generateImage` tool，從 request 讀 `imageProvider` 欄位並驗證
+- [x] 4.5 `src/lib/ai/system-prompt.ts` 加入 `IMAGE_GENERATION_INSTRUCTIONS`（英文，always available）
+- [x] 4.6 為 image-tools 寫 unit test（6 例）+ system-prompt 加入 generateImage 斷言
 
 ## 5. 圖片上傳 endpoint
 

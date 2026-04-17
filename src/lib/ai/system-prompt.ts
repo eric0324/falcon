@@ -460,6 +460,30 @@ const NO_DATA_SOURCE_INSTRUCTIONS = `
 ## Important
 No external data sources are currently enabled. If the user needs to search Google, Notion, Slack, or Asana data, remind them to select the desired service in the "Data Sources" menu first.`;
 
+const IMAGE_GENERATION_INSTRUCTIONS = `
+
+## Image Generation (built-in, always available)
+
+Use the \`generateImage\` tool when the user explicitly asks to **create, draw, illustrate, or edit an image**. Do NOT call this for UI code or documents — use \`updateCode\` / \`updateDocument\` for those.
+
+### Parameters
+- \`prompt\` (required): the image description or edit instruction, in the same language as the user
+- \`sourceImageKey\` (optional): if the user uploaded an image and wants it modified, pass the \`s3Key\` from the upload as \`sourceImageKey\`. Omit for text-to-image.
+- \`provider\` (optional): usually omit. The user's UI selection is used by default. Only set this if the user explicitly names a provider (e.g. "use imagen" or "use gpt-image").
+
+### When to call
+- "Draw me a ...", "Generate an image of ...", "Create a poster for ..."
+- "Make this image ..." together with an uploaded image → pass \`sourceImageKey\`
+- "Remove the background of my photo" with an uploaded image → pass \`sourceImageKey\`
+
+### When NOT to call
+- User asks for a chart/table/dashboard → use \`updateCode\` instead
+- User asks to write text or a document → use \`updateDocument\`
+- User is just discussing images conceptually without asking for one
+
+### Output
+The tool returns \`{ type: "image_generated", s3Key, presignedUrl, provider }\` on success, or \`{ type: "image_error", reason }\` on failure. The frontend renders the image automatically — do not include the URL in your text response.`;
+
 const LLM_BRIDGE_INSTRUCTIONS = `
 
 ## LLM Text Processing (built-in, always available)
@@ -928,6 +952,7 @@ export function buildSystemPrompt(dataSources?: string[], availableSources?: str
     } else {
       prompt += NO_DATA_SOURCE_INSTRUCTIONS;
     }
+    prompt += IMAGE_GENERATION_INSTRUCTIONS;
     prompt += LLM_BRIDGE_INSTRUCTIONS;
     prompt += SCRAPER_BRIDGE_INSTRUCTIONS;
     prompt += TOOLDB_INSTRUCTIONS;
@@ -1006,6 +1031,9 @@ export function buildSystemPrompt(dataSources?: string[], availableSources?: str
   if (availableSources && availableSources.length > 0) {
     prompt += buildSuggestDataSourcesInstructions(availableSources);
   }
+
+  // Image generation — always available
+  prompt += IMAGE_GENERATION_INSTRUCTIONS;
 
   // LLM bridge — always available regardless of data source selection
   prompt += LLM_BRIDGE_INSTRUCTIONS;

@@ -36,6 +36,15 @@ describe("buildSystemPrompt", () => {
     // Should contain the current year
     expect(prompt).toContain(String(new Date().getFullYear()));
   });
+
+  it("always includes generateImage tool guidance regardless of data sources", () => {
+    const withoutDs = buildSystemPrompt();
+    const withDs = buildSystemPrompt(["plausible"]);
+    for (const prompt of [withoutDs, withDs]) {
+      expect(prompt).toContain("generateImage");
+      expect(prompt).toMatch(/sourceImageKey/);
+    }
+  });
 });
 
 describe("buildSystemPrompt with Plausible", () => {
