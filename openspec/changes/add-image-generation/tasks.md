@@ -9,9 +9,9 @@
 
 ## 2. Storage 模組
 
-- [ ] 2.1 建立 `src/lib/storage/s3.ts`：`uploadImage(buffer, key, mime)` 與 `getPresignedUrl(key, ttlSeconds)`
-- [ ] 2.2 S3 client 採 lazy init，每次呼叫動態讀 `SystemConfig`
-- [ ] 2.3 為 `s3.ts` 寫 unit test（mock AWS SDK，驗證參數與錯誤處理）
+- [x] 2.1 建立 `src/lib/storage/s3.ts`：`uploadImage(buffer, key, mime)` 與 `getPresignedUrl(key, ttlSeconds)`
+- [x] 2.2 S3 client 採 lazy init，每次呼叫動態讀 `SystemConfig`
+- [x] 2.3 為 `s3.ts` 寫 unit test（mock AWS SDK，驗證參數與錯誤處理）
 
 ## 3. 圖片生成核心
 
