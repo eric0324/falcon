@@ -36,10 +36,10 @@
 
 ## 5. 圖片上傳 endpoint
 
-- [ ] 5.1 建立 `POST /api/chat/upload-image`：multipart/form-data，限制 10MB、MIME 白名單
-- [ ] 5.2 上傳成功回傳 `{ s3Key }`
-- [ ] 5.3 建立 `GET /api/chat/presign-image?key=...`：驗證 key 屬於該 user → 回傳新 presigned URL
-- [ ] 5.4 為 upload 與 presign 寫 API 測試
+- [x] 5.1 建立 `POST /api/chat/upload-image`：multipart/form-data，限制 10MB、MIME 白名單（png / jpeg / webp）
+- [x] 5.2 上傳成功回傳 `{ s3Key }`；401 / 400 / 413 / 415 各自處理
+- [x] 5.3 建立 `GET /api/chat/presign-image?key=...`：驗證 key 屬於該 user（`images/<userId>/` 前綴）→ 回傳新 presigned URL
+- [x] 5.4 為 upload（7 例）與 presign（5 例）寫 API 測試
 
 ## 6. UI
 
