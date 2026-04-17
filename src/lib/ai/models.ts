@@ -5,6 +5,7 @@ import { getConfigRequired } from "@/lib/config";
 import type { LanguageModel } from "ai";
 
 export const MODEL_IDS = [
+  "claude-opus-47",
   "claude-opus",
   "claude-sonnet",
   "claude-haiku",
@@ -17,9 +18,13 @@ export const MODEL_IDS = [
 export type ModelId = (typeof MODEL_IDS)[number];
 
 export const modelInfo: Record<ModelId, { name: string; description: string }> = {
+  "claude-opus-47": {
+    name: "Claude Opus 4.7",
+    description: "最新旗艦模型，軟體工程與複雜推理能力再提升",
+  },
   "claude-opus": {
     name: "Claude Opus 4.6",
-    description: "最強模型，適合複雜推理和長文分析",
+    description: "上一代旗艦模型，適合複雜推理和長文分析",
   },
   "claude-sonnet": {
     name: "Claude Sonnet 4.6",
@@ -51,6 +56,7 @@ export const defaultModel: ModelId = "claude-haiku";
 
 /** Pricing per 1M tokens in USD */
 export const modelPricing: Record<string, { input: number; output: number }> = {
+  "claude-opus-47": { input: 5, output: 25 },
   "claude-opus": { input: 15, output: 75 },
   "claude-sonnet": { input: 3, output: 15 },
   "claude-haiku": { input: 1, output: 5 },
@@ -72,6 +78,7 @@ export function estimateCost(
 }
 
 const MODEL_PROVIDER_MAP: Record<ModelId, { provider: "anthropic" | "openai" | "google"; modelName: string }> = {
+  "claude-opus-47": { provider: "anthropic", modelName: "claude-opus-4-7" },
   "claude-opus": { provider: "anthropic", modelName: "claude-opus-4-6" },
   "claude-sonnet": { provider: "anthropic", modelName: "claude-sonnet-4-6" },
   "claude-haiku": { provider: "anthropic", modelName: "claude-haiku-4-5-20251001" },

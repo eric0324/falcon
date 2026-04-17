@@ -1,8 +1,12 @@
 {
   "selectModel": "選擇模型",
+  "claude-opus-47": {
+    "name": "Claude Opus 4.7",
+    "description": "最新旗艦模型，軟體工程與複雜推理能力再提升"
+  },
   "claude-opus": {
     "name": "Claude Opus 4.6",
-    "description": "最強模型，適合複雜推理和長文分析"
+    "description": "上一代旗艦模型，適合複雜推理和長文分析"
   },
   "claude-sonnet": {
     "name": "Claude Sonnet 4.6",

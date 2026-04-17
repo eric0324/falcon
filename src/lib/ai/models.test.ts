@@ -25,6 +25,7 @@ import { MODEL_IDS, modelInfo, defaultModel, getModel } from "./models";
 
 describe("MODEL_IDS", () => {
   it("contains expected model keys", () => {
+    expect(MODEL_IDS).toContain("claude-opus-47");
     expect(MODEL_IDS).toContain("claude-opus");
     expect(MODEL_IDS).toContain("claude-sonnet");
     expect(MODEL_IDS).toContain("claude-haiku");
@@ -34,8 +35,8 @@ describe("MODEL_IDS", () => {
     expect(MODEL_IDS).toContain("gemini-pro");
   });
 
-  it("has exactly 7 models", () => {
-    expect(MODEL_IDS).toHaveLength(7);
+  it("has exactly 8 models", () => {
+    expect(MODEL_IDS).toHaveLength(8);
   });
 });
 

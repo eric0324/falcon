@@ -1,8 +1,12 @@
 {
   "selectModel": "Select Model",
+  "claude-opus-47": {
+    "name": "Claude Opus 4.7",
+    "description": "Latest flagship model with improved software engineering and reasoning"
+  },
   "claude-opus": {
     "name": "Claude Opus 4.6",
-    "description": "Most powerful model for complex reasoning and long analysis"
+    "description": "Previous flagship model for complex reasoning and long analysis"
   },
   "claude-sonnet": {
     "name": "Claude Sonnet 4.6",

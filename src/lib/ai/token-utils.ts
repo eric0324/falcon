@@ -4,6 +4,7 @@ import { ModelId } from "./models";
  * 各 model 的 context window 上限 (tokens)
  */
 export const MODEL_CONTEXT_LIMITS: Record<ModelId, number> = {
+  "claude-opus-47": 200_000,
   "claude-opus": 200_000,
   "claude-sonnet": 200_000,
   "claude-haiku": 200_000,

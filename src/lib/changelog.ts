@@ -14,6 +14,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.25.1",
+    date: "2026-04-17",
+    title: "新增 Claude Opus 4.7 模型",
+    summary:
+      "模型選單新增 Claude Opus 4.7，與現有 Opus 4.6 並列，使用者可自行選擇。",
+    items: [
+      "新增：Claude Opus 4.7 模型，API 定價 $5/$25 per 1M tokens",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.25.0",
     date: "2026-04-16",
     title: "從 Google Drive 匯入知識庫",
