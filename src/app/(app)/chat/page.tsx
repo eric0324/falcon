@@ -1324,7 +1324,9 @@ function StudioContent() {
                 <div data-tour="chat-model">
                   <ModelSelector value={selectedModel} onChange={setSelectedModel} />
                 </div>
-                <ImageProviderSelector value={imageProvider} onChange={setImageProvider} />
+                <div data-tour="chat-image-provider">
+                  <ImageProviderSelector value={imageProvider} onChange={setImageProvider} />
+                </div>
                 <div data-tour="chat-skill">
                   <SkillSelector
                     value={selectedSkill}

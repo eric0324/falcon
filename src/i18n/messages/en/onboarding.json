@@ -21,6 +21,7 @@
   "chat": {
     "welcome": "This is the Chat page. Discuss ideas with AI, ask it to build tools or write documents, or query data. Here are a few key settings.",
     "model": "Switch the AI model. Besides Claude (Opus for reasoning, Sonnet for speed, Haiku for cost), you can use OpenAI or Gemini — each has its strengths.",
+    "imageProvider": "To generate images, pick a provider here. Leaving it unselected keeps the feature off.",
     "skill": "Skill sets AI's working mode — coding, writing, casual chat, or your own style. Picking the right skill makes a big difference. You can create your own in \"Skills\" on the left, or use ones others have shared.",
     "dataSources": "Check data sources so AI can read your Notion, Google Drive, GA4, and more. Leave them off and it's just regular chat.",
     "input": "Describe what you want in plain words — e.g. \"Build me a tool that summarizes this week's sales.\"",

@@ -52,6 +52,7 @@ export function useChatSteps(): StepType[] {
       styles: centeredStyles,
     },
     { selector: '[data-tour="chat-model"]', content: t("model") },
+    { selector: '[data-tour="chat-image-provider"]', content: t("imageProvider") },
     { selector: '[data-tour="chat-skill"]', content: t("skill") },
     { selector: '[data-tour="chat-data-sources"]', content: t("dataSources") },
     { selector: '[data-tour="chat-input"]', content: t("input") },

@@ -52,12 +52,12 @@
 
 ## 7. 整合與驗證
 
-- [ ] 7.1 手動端到端測試：文生圖（兩 provider）、圖生圖（兩 provider）
-- [ ] 7.2 驗證 `TokenUsage` 正確寫入、admin dashboard 顯示
-- [ ] 7.3 驗證 presigned URL 過期重簽流程
-- [ ] 7.4 驗證 S3 credentials 缺少時的錯誤訊息清楚
-- [ ] 7.5 跑 `openspec validate add-image-generation --strict`
+- [x] 7.1 手動端到端測試：文生圖（兩 provider）、圖生圖（兩 provider）
+- [x] 7.2 驗證 `TokenUsage` 正確寫入、admin dashboard 顯示
+- [x] 7.3 驗證 presigned URL 過期重簽流程
+- [x] 7.4 驗證 S3 credentials 缺少時的錯誤訊息清楚
+- [x] 7.5 跑 `openspec validate add-image-generation --strict`
 
 ## 8. 歸檔
 
-- [ ] 8.1 所有任務完成後 `openspec archive add-image-generation --yes`
+- [x] 8.1 所有任務完成後 `openspec archive add-image-generation --yes`
