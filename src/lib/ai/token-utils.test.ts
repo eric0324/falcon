@@ -66,6 +66,32 @@ describe("estimateMessagesTokens", () => {
     // Should handle non-string content by serializing it
     expect(total).toBeGreaterThan(0);
   });
+
+  it("estimates image parts as a fixed vision cost regardless of base64 length", () => {
+    const bigBase64 = "A".repeat(500_000); // 500k char base64 (as if a real image)
+    const messages = [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "look at this" },
+          { type: "image", image: bigBase64, mimeType: "image/png" },
+        ],
+      },
+    ];
+    const total = estimateMessagesTokens(messages);
+    // Must not scale with base64 length — should be in the thousands, not hundreds of thousands
+    expect(total).toBeLessThan(5000);
+  });
+
+  it("image token estimate does not vary with base64 size", () => {
+    const mk = (size: number) => ({
+      role: "user",
+      content: [{ type: "image", image: "X".repeat(size), mimeType: "image/png" }],
+    });
+    expect(estimateMessagesTokens([mk(100)])).toBe(
+      estimateMessagesTokens([mk(1_000_000)])
+    );
+  });
 });
 
 describe("MODEL_CONTEXT_LIMITS", () => {

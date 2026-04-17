@@ -38,6 +38,26 @@ export function estimateTokens(text: string): number {
 }
 
 /**
+ * Vision models bill images by tile, not base64 length. Use a flat estimate
+ * per image so we don't over-count and wrongly trigger compaction.
+ * 1500 ≈ Claude "standard" image (~1568 tokens).
+ */
+const VISION_IMAGE_TOKENS = 1500;
+
+function estimatePartTokens(part: unknown): number {
+  if (!part || typeof part !== "object") {
+    return estimateTokens(JSON.stringify(part));
+  }
+  const p = part as { type?: string; text?: string };
+  if (p.type === "image") return VISION_IMAGE_TOKENS;
+  if (p.type === "text" && typeof p.text === "string") {
+    return estimateTokens(p.text);
+  }
+  // tool-call / tool-result / unknown — serialize as fallback
+  return estimateTokens(JSON.stringify(part));
+}
+
+/**
  * 估算整個 messages 陣列的 token 數量。
  */
 export function estimateMessagesTokens(
@@ -45,11 +65,15 @@ export function estimateMessagesTokens(
 ): number {
   let total = 0;
   for (const msg of messages) {
-    const text =
-      typeof msg.content === "string"
-        ? msg.content
-        : JSON.stringify(msg.content);
-    total += estimateTokens(text);
+    if (typeof msg.content === "string") {
+      total += estimateTokens(msg.content);
+    } else if (Array.isArray(msg.content)) {
+      for (const part of msg.content) {
+        total += estimatePartTokens(part);
+      }
+    } else {
+      total += estimateTokens(JSON.stringify(msg.content));
+    }
   }
   return total;
 }
