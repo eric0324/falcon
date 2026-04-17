@@ -1,5 +1,21 @@
 {
   "selectModel": "選擇模型",
+  "imageProviders": {
+    "label": "圖片生成 Provider",
+    "trigger": "圖片模型",
+    "unset": {
+      "name": "未選",
+      "description": "不指定，AI 不會啟用圖片生成工具"
+    },
+    "imagen": {
+      "name": "Imagen 4",
+      "description": "Google 圖片生成，圖生圖走 Gemini 2.5 Flash Image"
+    },
+    "gpt-image": {
+      "name": "GPT-Image-1",
+      "description": "OpenAI 圖片生成，支援原生 images.edit"
+    }
+  },
   "claude-opus-47": {
     "name": "Claude Opus 4.7",
     "description": "最新旗艦模型，軟體工程與複雜推理能力再提升"

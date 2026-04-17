@@ -1,5 +1,21 @@
 {
   "selectModel": "Select Model",
+  "imageProviders": {
+    "label": "Image generation provider",
+    "trigger": "Image model",
+    "unset": {
+      "name": "None",
+      "description": "Leave off — AI won't trigger the image tool"
+    },
+    "imagen": {
+      "name": "Imagen 4",
+      "description": "Google image generation; image-to-image uses Gemini 2.5 Flash Image"
+    },
+    "gpt-image": {
+      "name": "GPT-Image-1",
+      "description": "OpenAI image generation with native images.edit support"
+    }
+  },
   "claude-opus-47": {
     "name": "Claude Opus 4.7",
     "description": "Latest flagship model with improved software engineering and reasoning"
