@@ -38,11 +38,11 @@
 
 ## 7. 整合與驗證
 
-- [ ] 7.1 手動端到端：工具編輯 → 小改用 editCode → 歷史頁看得到 snapshot → 還原 → 檢查 code 正確
-- [ ] 7.2 驗證：updateCode 大改 → snapshot 有舊版 → 可還原
-- [ ] 7.3 驗證：editCode find 不唯一時 AI 能看到錯誤並重試
-- [ ] 7.4 跑 `openspec validate improve-code-editing-safety --strict`
+- [x] 7.1 手動端到端：工具編輯 → 小改用 editCode → 歷史頁看得到 snapshot → 還原 → 檢查 code 正確
+- [x] 7.2 驗證：updateCode 大改 → snapshot 有舊版 → 可還原
+- [x] 7.3 驗證：editCode find 不唯一時 AI 能看到錯誤並重試
+- [x] 7.4 跑 `openspec validate improve-code-editing-safety --strict`
 
 ## 8. 歸檔
 
-- [ ] 8.1 所有任務完成後 `openspec archive improve-code-editing-safety --yes`
+- [x] 8.1 所有任務完成後 `openspec archive improve-code-editing-safety --yes`
