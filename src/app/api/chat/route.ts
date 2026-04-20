@@ -28,6 +28,7 @@ import { isVimeoConfigured } from "@/lib/integrations/vimeo";
 import { createKnowledgeBaseTools } from "@/lib/ai/knowledge-base-tools";
 import { shouldCompact, estimateTokens, estimateMessagesTokens, trimMessagesToFit } from "@/lib/ai/token-utils";
 import { compactMessages } from "@/lib/ai/compact";
+import { cacheableSystem, cacheableTools } from "@/lib/ai/cache-control";
 import { generateConversationTitle } from "@/lib/ai/generate-title";
 import { prisma } from "@/lib/prisma";
 import { getMessages, appendMessages } from "@/lib/conversation-messages";
@@ -375,9 +376,13 @@ export async function POST(req: Request) {
       }
     }
 
-    // Track token usage across all steps
+    // Track token usage across all steps.
+    // Anthropic returns inputTokens as the *grand total* (noCache + cacheRead + cacheWrite),
+    // so we also track the breakdown separately to apply correct cache pricing.
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
+    let totalCacheReadTokens = 0;
+    let totalCacheWriteTokens = 0;
 
     // Auto compact: check if conversation needs compaction
     let compactInfo: { compacted: boolean; originalCount: number; keptCount: number; summary?: string } | null = null;
@@ -450,9 +455,9 @@ export async function POST(req: Request) {
 
           const result = streamText({
             model: selectedModel,
-            system: systemPrompt,
+            system: cacheableSystem(systemPrompt, modelName),
             messages: currentMessages,
-            tools: filteredTools,
+            tools: cacheableTools(filteredTools, modelName),
           });
 
           let hasToolCalls = false;
@@ -542,6 +547,11 @@ export async function POST(req: Request) {
             if (usage) {
               totalInputTokens += usage.inputTokens || 0;
               totalOutputTokens += usage.outputTokens || 0;
+              const details = (usage as { inputTokenDetails?: { cacheReadTokens?: number; cacheWriteTokens?: number } }).inputTokenDetails;
+              if (details) {
+                totalCacheReadTokens += details.cacheReadTokens || 0;
+                totalCacheWriteTokens += details.cacheWriteTokens || 0;
+              }
             }
           } catch (e) {
             console.error(`[Chat API] Failed to get usage:`, e);
@@ -587,7 +597,10 @@ export async function POST(req: Request) {
         if (step >= MAX_STEPS) {
           const finalResult = streamText({
             model: selectedModel,
-            system: systemPrompt + "\n\n（你已用完所有工具呼叫次數，請根據已取得的資料回答使用者。如果資訊不完整，告知使用者你找到了什麼，以及還需要什麼。）",
+            system: cacheableSystem(
+              systemPrompt + "\n\n（你已用完所有工具呼叫次數，請根據已取得的資料回答使用者。如果資訊不完整，告知使用者你找到了什麼，以及還需要什麼。）",
+              modelName
+            ),
             messages: currentMessages,
             tools: {}, // no tools = force text response
           });
@@ -603,6 +616,11 @@ export async function POST(req: Request) {
             if (usage) {
               totalInputTokens += usage.inputTokens || 0;
               totalOutputTokens += usage.outputTokens || 0;
+              const details = (usage as { inputTokenDetails?: { cacheReadTokens?: number; cacheWriteTokens?: number } }).inputTokenDetails;
+              if (details) {
+                totalCacheReadTokens += details.cacheReadTokens || 0;
+                totalCacheWriteTokens += details.cacheWriteTokens || 0;
+              }
             }
           } catch (e) {
             console.error(`[Chat API] Failed to get final usage:`, e);
@@ -633,7 +651,24 @@ export async function POST(req: Request) {
         // Save token usage to database
         if (totalInputTokens > 0 || totalOutputTokens > 0) {
           try {
-            const costUsd = estimateCost(modelName, totalInputTokens, totalOutputTokens);
+            // Anthropic's inputTokens already aggregates cacheRead + cacheWrite + noCache.
+            // To avoid double-billing, pass nonCachedInput as the base and add cache portions explicitly.
+            const nonCachedInput = Math.max(
+              0,
+              totalInputTokens - totalCacheReadTokens - totalCacheWriteTokens
+            );
+            const costUsd = estimateCost(
+              modelName,
+              nonCachedInput,
+              totalOutputTokens,
+              {
+                cacheReadTokens: totalCacheReadTokens,
+                cacheWriteTokens: totalCacheWriteTokens,
+              }
+            );
+            console.log(
+              `[Chat API] tokens model=${modelName} input=${totalInputTokens} (noCache=${nonCachedInput}, cacheRead=${totalCacheReadTokens}, cacheWrite=${totalCacheWriteTokens}) output=${totalOutputTokens} cost=$${costUsd.toFixed(6)}`
+            );
             await prisma.tokenUsage.create({
               data: {
                 userId,

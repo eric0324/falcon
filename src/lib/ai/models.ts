@@ -73,11 +73,31 @@ export const imagePricing: Record<string, number> = {
   "gemini-2.5-flash-image": 0.03,
 };
 
+export interface CacheTokenDetails {
+  /** Cache hits — billed at provider-specific discount of input price */
+  cacheReadTokens?: number;
+  /** Cache writes — billed at provider-specific premium (Anthropic only) */
+  cacheWriteTokens?: number;
+}
+
+/**
+ * Per-provider cache pricing as multipliers of the base input price.
+ * - Anthropic: 0.1x read, 1.25x write (ephemeral)
+ * - OpenAI:    0.5x read, no separate write cost (automatic)
+ * - Google:    0.25x read, no separate write cost (implicit / explicit caching)
+ */
+const CACHE_MULTIPLIERS: Record<ModelProvider, { read: number; write: number }> = {
+  anthropic: { read: 0.1, write: 1.25 },
+  openai: { read: 0.5, write: 0 },
+  google: { read: 0.25, write: 0 },
+};
+
 /** Estimate cost in USD. For image models, `outputTokens` is treated as image count. */
 export function estimateCost(
   model: string,
   inputTokens: number,
-  outputTokens: number
+  outputTokens: number,
+  cache?: CacheTokenDetails
 ): number {
   const perImage = imagePricing[model];
   if (perImage !== undefined) {
@@ -85,10 +105,21 @@ export function estimateCost(
   }
   const pricing = modelPricing[model];
   if (!pricing) return 0;
-  return (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000;
+  const cacheRead = cache?.cacheReadTokens ?? 0;
+  const cacheWrite = cache?.cacheWriteTokens ?? 0;
+  const provider = MODEL_PROVIDER_MAP[model as ModelId]?.provider;
+  const mult = provider ? CACHE_MULTIPLIERS[provider] : { read: 1, write: 1 };
+  return (
+    inputTokens * pricing.input +
+    cacheRead * pricing.input * mult.read +
+    cacheWrite * pricing.input * mult.write +
+    outputTokens * pricing.output
+  ) / 1_000_000;
 }
 
-const MODEL_PROVIDER_MAP: Record<ModelId, { provider: "anthropic" | "openai" | "google"; modelName: string }> = {
+export type ModelProvider = "anthropic" | "openai" | "google";
+
+const MODEL_PROVIDER_MAP: Record<ModelId, { provider: ModelProvider; modelName: string }> = {
   "claude-opus-47": { provider: "anthropic", modelName: "claude-opus-4-7" },
   "claude-opus": { provider: "anthropic", modelName: "claude-opus-4-6" },
   "claude-sonnet": { provider: "anthropic", modelName: "claude-sonnet-4-6" },
@@ -98,6 +129,14 @@ const MODEL_PROVIDER_MAP: Record<ModelId, { provider: "anthropic" | "openai" | "
   "gemini-flash": { provider: "google", modelName: "gemini-2.5-flash" },
   "gemini-pro": { provider: "google", modelName: "gemini-2.5-pro" },
 };
+
+export function getModelProvider(modelId: ModelId): ModelProvider {
+  return MODEL_PROVIDER_MAP[modelId].provider;
+}
+
+export function isAnthropicModel(modelId: ModelId): boolean {
+  return getModelProvider(modelId) === "anthropic";
+}
 
 /**
  * Get an AI model instance by ID. Reads API keys from DB/env dynamically.

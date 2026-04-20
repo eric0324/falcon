@@ -21,7 +21,16 @@ vi.mock("@/lib/config", () => ({
   getConfigRequired: vi.fn((key: string) => Promise.resolve(`mock-${key}`)),
 }));
 
-import { MODEL_IDS, modelInfo, defaultModel, getModel, estimateCost, imagePricing } from "./models";
+import {
+  MODEL_IDS,
+  modelInfo,
+  defaultModel,
+  getModel,
+  estimateCost,
+  imagePricing,
+  getModelProvider,
+  isAnthropicModel,
+} from "./models";
 
 describe("MODEL_IDS", () => {
   it("contains expected model keys", () => {
@@ -106,6 +115,84 @@ describe("estimateCost", () => {
   it("returns 0 for unknown model", () => {
     expect(estimateCost("unknown-model", 1000, 1000)).toBe(0);
   });
+
+  it("applies 0.1x discount on cached input tokens (cacheRead)", () => {
+    // claude-haiku: input $1/M, output $5/M
+    // 1M cacheRead = 1M × $1 × 0.1 = $0.10
+    expect(
+      estimateCost("claude-haiku", 0, 0, { cacheReadTokens: 1_000_000 })
+    ).toBeCloseTo(0.1, 5);
+  });
+
+  it("applies 1.25x premium on cache write tokens (cacheCreation)", () => {
+    // 1M cacheWrite = 1M × $1 × 1.25 = $1.25
+    expect(
+      estimateCost("claude-haiku", 0, 0, { cacheWriteTokens: 1_000_000 })
+    ).toBeCloseTo(1.25, 5);
+  });
+
+  it("sums non-cached, cached and creation correctly", () => {
+    // 0.5M non-cached + 0.5M cacheRead + 0.5M cacheWrite + 0.5M output
+    // = 0.5 × 1 + 0.5 × 1 × 0.1 + 0.5 × 1 × 1.25 + 0.5 × 5
+    // = 0.5 + 0.05 + 0.625 + 2.5 = 3.675
+    expect(
+      estimateCost("claude-haiku", 500_000, 500_000, {
+        cacheReadTokens: 500_000,
+        cacheWriteTokens: 500_000,
+      })
+    ).toBeCloseTo(3.675, 5);
+  });
+
+  it("ignores cache options for image models", () => {
+    expect(
+      estimateCost("imagen-4", 0, 1, { cacheReadTokens: 999 })
+    ).toBe(imagePricing["imagen-4"]);
+  });
+
+  it("treats missing cache options as zero (backward compatible)", () => {
+    expect(estimateCost("claude-haiku", 1_000_000, 0)).toBeCloseTo(1, 5);
+  });
+
+  it("applies 0.5x discount for OpenAI cache reads", () => {
+    // gpt-5-mini: input $0.25/M
+    // 1M cacheRead = 1M × $0.25 × 0.5 = $0.125
+    expect(
+      estimateCost("gpt-5-mini", 0, 0, { cacheReadTokens: 1_000_000 })
+    ).toBeCloseTo(0.125, 5);
+  });
+
+  it("ignores cacheWrite for OpenAI (no separate write cost)", () => {
+    // OpenAI does not bill cache writes separately; treat cacheWrite as zero impact
+    expect(
+      estimateCost("gpt-5-mini", 0, 0, {
+        cacheReadTokens: 0,
+        cacheWriteTokens: 1_000_000,
+      })
+    ).toBe(0);
+  });
+
+  it("applies 0.25x discount for Google Gemini cache reads", () => {
+    // gemini-flash: input $0.15/M
+    // 1M cacheRead = 1M × $0.15 × 0.25 = $0.0375
+    expect(
+      estimateCost("gemini-flash", 0, 0, { cacheReadTokens: 1_000_000 })
+    ).toBeCloseTo(0.0375, 5);
+  });
+
+  it("ignores cacheWrite for Gemini (implicit caching has no write cost)", () => {
+    expect(
+      estimateCost("gemini-flash", 0, 0, { cacheWriteTokens: 1_000_000 })
+    ).toBe(0);
+  });
+
+  it("Anthropic still applies 0.1x read / 1.25x write", () => {
+    expect(
+      estimateCost("claude-opus-47", 0, 0, {
+        cacheReadTokens: 1_000_000,
+        cacheWriteTokens: 1_000_000,
+      })
+    ).toBeCloseTo(5 * 0.1 + 5 * 1.25, 5);
+  });
 });
 
 describe("imagePricing", () => {
@@ -113,5 +200,36 @@ describe("imagePricing", () => {
     expect(imagePricing["imagen-4"]).toBeGreaterThan(0);
     expect(imagePricing["gpt-image-1"]).toBeGreaterThan(0);
     expect(imagePricing["gemini-2.5-flash-image"]).toBeGreaterThan(0);
+  });
+});
+
+describe("getModelProvider", () => {
+  it("returns anthropic for all claude models", () => {
+    expect(getModelProvider("claude-opus-47")).toBe("anthropic");
+    expect(getModelProvider("claude-opus")).toBe("anthropic");
+    expect(getModelProvider("claude-sonnet")).toBe("anthropic");
+    expect(getModelProvider("claude-haiku")).toBe("anthropic");
+  });
+
+  it("returns openai for gpt models", () => {
+    expect(getModelProvider("gpt-5-mini")).toBe("openai");
+    expect(getModelProvider("gpt-5-nano")).toBe("openai");
+  });
+
+  it("returns google for gemini models", () => {
+    expect(getModelProvider("gemini-flash")).toBe("google");
+    expect(getModelProvider("gemini-pro")).toBe("google");
+  });
+});
+
+describe("isAnthropicModel", () => {
+  it("is true for claude models", () => {
+    expect(isAnthropicModel("claude-opus-47")).toBe(true);
+    expect(isAnthropicModel("claude-haiku")).toBe(true);
+  });
+
+  it("is false for non-anthropic models", () => {
+    expect(isAnthropicModel("gpt-5-mini")).toBe(false);
+    expect(isAnthropicModel("gemini-pro")).toBe(false);
   });
 });

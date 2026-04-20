@@ -14,6 +14,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.27.1",
+    date: "2026-04-20",
+    title: "三家 provider prompt caching 折扣全到位",
+    summary:
+      "Claude 模型對 system prompt 與 tool 定義加上顯式 cache 標記；OpenAI 與 Gemini 走 SDK 自動 / implicit caching。三家的 cache 命中都正確折算到費用統計，避免高估。",
+    items: [
+      "Claude：system prompt 與最後一個 tool 加 cacheControl: ephemeral；cacheRead 以 0.1x、cacheWrite 以 1.25x 計",
+      "OpenAI：自動 caching（prompt ≥ 1024 tokens）；cacheRead 以 0.5x 計",
+      "Gemini：implicit caching（2.5 系列預設）；cacheRead 以 0.25x 計",
+      "TokenUsage log 新增 noCache / cacheRead / cacheWrite 欄位，便於觀察命中率",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.27.0",
     date: "2026-04-17",
     title: "不怕 AI 蓋掉你的工具了",
