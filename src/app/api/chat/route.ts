@@ -29,6 +29,9 @@ import { createKnowledgeBaseTools } from "@/lib/ai/knowledge-base-tools";
 import { shouldCompact, estimateTokens, estimateMessagesTokens, trimMessagesToFit } from "@/lib/ai/token-utils";
 import { compactMessages } from "@/lib/ai/compact";
 import { cacheableSystem, cacheableTools } from "@/lib/ai/cache-control";
+import { estimateTokens as estimateTokenCount } from "@/lib/ai/token-utils";
+import { classifyAttachmentSize, HARD_TOKENS, WARN_TOKENS } from "@/lib/attachments/limits";
+import { truncateHead, truncateCsvSmart } from "@/lib/attachments/text-truncate";
 import { generateConversationTitle } from "@/lib/ai/generate-title";
 import { prisma } from "@/lib/prisma";
 import { getMessages, appendMessages } from "@/lib/conversation-messages";
@@ -42,6 +45,14 @@ interface FileData {
   name: string;
   type: string;
   base64: string;
+  /** How to handle text files that exceed WARN_TOKENS. Defaults to "head". */
+  truncateMode?: "head" | "csv" | "full";
+}
+
+class AttachmentTooLargeError extends Error {
+  constructor(public fileName: string, public tokens: number) {
+    super(`attachment_too_large: ${fileName} ≈ ${tokens} tokens > ${HARD_TOKENS}`);
+  }
 }
 
 // MIME types safe to decode as UTF-8 text. Binary files like PDF / zip must
@@ -92,11 +103,35 @@ function buildMessageContent(
         if (!isTextReadableMime(f.type)) {
           return `[附件: ${f.name}]（${f.type}，二進位檔案，未解析內容）`;
         }
+        let raw: string;
         try {
-          return `[檔案: ${f.name}]\n${Buffer.from(f.base64, "base64").toString("utf-8")}`;
+          raw = Buffer.from(f.base64, "base64").toString("utf-8");
         } catch {
           return `[檔案: ${f.name}] (無法解析)`;
         }
+
+        const tokens = estimateTokenCount(raw);
+        const sizeClass = classifyAttachmentSize(tokens);
+
+        // Hard limit — bubble up so the API returns 400.
+        if (sizeClass === "reject") {
+          throw new AttachmentTooLargeError(f.name, tokens);
+        }
+
+        // Below WARN — pass through unchanged.
+        if (sizeClass === "ok") {
+          return `[檔案: ${f.name}]\n${raw}`;
+        }
+
+        // WARN zone — apply truncation. Default to "head"; "full" lets the user opt in.
+        const mode = f.truncateMode ?? (f.type === "text/csv" ? "csv" : "head");
+        if (mode === "full") {
+          return `[檔案: ${f.name}（使用者選擇完整送出，約 ${tokens} tokens）]\n${raw}`;
+        }
+        const result = mode === "csv"
+          ? truncateCsvSmart(raw, WARN_TOKENS)
+          : truncateHead(raw, WARN_TOKENS);
+        return `[檔案: ${f.name}]\n${result.text}`;
       })
       .join("\n\n");
     textContent = `${content}\n\n附件內容：\n${fileContext}`;
@@ -713,6 +748,17 @@ export async function POST(req: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof AttachmentTooLargeError) {
+      return Response.json(
+        {
+          error: "attachment_too_large",
+          fileName: error.fileName,
+          tokens: error.tokens,
+          limit: HARD_TOKENS,
+        },
+        { status: 400 }
+      );
+    }
     console.error("Chat API error:", error);
     return new Response("Internal Server Error", { status: 500 });
   }

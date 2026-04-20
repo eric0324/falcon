@@ -14,6 +14,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.27.2",
+    date: "2026-04-20",
+    title: "大檔案附件不再悶吃 token",
+    summary:
+      "上傳文本附件時先估算 token：超過 32K 直接擋下並提示；介於 8K ~ 32K 預設自動截斷並在檔案標籤顯示 token 數，點一下可切換「截斷／完整送出」。圖片與二進位附件行為不變。",
+    items: [
+      "新增 WARN_TOKENS=8_000、HARD_TOKENS=32_000 雙層閾值",
+      "CSV 走 csv-smart 截斷（保留 header + 前段 rows），其他文本走 head 截斷",
+      "截斷後 prompt 尾端附註「原始 X 行 / Y 字元，保留前 Z 行」",
+      "HARD 超標後端直接回 400 attachment_too_large，前端 toast 拒絕",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.27.1",
     date: "2026-04-20",
     title: "三家 provider prompt caching 折扣全到位",

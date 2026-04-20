@@ -548,6 +548,7 @@ function StudioContent() {
       name: f.name,
       type: f.type,
       base64: f.base64,
+      ...(f.truncateMode ? { truncateMode: f.truncateMode } : {}),
     }));
 
     // Pull S3 keys of image uploads so generateImage can use them as sourceImageKey
@@ -588,6 +589,20 @@ function StudioContent() {
         const errBody = await res.json().catch(() => null);
         if (errBody?.error === "quota_exceeded") {
           setQuotaStatus(errBody.quota as QuotaStatus);
+          setMessages((prev) => prev.slice(0, -1));
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      if (res.status === 400) {
+        const errBody = await res.json().catch(() => null);
+        if (errBody?.error === "attachment_too_large") {
+          toast({
+            title: "附件過大",
+            description: `「${errBody.fileName}」約 ${Number(errBody.tokens).toLocaleString()} tokens，超過上限 ${Number(errBody.limit).toLocaleString()}。請拆分檔案後再上傳。`,
+            variant: "destructive",
+          });
           setMessages((prev) => prev.slice(0, -1));
           setIsLoading(false);
           return;
@@ -1320,7 +1335,7 @@ function StudioContent() {
 
             {/* File preview */}
             {uploadedFiles.length > 0 && (
-              <FileList files={uploadedFiles} onRemove={handleRemoveFile} />
+              <FileList files={uploadedFiles} onRemove={handleRemoveFile} onChange={setUploadedFiles} />
             )}
 
             {/* Input */}
