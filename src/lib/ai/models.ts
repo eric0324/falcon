@@ -139,6 +139,26 @@ export function isAnthropicModel(modelId: ModelId): boolean {
 }
 
 /**
+ * Default max output tokens per model for the main chat streamText call.
+ * Prevents runaway generation; override per call site when a longer cap is needed.
+ * Reasoning models (Opus, Pro) get more room for complex answers; smaller models get less.
+ */
+export const MODEL_MAX_OUTPUT_TOKENS: Record<ModelId, number> = {
+  "claude-opus-47": 8192,
+  "claude-opus": 8192,
+  "claude-sonnet": 8192,
+  "claude-haiku": 4096,
+  "gpt-5-mini": 4096,
+  "gpt-5-nano": 4096,
+  "gemini-flash": 8192,
+  "gemini-pro": 8192,
+};
+
+export function getDefaultMaxOutputTokens(modelId: ModelId): number {
+  return MODEL_MAX_OUTPUT_TOKENS[modelId];
+}
+
+/**
  * Get an AI model instance by ID. Reads API keys from DB/env dynamically.
  */
 export async function getModel(modelId: ModelId): Promise<LanguageModel> {

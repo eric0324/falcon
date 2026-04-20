@@ -14,6 +14,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.27.3",
+    date: "2026-04-20",
+    title: "主聊天輸出 token 防呆",
+    summary:
+      "為主聊天 streamText 加上 per-model 的輸出 token 上限（Haiku / GPT-5 系列 4096、其他 8192），避免 AI 罕見的 runaway 生成把成本燒穿。觸頂時會 warn log 方便觀察。",
+    items: [
+      "新增 MODEL_MAX_OUTPUT_TOKENS 表與 getDefaultMaxOutputTokens() helper",
+      "主 streamText 與工具用盡 fallback streamText 都套用上限",
+      "finishReason === \"length\" 時 console.warn 記錄 step / model / cap",
+      "generateConversationTitle 既有 30 tokens 上限不變",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.27.2",
     date: "2026-04-20",
     title: "大檔案附件不再悶吃 token",

@@ -30,6 +30,8 @@ import {
   imagePricing,
   getModelProvider,
   isAnthropicModel,
+  getDefaultMaxOutputTokens,
+  MODEL_MAX_OUTPUT_TOKENS,
 } from "./models";
 
 describe("MODEL_IDS", () => {
@@ -219,6 +221,32 @@ describe("getModelProvider", () => {
   it("returns google for gemini models", () => {
     expect(getModelProvider("gemini-flash")).toBe("google");
     expect(getModelProvider("gemini-pro")).toBe("google");
+  });
+});
+
+describe("getDefaultMaxOutputTokens", () => {
+  it("returns a positive integer for every ModelId", () => {
+    for (const id of MODEL_IDS) {
+      const cap = getDefaultMaxOutputTokens(id);
+      expect(Number.isInteger(cap)).toBe(true);
+      expect(cap).toBeGreaterThan(0);
+    }
+  });
+
+  it("claude-haiku caps at 4096", () => {
+    expect(getDefaultMaxOutputTokens("claude-haiku")).toBe(4096);
+  });
+
+  it("claude-opus-47 allows longer output than haiku", () => {
+    expect(getDefaultMaxOutputTokens("claude-opus-47")).toBeGreaterThanOrEqual(
+      getDefaultMaxOutputTokens("claude-haiku")
+    );
+  });
+
+  it("matches MODEL_MAX_OUTPUT_TOKENS table", () => {
+    for (const id of MODEL_IDS) {
+      expect(getDefaultMaxOutputTokens(id)).toBe(MODEL_MAX_OUTPUT_TOKENS[id]);
+    }
   });
 });
 

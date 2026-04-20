@@ -1,6 +1,6 @@
 import { getSession } from "@/lib/session";
 import { streamText } from "ai";
-import { getModel, ModelId, defaultModel } from "@/lib/ai/models";
+import { getModel, ModelId, defaultModel, getDefaultMaxOutputTokens } from "@/lib/ai/models";
 import { createStudioTools, suggestDataSourcesTool } from "@/lib/ai/tools";
 import { createScraperTools } from "@/lib/ai/scraper-tools";
 import { createImageTools } from "@/lib/ai/image-tools";
@@ -493,6 +493,7 @@ export async function POST(req: Request) {
             system: cacheableSystem(systemPrompt, modelName),
             messages: currentMessages,
             tools: cacheableTools(filteredTools, modelName),
+            maxOutputTokens: getDefaultMaxOutputTokens(modelName),
           });
 
           let hasToolCalls = false;
@@ -588,6 +589,12 @@ export async function POST(req: Request) {
                 totalCacheWriteTokens += details.cacheWriteTokens || 0;
               }
             }
+            const finishReason = await result.finishReason;
+            if (finishReason === "length") {
+              console.warn(
+                `[Chat API] step=${step} hit maxOutputTokens cap (model=${modelName}, cap=${getDefaultMaxOutputTokens(modelName)})`
+              );
+            }
           } catch (e) {
             console.error(`[Chat API] Failed to get usage:`, e);
           }
@@ -638,6 +645,7 @@ export async function POST(req: Request) {
             ),
             messages: currentMessages,
             tools: {}, // no tools = force text response
+            maxOutputTokens: getDefaultMaxOutputTokens(modelName),
           });
 
           for await (const part of finalResult.fullStream) {
@@ -656,6 +664,12 @@ export async function POST(req: Request) {
                 totalCacheReadTokens += details.cacheReadTokens || 0;
                 totalCacheWriteTokens += details.cacheWriteTokens || 0;
               }
+            }
+            const finishReason = await finalResult.finishReason;
+            if (finishReason === "length") {
+              console.warn(
+                `[Chat API] final fallback hit maxOutputTokens cap (model=${modelName}, cap=${getDefaultMaxOutputTokens(modelName)})`
+              );
             }
           } catch (e) {
             console.error(`[Chat API] Failed to get final usage:`, e);
