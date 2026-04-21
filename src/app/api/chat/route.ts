@@ -429,9 +429,20 @@ export async function POST(req: Request) {
         }));
         processedMessages.push({ role: "tool", content: toolResultParts });
       } else {
+        // Anthropic rejects empty text content blocks. Legacy/errored turns may
+        // have persisted an empty assistant message (e.g., a prior stream failed
+        // before any output) — replace with a placeholder so history stays valid
+        // instead of breaking the whole request with AI_APICallError.
+        const rawContent = isLastUserMessage
+          ? buildMessageContent(m.content, files)
+          : m.content;
+        const content =
+          typeof rawContent === "string" && rawContent.length === 0
+            ? "(empty message)"
+            : rawContent;
         processedMessages.push({
           role: m.role as "user" | "assistant",
-          content: isLastUserMessage ? buildMessageContent(m.content, files) : m.content,
+          content,
         });
       }
     }
@@ -728,8 +739,12 @@ export async function POST(req: Request) {
           }
         }
 
-        // Persist new messages (user + assistant) to DB
-        if (conversationId) {
+        // Persist new messages (user + assistant) to DB.
+        // Skip entirely when the assistant produced nothing — persisting an
+        // empty assistant row pollutes history and later trips Anthropic's
+        // "text content blocks must be non-empty" check when the conversation
+        // is replayed.
+        if (conversationId && (finalAssistantText.length > 0 || finalToolCalls.length > 0)) {
           try {
             const newMessages: import("@/types/message").Message[] = [
               {
@@ -747,6 +762,10 @@ export async function POST(req: Request) {
           } catch (e) {
             console.error(`[Chat API] Failed to append messages:`, e);
           }
+        } else if (conversationId) {
+          console.warn(
+            `[Chat API] skip persist — empty turn (no text, no tool calls). conversationId=${conversationId}`
+          );
         }
 
         // Save token usage to database

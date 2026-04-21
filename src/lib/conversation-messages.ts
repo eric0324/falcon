@@ -1,7 +1,26 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getPresignedUrl } from "@/lib/storage/s3";
-import type { Message, MessageAttachment } from "@/types/message";
+import type { Message, MessageAttachment, ToolCall } from "@/types/message";
+
+/**
+ * Heal tool call records that were persisted before completing — typically
+ * because the stream aborted or the SDK emitted a tool-error that the old
+ * chat route silently dropped. Leaving them as `status: "calling"` / missing
+ * result hangs the UI spinner forever and, when replayed into `/api/chat`,
+ * trips Anthropic's missing-tool-result validation.
+ */
+function healToolCalls(raw: unknown): ToolCall[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  return (raw as ToolCall[]).map((tc) => {
+    if (tc.status === "completed" && tc.result !== undefined) return tc;
+    return {
+      ...tc,
+      status: "completed",
+      result: tc.result ?? { success: false, error: "incomplete_result" },
+    };
+  });
+}
 
 interface TokenUsageRow {
   model: string;
@@ -51,10 +70,11 @@ export async function getMessages(conversationId: string): Promise<Message[]> {
 
   return Promise.all(
     rows.map(async (r) => {
+      const healedToolCalls = healToolCalls(r.toolCalls);
       const msg: Message = {
         role: r.role as Message["role"],
         content: r.content,
-        ...(r.toolCalls ? { toolCalls: r.toolCalls as unknown as Message["toolCalls"] } : {}),
+        ...(healedToolCalls ? { toolCalls: healedToolCalls } : {}),
       };
       const row = r as unknown as { attachments?: unknown; tokenUsages: TokenUsageRow[] };
       const attachments = await attachmentsWithUrls(row.attachments);

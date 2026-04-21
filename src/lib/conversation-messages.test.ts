@@ -73,7 +73,7 @@ describe("conversation-messages", () => {
 
     it("includes toolCalls when present", async () => {
       const toolCalls = [
-        { id: "tc-1", name: "updateCode", args: {}, status: "completed" },
+        { id: "tc-1", name: "updateCode", args: {}, status: "completed", result: { ok: true } },
       ];
       prismaMock.conversationMessage.findMany.mockResolvedValue([
         {
@@ -87,6 +87,31 @@ describe("conversation-messages", () => {
 
       const result = await getMessages("conv-1");
       expect(result[0].toolCalls).toEqual(toolCalls);
+    });
+
+    it("heals tool calls that were persisted without a result", async () => {
+      prismaMock.conversationMessage.findMany.mockResolvedValue([
+        {
+          orderIndex: 0,
+          role: "assistant",
+          content: "",
+          toolCalls: [
+            { id: "tc-orphan", name: "editCode", args: { id: "x" }, status: "calling" },
+          ],
+          tokenUsages: [],
+        },
+      ]);
+
+      const result = await getMessages("conv-1");
+      expect(result[0].toolCalls).toEqual([
+        {
+          id: "tc-orphan",
+          name: "editCode",
+          args: { id: "x" },
+          status: "completed",
+          result: { success: false, error: "incomplete_result" },
+        },
+      ]);
     });
 
     it("returns empty array when no messages", async () => {
