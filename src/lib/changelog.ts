@@ -14,6 +14,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.27.5",
+    date: "2026-04-22",
+    title: "修掉會把對話卡死的 Edit Code",
+    summary:
+      "某些對話在點 Edit Code 後會卡在 loading、或送訊息直接報錯無法繼續。原因是舊的失敗回合在 DB 留下沒完成的 tool call 和空白訊息，下一輪送到 Anthropic 就被擋。現在讀取歷史時會自動修復這些殘缺紀錄，失敗回合也不再寫進 DB。",
+    items: [
+      "getMessages 讀取時把未完成的 tool call 治癒成 completed + stub result，前端不再永久轉圈",
+      "讀取歷史時空字串內容補 placeholder，避免 Anthropic 回 text content blocks must be non-empty",
+      "串流整輪沒產出（無文字、無 tool call）時略過 persist，不再污染對話歷史",
+      "串流每步結束補齊缺漏的 tool result，覆蓋 tool-error、maxOutputTokens 截斷、stream 中斷等路徑",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.27.4",
     date: "2026-04-21",
     title: "簡單問題自動改用 Haiku 回答",
