@@ -411,18 +411,23 @@ export async function POST(req: Request) {
         }
         processedMessages.push({ role: "assistant", content: contentParts });
 
-        // Add tool results as a separate tool message
-        const toolResultParts = m.toolCalls
-          .filter((tc) => tc.result !== undefined)
-          .map((tc) => ({
-            type: "tool-result",
-            toolCallId: tc.id,
-            toolName: tc.name,
-            output: { type: "text", value: JSON.stringify(tc.result) },
-          }));
-        if (toolResultParts.length > 0) {
-          processedMessages.push({ role: "tool", content: toolResultParts });
-        }
+        // Every tool-call in the assistant message MUST have a matching tool-result,
+        // otherwise the AI SDK rejects the request with AI_MissingToolResultsError.
+        // Synthesize a stub result for any stored tool call whose execution never
+        // completed (e.g., tool-error, maxOutputTokens mid-tool-use, aborted stream).
+        const toolResultParts = m.toolCalls.map((tc) => ({
+          type: "tool-result",
+          toolCallId: tc.id,
+          toolName: tc.name,
+          output: {
+            type: "text",
+            value:
+              tc.result !== undefined
+                ? JSON.stringify(tc.result)
+                : JSON.stringify({ success: false, error: "incomplete_result" }),
+          },
+        }));
+        processedMessages.push({ role: "tool", content: toolResultParts });
       } else {
         processedMessages.push({
           role: m.role as "user" | "assistant",
@@ -629,6 +634,26 @@ export async function POST(req: Request) {
           // If no tool calls, we're done
           if (!hasToolCalls) {
             break;
+          }
+
+          // Ensure every tool call has a result. Missing results happen when the
+          // SDK emits a tool-error part (not in our switch), the stream aborts
+          // between tool-call and tool-result events, or maxOutputTokens truncates
+          // a tool_use block mid-execution. Sending a dangling tool_use back to
+          // Anthropic triggers AI_MissingToolResultsError on the next step.
+          for (const tc of toolCalls) {
+            if (!toolResults.some((tr) => tr.toolCallId === tc.toolCallId)) {
+              const stub = { success: false, error: "incomplete_result" };
+              toolResults.push({ toolCallId: tc.toolCallId, result: stub });
+              const ftc = finalToolCalls.find((t) => t.id === tc.toolCallId);
+              if (ftc) {
+                ftc.status = "completed";
+                ftc.result = stub;
+              }
+              console.warn(
+                `[Chat API] synthesized stub result for tool call ${tc.toolCallId} (${tc.toolName})`
+              );
+            }
           }
 
           // Add assistant message with tool calls to conversation
