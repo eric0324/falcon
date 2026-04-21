@@ -24,4 +24,6 @@ export interface Message {
   toolCalls?: ToolCall[];
   attachments?: MessageAttachment[];
   tokenUsage?: { model: string; inputTokens: number; outputTokens: number };
+  /** Set when smart routing downgraded the model for this turn. */
+  routing?: { selectedModel: string; actualModel: string };
 }

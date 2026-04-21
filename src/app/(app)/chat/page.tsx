@@ -619,6 +619,7 @@ function StudioContent() {
       let buffer = "";
       let savedConvId = convId;
       let savedTitle: string | undefined;
+      let routing: { selectedModel: string; actualModel: string } | undefined;
       const toolCallsMap = new Map<string, ToolCall>();
 
       if (reader) {
@@ -642,13 +643,14 @@ function StudioContent() {
                 assistantMessage += data as string;
                 setMessages((prev) => {
                   const lastMessage = prev[prev.length - 1];
+                  const routingProp = routing ? { routing } : {};
                   if (lastMessage?.role === "assistant") {
                     return [
                       ...prev.slice(0, -1),
-                      { ...lastMessage, content: assistantMessage },
+                      { ...lastMessage, content: assistantMessage, ...routingProp },
                     ];
                   } else {
-                    return [...prev, { role: "assistant", content: assistantMessage }];
+                    return [...prev, { role: "assistant", content: assistantMessage, ...routingProp }];
                   }
                 });
 
@@ -733,10 +735,21 @@ function StudioContent() {
               }
 
               case "i": { // Conversation ID (and title) from server
-                const { conversationId: serverConvId, title: serverTitle } = data as { conversationId: string; title?: string };
-                if (serverConvId && !savedConvId) {
-                  savedConvId = serverConvId;
-                  if (serverTitle) savedTitle = serverTitle;
+                const info = data as {
+                  conversationId: string;
+                  title?: string;
+                  actualModel?: string;
+                  selectedModel?: string;
+                };
+                if (info.conversationId && !savedConvId) {
+                  savedConvId = info.conversationId;
+                  if (info.title) savedTitle = info.title;
+                }
+                if (info.actualModel && info.selectedModel) {
+                  routing = {
+                    actualModel: info.actualModel,
+                    selectedModel: info.selectedModel,
+                  };
                 }
                 break;
               }

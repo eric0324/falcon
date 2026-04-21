@@ -1,36 +1,33 @@
 # Tasks: 簡單查詢自動降級到 Haiku
 
 ## Task 1: 路由邏輯
-- [ ] 建立 `src/lib/ai/route-model.ts`
-- [ ] 實作 `routeModel(input: { userMessage, files, selectedModel, hasToolHistory }): ModelId`
-- [ ] 定義 keyword list（程式類 / 分析類 / 設計類）
-- [ ] heuristics：短訊 + 無附件 + 無關鍵字 + Anthropic 高階 → 降級 Haiku
-- [ ] 其他情況回原 selectedModel
-- [ ] 撰寫單元測試（至少 15 case：各種關鍵字、長度、附件組合）
+- [x] 建立 `src/lib/ai/route-model.ts`
+- [x] 實作 `routeModel(input: { userMessage, selectedModel, hasFiles, hasToolHistory }): ModelId`
+- [x] 定義 UPGRADE_KEYWORDS（程式類 / 分析類 / 設計類 / 圖片類）
+- [x] heuristics：短訊(<200)＋無附件＋無關鍵字＋無工具歷史＋Anthropic 高階 → 降級 Haiku
+- [x] 其他情況（含非 Anthropic、已選 haiku）回原 selectedModel
+- [x] 撰寫單元測試（19 tests pass）
 
 ## Task 2: 整合 Chat API
-- [ ] 修改 `src/app/api/chat/route.ts`
-- [ ] 取得 selectedModel 後呼叫 `routeModel()` 取得 actualModel
-- [ ] 用 actualModel 取 getModel()
-- [ ] log 記錄降級：`[Chat API] model routed: opus → haiku (reason: short_query)`
-- [ ] 在 `i:` stream 事件附上 `actualModel` 欄位
+- [x] 修改 `src/app/api/chat/route.ts`
+- [x] 取得 selectedModelName 後呼叫 `routeModel()` 得到 modelName（actual）
+- [x] 用 modelName 取 `getModel()` 建立 LanguageModel 實例
+- [x] log 記錄降級：`[Chat API] model routed: opus-47 → haiku (short_simple_query)`
+- [x] 在 `i:` stream 事件附上 `actualModel` / `selectedModel`（僅在實際降級時）
 
 ## Task 3: 前端 Badge
-- [ ] 修改 `src/app/(app)/chat/page.tsx`
-- [ ] 解析 stream `i:` 事件中的 `actualModel`
-- [ ] 若 `actualModel !== selectedModel`，在該則回應上顯示小 badge
-  - 例如：「⚡ Haiku (自動最佳化)」
-  - tooltip：「此訊息用 Haiku 回應以節省資源；下一則會重新評估」
-- [ ] 點 badge 可連到設定或重新以 selectedModel 發問（optional）
+- [x] 修改 `src/app/(app)/chat/page.tsx`
+- [x] 解析 stream `i:` 事件中的 `actualModel` / `selectedModel`，存進 routing 區域變數
+- [x] 組 assistant message 時加上 `routing` 欄位
+- [x] `chat-message.tsx` 新增 `RoutingBadge`，在 assistant 回覆下方顯示「⚡ 自動改用 Haiku」+ tooltip
 
 ## Task 4: 計費與統計
-- [ ] 確認 usage log 記錄的是 actualModel（而非 selectedModel）
-- [ ] 計費依 actualModel 單價
+- [x] `prisma.tokenUsage.create({ model: modelName, ... })` 的 modelName 已是 actualModel
+- [x] `estimateCost(modelName, ...)` 依 actualModel 單價計算
 
 ## Task 5: 測試
-- [ ] 單元測試：routeModel 各 case
-- [ ] 整合測試：模擬 Opus + 短訊 → 實際用 Haiku
-- [ ] 手動實測：確認降級 badge 顯示正確
+- [x] 單元測試：routeModel 各 case（19 tests）
+- [ ] 手動實測降級 badge 顯示（待 staging 驗證）
 
 ## 依賴關係
 

@@ -14,6 +14,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.27.4",
+    date: "2026-04-21",
+    title: "簡單問題自動改用 Haiku 回答",
+    summary:
+      "你選了 Opus / Sonnet 但只問了一句簡單問題時，系統會自動改用 Haiku 回應、在回覆下方標示「自動改用 Haiku」。牽涉到寫程式、分析報告、附檔或對話中已呼叫過工具的訊息，還是會用你選的模型。",
+    items: [
+      "新增 routeModel() 啟發式：訊息 <200 字、無附件、無工具歷史、無程式/分析/設計/圖片類關鍵字時降級 Haiku",
+      "使用者選 Haiku 或非 Anthropic 模型時完全不介入",
+      "stream i: 事件帶 actualModel / selectedModel，前端顯示自動改用標籤",
+      "費用與 TokenUsage 依實際模型計算",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.27.3",
     date: "2026-04-20",
     title: "主聊天輸出 token 防呆",

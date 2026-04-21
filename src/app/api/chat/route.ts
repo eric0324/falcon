@@ -29,6 +29,7 @@ import { createKnowledgeBaseTools } from "@/lib/ai/knowledge-base-tools";
 import { shouldCompact, estimateTokens, estimateMessagesTokens, trimMessagesToFit } from "@/lib/ai/token-utils";
 import { compactMessages } from "@/lib/ai/compact";
 import { cacheableSystem, cacheableTools } from "@/lib/ai/cache-control";
+import { routeModel } from "@/lib/ai/route-model";
 import { estimateTokens as estimateTokenCount } from "@/lib/ai/token-utils";
 import { classifyAttachmentSize, HARD_TOKENS, WARN_TOKENS } from "@/lib/attachments/limits";
 import { truncateHead, truncateCsvSmart } from "@/lib/attachments/text-truncate";
@@ -196,9 +197,8 @@ export async function POST(req: Request) {
       ? `${message}\n\n[Uploaded images available as sourceImageKey for generateImage: ${uploadedKeys.join(", ")}]`
       : message;
 
-    // Use specified model or default
-    const selectedModel = await getModel((model as ModelId) || defaultModel);
-    const modelName = (model || defaultModel) as ModelId;
+    // User-selected model (falls back to default)
+    const selectedModelName = (model || defaultModel) as ModelId;
 
     // Load conversation history from DB or create new conversation
     let conversationId = incomingConversationId as string | undefined;
@@ -215,12 +215,32 @@ export async function POST(req: Request) {
         data: {
           userId,
           title: generatedTitle,
-          model: modelName,
+          model: selectedModelName,
           dataSources: dataSources || undefined,
         },
       });
       conversationId = conv.id;
     }
+
+    // Smart routing: simple short queries on high-tier Anthropic models
+    // downgrade to Haiku to save cost. Complex intent keeps the selected model.
+    const hasFiles = Array.isArray(files) && files.length > 0;
+    const hasToolHistory = historyMessages.some(
+      (m) => Array.isArray(m.toolCalls) && m.toolCalls.length > 0
+    );
+    const modelName = routeModel({
+      userMessage: typeof message === "string" ? message : "",
+      selectedModel: selectedModelName,
+      hasFiles,
+      hasToolHistory,
+    });
+    const routedDown = modelName !== selectedModelName;
+    if (routedDown) {
+      console.log(
+        `[Chat API] model routed: ${selectedModelName} → ${modelName} (short_simple_query)`
+      );
+    }
+    const selectedModel = await getModel(modelName);
 
     // Build messages array: history + new user message.
     // Append S3 key hints only to the LLM view — not the user-visible history.
@@ -476,7 +496,14 @@ export async function POST(req: Request) {
 
         // Send conversationId (and title if newly created) so frontend can use it
         if (conversationId) {
-          enqueue(`i:${JSON.stringify({ conversationId, title: generatedTitle })}\n`);
+          enqueue(
+            `i:${JSON.stringify({
+              conversationId,
+              title: generatedTitle,
+              actualModel: routedDown ? modelName : undefined,
+              selectedModel: routedDown ? selectedModelName : undefined,
+            })}\n`
+          );
         }
 
         // Send compact event if compaction occurred

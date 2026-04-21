@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Check, Copy, Loader2 } from "lucide-react";
+import { Check, Copy, Loader2, Zap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { getFileIcon } from "@/components/file-upload";
 import type { MessageAttachment } from "@/types/message";
+import { modelInfo, type ModelId } from "@/lib/ai/models";
 
 interface ToolCallInfo {
   name: string;
@@ -18,9 +19,24 @@ interface ChatMessageProps {
     role: "user" | "assistant";
     content: string;
     attachments?: MessageAttachment[];
+    routing?: { selectedModel: string; actualModel: string };
   };
   isStreaming?: boolean;
   toolCalls?: ToolCallInfo[];
+}
+
+function RoutingBadge({ selectedModel, actualModel }: { selectedModel: string; actualModel: string }) {
+  const actualName = modelInfo[actualModel as ModelId]?.name ?? actualModel;
+  const selectedName = modelInfo[selectedModel as ModelId]?.name ?? selectedModel;
+  return (
+    <div
+      className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full text-xs bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60"
+      title={`此回覆自動改用 ${actualName} 以節省成本；若要用 ${selectedName} 回答，請重新送出較具體的需求。`}
+    >
+      <Zap className="h-3 w-3" />
+      自動改用 {actualName}
+    </div>
+  );
 }
 
 function AttachmentImage({ attachment }: { attachment: MessageAttachment }) {
@@ -208,6 +224,12 @@ export function ChatMessage({ message, isStreaming = false, toolCalls = [] }: Ch
           <Check className="h-3.5 w-3.5" />
           已更新預覽
         </div>
+      )}
+      {message.routing && (
+        <RoutingBadge
+          selectedModel={message.routing.selectedModel}
+          actualModel={message.routing.actualModel}
+        />
       )}
     </div>
   );
