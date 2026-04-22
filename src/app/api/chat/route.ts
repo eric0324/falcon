@@ -1,7 +1,11 @@
 import { getSession } from "@/lib/session";
 import { streamText } from "ai";
 import { getModel, ModelId, defaultModel, getDefaultMaxOutputTokens } from "@/lib/ai/models";
-import { createStudioTools, suggestDataSourcesTool } from "@/lib/ai/tools";
+import {
+  createStudioTools,
+  suggestDataSourcesTool,
+  UPDATE_CODE_DISABLED_TOKEN_THRESHOLD,
+} from "@/lib/ai/tools";
 import { createScraperTools } from "@/lib/ai/scraper-tools";
 import { createImageTools } from "@/lib/ai/image-tools";
 import type { ImageProvider } from "@/lib/ai/image-generation";
@@ -258,9 +262,31 @@ export async function POST(req: Request) {
     const metaAdsTools = createMetaAdsTools();
     const githubTools = createGitHubTools();
 
+    // 計算現有工具程式碼的 token 數，用來決定是否停用 updateCode。
+    // 大工具用 updateCode 整份重寫時，tool_use 的 code 參數會爆 maxOutputTokens buffer、
+    // finishReason=length 切掉 tool call，AI 呼叫永遠失敗。拿掉 updateCode 強制走 editCode。
+    let existingToolCodeTokens = 0;
+    if (conversationId) {
+      try {
+        const existingTool = await prisma.tool.findUnique({
+          where: { conversationId },
+          select: { code: true },
+        });
+        if (existingTool?.code) {
+          existingToolCodeTokens = estimateTokens(existingTool.code);
+        }
+      } catch {
+        // best effort — 查不到就當 0，退回原本行為（含 updateCode）
+      }
+    }
+    const existingToolIsLarge =
+      existingToolCodeTokens >= UPDATE_CODE_DISABLED_TOKEN_THRESHOLD;
+
     // Filter tools based on selected data sources
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let filteredTools: Record<string, any> = { ...createStudioTools(userId, conversationId) };
+    let filteredTools: Record<string, any> = {
+      ...createStudioTools(userId, conversationId, { existingCodeTokens: existingToolCodeTokens }),
+    };
 
     // Only add external tools for explicitly selected data sources
     if (dataSources && dataSources.length > 0) {
@@ -386,7 +412,13 @@ export async function POST(req: Request) {
 
     // Inject current code so AI always knows the latest code when editing
     if (currentCode && typeof currentCode === "string") {
-      systemPrompt += `\n\n## Current Tool Code\nThe user is editing an existing tool. Here is the current code:\n\`\`\`jsx\n${currentCode}\n\`\`\`\nYou can see and modify this code. When the user asks for changes, call updateCode with the full updated code.`;
+      const editGuidance = existingToolIsLarge
+        ? `This tool is large (~${existingToolCodeTokens} tokens) — \`updateCode\` has been disabled. You **must** use \`editCode\` for every change. Even if the user asks to "rewrite" or "redesign", break the work into multiple sequential editCode calls instead of trying to regenerate the whole file.`
+        : `You can see and modify this code. For small changes use \`editCode\`; only call \`updateCode\` when the user explicitly asks for a full rewrite.`;
+      systemPrompt += `\n\n## Current Tool Code\nThe user is editing an existing tool. Here is the current code:\n\`\`\`jsx\n${currentCode}\n\`\`\`\n${editGuidance}`;
+    } else if (existingToolIsLarge) {
+      // currentCode 沒透過前端帶上來，但 DB 裡的工具仍然大 —— 提醒 AI updateCode 已停用
+      systemPrompt += `\n\n## Large Tool Notice\nThe current tool is large (~${existingToolCodeTokens} tokens); \`updateCode\` has been disabled. Use \`editCode\` for any modification, splitting big changes into multiple calls.`;
     }
 
     // Process messages to include files and reconstruct tool call history

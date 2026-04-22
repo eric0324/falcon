@@ -233,8 +233,8 @@ describe("getDefaultMaxOutputTokens", () => {
     }
   });
 
-  it("claude-haiku caps at 4096", () => {
-    expect(getDefaultMaxOutputTokens("claude-haiku")).toBe(4096);
+  it("claude-haiku caps at 8192", () => {
+    expect(getDefaultMaxOutputTokens("claude-haiku")).toBe(8192);
   });
 
   it("claude-opus-47 allows longer output than haiku", () => {

@@ -141,13 +141,16 @@ export function isAnthropicModel(modelId: ModelId): boolean {
 /**
  * Default max output tokens per model for the main chat streamText call.
  * Prevents runaway generation; override per call site when a longer cap is needed.
- * Reasoning models (Opus, Pro) get more room for complex answers; smaller models get less.
+ *
+ * Anthropic 模型提高上限以容納大型 tool_use input（updateCode 整份程式碼）。
+ * 8K 的舊上限讓 5000+ 行工具的 updateCode 永遠觸到 finishReason=length，
+ * 導致 tool_use block 沒 emit 完就被切。配合 tools.ts 的大工具閾值雙重防護。
  */
 export const MODEL_MAX_OUTPUT_TOKENS: Record<ModelId, number> = {
-  "claude-opus-47": 8192,
-  "claude-opus": 8192,
-  "claude-sonnet": 8192,
-  "claude-haiku": 4096,
+  "claude-opus-47": 16_000,
+  "claude-opus": 16_000,
+  "claude-sonnet": 32_000,
+  "claude-haiku": 8_192,
   "gpt-5-mini": 4096,
   "gpt-5-nano": 4096,
   "gemini-flash": 8192,

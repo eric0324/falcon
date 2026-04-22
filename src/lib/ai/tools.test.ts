@@ -14,9 +14,12 @@ vi.mock("@/lib/tool-snapshot", () => ({
   applyCodeUpdate: mockApplyCodeUpdate,
 }));
 
-import { createStudioTools } from "./tools";
+import {
+  createStudioTools,
+  UPDATE_CODE_DISABLED_TOKEN_THRESHOLD,
+} from "./tools";
 
-type ExecuteOptions = Parameters<NonNullable<ReturnType<typeof createStudioTools>["updateCode"]["execute"]>>[1];
+type ExecuteOptions = Parameters<NonNullable<NonNullable<ReturnType<typeof createStudioTools>["updateCode"]>["execute"]>>[1];
 const noopOptions = {} as unknown as ExecuteOptions;
 
 describe("updateCode", () => {
@@ -29,7 +32,7 @@ describe("updateCode", () => {
     prismaMock.tool.findUnique.mockResolvedValue({ id: "tool-1" });
 
     const tools = createStudioTools("user-1", "conv-1");
-    const result = await tools.updateCode.execute!(
+    const result = await tools.updateCode!.execute!(
       { code: "<div>new</div>", explanation: "adjust header" },
       noopOptions
     );
@@ -51,7 +54,7 @@ describe("updateCode", () => {
     prismaMock.tool.create.mockResolvedValue({ id: "tool-new" });
 
     const tools = createStudioTools("user-1", "conv-1");
-    await tools.updateCode.execute!(
+    await tools.updateCode!.execute!(
       { code: "<div />", explanation: "init" },
       noopOptions
     );
@@ -151,6 +154,27 @@ describe("editCode", () => {
       code: "const label = '你好';\nconst x = 1;",
       toolId: "tool-1",
     });
+  });
+
+  it("drops updateCode from toolset when existingCodeTokens hits threshold", () => {
+    const tools = createStudioTools("user-1", "conv-1", {
+      existingCodeTokens: UPDATE_CODE_DISABLED_TOKEN_THRESHOLD,
+    });
+    expect(tools.updateCode).toBeUndefined();
+    expect(tools.editCode).toBeDefined();
+    expect(tools.updateDocument).toBeDefined();
+  });
+
+  it("keeps updateCode when existingCodeTokens is just below threshold", () => {
+    const tools = createStudioTools("user-1", "conv-1", {
+      existingCodeTokens: UPDATE_CODE_DISABLED_TOKEN_THRESHOLD - 1,
+    });
+    expect(tools.updateCode).toBeDefined();
+  });
+
+  it("keeps updateCode when no options provided (backwards compatible)", () => {
+    const tools = createStudioTools("user-1", "conv-1");
+    expect(tools.updateCode).toBeDefined();
   });
 
   it("wraps applyCodeUpdate errors as edit_code_error", async () => {
