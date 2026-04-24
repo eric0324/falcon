@@ -4,6 +4,7 @@ import type { StepType } from "@reactour/tour";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { PronunciationWelcome } from "./pronunciation-welcome";
 
 function FinalStep({ setIsOpen }: { setIsOpen: (v: boolean) => void }) {
   const router = useRouter();
@@ -48,7 +49,7 @@ export function useMarketplaceSteps(): StepType[] {
       position: "center",
       highlightedSelectors: [],
       mutationObservables: [],
-      content: t("welcome"),
+      content: <PronunciationWelcome />,
       styles: centeredStyles,
     },
     { selector: '[data-tour="marketplace-tool-list"]', content: t("toolList") },

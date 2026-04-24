@@ -5,6 +5,8 @@
   "finish": "Done",
   "marketplace": {
     "welcome": "Welcome to Falcon! It's an AI collaboration platform where you build tools, write documents, and query data using natural language — and share what you make with teammates. Let me show you around.",
+    "phonetic": "/ˈfæl.kən/",
+    "playPronunciation": "Play pronunciation",
     "toolList": "The homepage shows tools your teammates have built. Tap any to use it, or publish one of your own.",
     "search": "Looking for something specific? Search by keyword, or switch categories below to browse. Don't reinvent the wheel — check here before building a new tool, someone may have already made it.",
     "toolCard": "Each card is a tool — tap to use it. Ratings and usage counts help you gauge quality, and you can open a tool to see what others thought.",

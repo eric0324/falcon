@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.27.6",
+    date: "2026-04-24",
+    title: "首頁 tour 第一步教你念 Falcon",
+    summary:
+      "首頁導覽的第一步新增發音教學：顯示 Falcon 的音標，點喇叭按鈕可播放發音，想聽幾次都行。",
+    items: [
+      "marketplace tour 第一步改為 PronunciationWelcome 元件",
+      "音檔放在 public/audio/falcon.mp3，按鈕每次點都從頭播",
+      "i18n 新增 onboarding.marketplace.phonetic 與 playPronunciation",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.27.5",
     date: "2026-04-22",
     title: "修掉會把對話卡死的 Edit Code",
