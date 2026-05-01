@@ -104,6 +104,13 @@ export function ToolDetailPanel({ tool }: { tool: ToolSummary }) {
               )}
             />
             <span className="font-medium">{tool.name}</span>
+            <Link
+              href={`/admin/tools/${tool.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="ml-1 text-xs text-blue-600 hover:underline"
+            >
+              管理
+            </Link>
           </div>
         </td>
         <td className="p-3">
