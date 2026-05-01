@@ -3,7 +3,8 @@ import { Prisma, type Visibility, type ToolStatus } from "@prisma/client";
 import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { applyCodeUpdate } from "@/lib/tool-snapshot";
-import { runRuleScan, scanOnDeploy } from "@/lib/code-scan";
+import { scanOnDeploy } from "@/lib/code-scan";
+import { runRuleScan } from "@/lib/code-scan/rules";
 
 export async function GET(
   _req: Request,
