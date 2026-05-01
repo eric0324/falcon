@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
 import { NextResponse } from "next/server";
 import { AdminToolEditForm } from "./admin-tool-edit-form";
+import { SnapshotList } from "./snapshot-list";
 
 export const metadata = { title: "工具編輯（管理員）" };
 
@@ -89,26 +90,16 @@ export default async function AdminToolDetailPage({
         initialStatus={tool.status}
       />
 
-      {tool.snapshots.length > 0 && (
-        <div className="mt-8 border-t pt-6">
-          <h2 className="text-base font-semibold mb-3">最近版本（最多 10 筆）</h2>
-          <ul className="space-y-2 text-sm">
-            {tool.snapshots.map((s) => (
-              <li key={s.id} className="flex items-start gap-3">
-                <span
-                  className="text-muted-foreground tabular-nums shrink-0"
-                  suppressHydrationWarning
-                >
-                  {new Date(s.createdAt).toLocaleString("zh-TW")}
-                </span>
-                <span className="text-muted-foreground">
-                  {s.explanation || "（無說明）"}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <div className="mt-8 border-t pt-6">
+        <h2 className="text-base font-semibold mb-3">最近版本（最多 10 筆）</h2>
+        <SnapshotList
+          toolId={tool.id}
+          initialSnapshots={tool.snapshots.map((s) => ({
+            ...s,
+            createdAt: s.createdAt.toISOString(),
+          }))}
+        />
+      </div>
     </div>
   );
 }
