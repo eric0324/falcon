@@ -14,6 +14,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.27.7",
+    date: "2026-05-04",
+    title: "工具收藏功能",
+    summary:
+      "全站工具卡片右上多了愛心按鈕，點一下就能收藏。首頁多一個「我的收藏」tab 並放在最左邊，按收藏時間最新排序；有收藏時自動成為首頁預設 tab，沒收藏時保留原本的本週熱門。工具詳細頁也有收藏按鈕，跨頁狀態同步。",
+    items: [
+      "新 ToolFavorite 表，per-user-per-tool 唯一、cascade delete",
+      "POST/DELETE /api/tools/[id]/favorite 皆 idempotent",
+      "卡片愛心採樂觀更新：點擊立即翻轉，失敗自動回滾並 toast 提示",
+      "首頁、category、search、leaderboard 一次 query 收藏 id set 給整頁卡片",
+      "有收藏時 default tab = 我的收藏，沒收藏時 fallback trending 不打壞 onboarding tour",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.27.6",
     date: "2026-04-24",
     title: "首頁 tour 第一步教你念 Falcon",
