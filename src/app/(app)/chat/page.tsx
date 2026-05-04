@@ -308,7 +308,12 @@ function StudioContent() {
   useEffect(() => {
     if (editId) {
       fetch(`/api/tools/${editId}`)
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Failed to load tool: ${res.status}`);
+          }
+          return res.json();
+        })
         .then((tool) => {
           setToolName(tool.name);
           setToolDescription(tool.description || "");
