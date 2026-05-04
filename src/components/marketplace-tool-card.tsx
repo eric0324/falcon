@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Eye, Star } from "lucide-react";
 import { getCategoryById } from "@/lib/categories";
 import { UserAvatar } from "@/components/user-avatar";
+import { ToolFavoriteButton } from "@/components/tool-favorite-button";
 
 interface MarketplaceToolCardProps {
   tool: {
@@ -25,9 +26,15 @@ interface MarketplaceToolCardProps {
       totalReviews: number;
     };
   };
+  isFavorited?: boolean;
+  onFavoriteChange?: (favorited: boolean) => void;
 }
 
-export function MarketplaceToolCard({ tool }: MarketplaceToolCardProps) {
+export function MarketplaceToolCard({
+  tool,
+  isFavorited = false,
+  onFavoriteChange,
+}: MarketplaceToolCardProps) {
   const tCategories = useTranslations("categories");
   const tCommon = useTranslations("common");
   const category = tool.category ? getCategoryById(tool.category) : null;
@@ -35,14 +42,21 @@ export function MarketplaceToolCard({ tool }: MarketplaceToolCardProps) {
   return (
     <div className="border rounded-lg p-4 hover:shadow-md transition-shadow h-full flex flex-col">
       <div className="flex items-start justify-between gap-2 mb-2">
-        <Link href={`/tool/${tool.id}/details`} className="hover:opacity-80 transition-opacity">
+        <Link href={`/tool/${tool.id}/details`} className="hover:opacity-80 transition-opacity min-w-0">
           <h3 className="font-semibold line-clamp-1">{tool.name}</h3>
         </Link>
-        {category && (
-          <span className="text-xs bg-muted px-2 py-0.5 rounded shrink-0">
-            {category.icon} {tCategories(category.id)}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {category && (
+            <span className="text-xs bg-muted px-2 py-0.5 rounded">
+              {category.icon} {tCategories(category.id)}
+            </span>
+          )}
+          <ToolFavoriteButton
+            toolId={tool.id}
+            initialFavorited={isFavorited}
+            onChange={onFavoriteChange}
+          />
+        </div>
       </div>
 
       {tool.description && (

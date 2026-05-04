@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { buildVisibilityFilter } from "@/lib/tool-visibility";
+import { getFavoriteToolIds } from "@/lib/tool-favorites";
 import { MarketplaceToolCard } from "@/components/marketplace-tool-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, TrendingUp, Star, Eye, Sparkles } from "lucide-react";
@@ -26,7 +27,13 @@ export default async function LeaderboardPage({ searchParams }: LeaderboardPageP
   const visibilityFilter: Prisma.ToolWhereInput = buildVisibilityFilter(session.user.id);
 
   // Fetch different rankings
-  const [trendingTools, topRatedTools, mostUsedTools, risingStarsTools] = await Promise.all([
+  const [
+    trendingTools,
+    topRatedTools,
+    mostUsedTools,
+    risingStarsTools,
+    favoriteIds,
+  ] = await Promise.all([
     // 本週熱門
     prisma.tool.findMany({
       where: visibilityFilter,
@@ -73,6 +80,7 @@ export default async function LeaderboardPage({ searchParams }: LeaderboardPageP
       orderBy: [{ stats: { weeklyUsage: "desc" } }, { createdAt: "desc" }],
       take: 20,
     }),
+    getFavoriteToolIds(session.user.id),
   ]);
 
   const formatTool = (tool: typeof trendingTools[0]) => ({
@@ -107,7 +115,10 @@ export default async function LeaderboardPage({ searchParams }: LeaderboardPageP
                 {index + 1}
               </div>
             )}
-            <MarketplaceToolCard tool={formatTool(tool)} />
+            <MarketplaceToolCard
+              tool={formatTool(tool)}
+              isFavorited={favoriteIds.has(tool.id)}
+            />
           </div>
         ))}
       </div>

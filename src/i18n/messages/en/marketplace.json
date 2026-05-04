@@ -16,7 +16,8 @@
     "topRated": "Top Rated",
     "mostUsed": "Most Used",
     "rising": "Rising Stars",
-    "newest": "Newest"
+    "newest": "Newest",
+    "favorites": "Favorites"
   },
   "empty": {
     "trending": "No trending tools yet. Be the first to share a tool!",

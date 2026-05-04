@@ -71,6 +71,7 @@ model User {
   knowledgeUploads         KnowledgeUpload[]
   knowledgePointReviews    KnowledgePoint[]      @relation("KnowledgePointReviewer")
   apiKeys                  UserApiKey[]
+  toolFavorites            ToolFavorite[]
 }
 
 model Tool {
@@ -101,6 +102,7 @@ model Tool {
   scans     CodeScan[]
   tables    ToolTable[]
   snapshots ToolCodeSnapshot[]
+  favorites ToolFavorite[]
 
   @@index([category])
   @@index([visibility])
@@ -615,5 +617,21 @@ model Group {
   columns ExternalDatabaseColumn[]
 
   @@map("CompanyRole")
+}
+
+// ===== Tool Favorite =====
+
+model ToolFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  toolId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tool Tool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, toolId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([toolId])
 }
 

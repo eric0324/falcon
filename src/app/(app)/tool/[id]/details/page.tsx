@@ -13,6 +13,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import { ToolStats } from "@/components/tool-stats";
 import { ShareButton } from "./share-button";
+import { ToolFavoriteButton } from "@/components/tool-favorite-button";
 import { ReviewSection } from "@/components/review-section";
 
 interface ToolDetailsPageProps {
@@ -72,6 +73,15 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
     },
   });
 
+  // Check if current user has favorited
+  const favorite = await prisma.toolFavorite.findUnique({
+    where: {
+      userId_toolId: { userId: session.user.id, toolId: id },
+    },
+    select: { id: true },
+  });
+  const isFavorited = favorite !== null;
+
   const stats = tool.stats || {
     totalUsage: 0,
     weeklyUsage: 0,
@@ -112,7 +122,12 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
                 <p className="text-muted-foreground">{tool.description}</p>
               )}
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex gap-2 shrink-0 items-center">
+              <ToolFavoriteButton
+                toolId={tool.id}
+                initialFavorited={isFavorited}
+                size="md"
+              />
               <ShareButton toolId={tool.id} visibility={tool.visibility} label={tCommon("share")} />
               <Button variant="outline" size="sm" asChild>
                 <a href={`/tool/${tool.id}/data`} target="_blank" rel="noopener noreferrer">

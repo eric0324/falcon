@@ -6,6 +6,7 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { buildVisibilityFilter } from "@/lib/tool-visibility";
 import { TOOL_CATEGORIES, getCategoryById } from "@/lib/categories";
+import { getFavoriteToolIds } from "@/lib/tool-favorites";
 import { MarketplaceToolCard } from "@/components/marketplace-tool-card";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,19 +36,22 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     notFound();
   }
 
-  const tools = await prisma.tool.findMany({
-    where: {
-      category: categoryId,
-      ...buildVisibilityFilter(session.user.id),
-    },
-    include: {
-      author: {
-        select: { id: true, name: true, image: true },
+  const [tools, favoriteIds] = await Promise.all([
+    prisma.tool.findMany({
+      where: {
+        category: categoryId,
+        ...buildVisibilityFilter(session.user.id),
       },
-      stats: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      include: {
+        author: {
+          select: { id: true, name: true, image: true },
+        },
+        stats: true,
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    getFavoriteToolIds(session.user.id),
+  ]);
 
   const formatTool = (tool: typeof tools[0]) => ({
     id: tool.id,
@@ -100,7 +104,11 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         {tools.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {tools.map((tool) => (
-              <MarketplaceToolCard key={tool.id} tool={formatTool(tool)} />
+              <MarketplaceToolCard
+                key={tool.id}
+                tool={formatTool(tool)}
+                isFavorited={favoriteIds.has(tool.id)}
+              />
             ))}
           </div>
         ) : (

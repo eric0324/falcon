@@ -16,7 +16,8 @@
     "topRated": "最高評價",
     "mostUsed": "使用最多",
     "rising": "新星崛起",
-    "newest": "最新上架"
+    "newest": "最新上架",
+    "favorites": "我的收藏"
   },
   "empty": {
     "trending": "還沒有熱門工具，成為第一個分享工具的人吧！",

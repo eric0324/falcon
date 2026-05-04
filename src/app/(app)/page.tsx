@@ -6,10 +6,12 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { buildVisibilityFilter } from "@/lib/tool-visibility";
 import { TOOL_CATEGORIES } from "@/lib/categories";
+import { getFavoriteToolIds, getFavoritedTools } from "@/lib/tool-favorites";
 import { MarketplaceToolCard } from "@/components/marketplace-tool-card";
+import { MyFavoritesGrid } from "@/components/my-favorites-grid";
 import { SearchBar } from "@/components/search-bar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, Star, Eye, Sparkles, Clock } from "lucide-react";
+import { TrendingUp, Star, Eye, Sparkles, Clock, Heart } from "lucide-react";
 import { HeroGreeting } from "@/components/hero-greeting";
 import { MarketplaceTour } from "@/components/onboarding/marketplace-tour";
 
@@ -24,7 +26,15 @@ export default async function HomePage() {
 
   const visibilityFilter: Prisma.ToolWhereInput = buildVisibilityFilter(session.user.id);
 
-  const [trendingTools, topRatedTools, mostUsedTools, risingStarsTools, newestTools] = await Promise.all([
+  const [
+    trendingTools,
+    topRatedTools,
+    mostUsedTools,
+    risingStarsTools,
+    newestTools,
+    favoriteIds,
+    favoritedTools,
+  ] = await Promise.all([
     // 本週熱門
     prisma.tool.findMany({
       where: visibilityFilter,
@@ -81,6 +91,8 @@ export default async function HomePage() {
       orderBy: { createdAt: "desc" },
       take: 12,
     }),
+    getFavoriteToolIds(session.user.id),
+    getFavoritedTools(session.user.id, { take: 12 }),
   ]);
 
   const formatTool = (tool: typeof trendingTools[0]) => ({
@@ -110,12 +122,18 @@ export default async function HomePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {tools.map((tool, i) => (
           <div key={tool.id} {...(i === 0 ? { "data-tour": "marketplace-tool-card" } : {})}>
-            <MarketplaceToolCard tool={formatTool(tool)} />
+            <MarketplaceToolCard
+              tool={formatTool(tool)}
+              isFavorited={favoriteIds.has(tool.id)}
+            />
           </div>
         ))}
       </div>
     );
   };
+
+  const favoritedToolsFormatted = favoritedTools.map((tool) => formatTool(tool));
+  const defaultTab = favoritedToolsFormatted.length > 0 ? "favorites" : "trending";
 
   const t = await getTranslations("marketplace");
   const tCategories = await getTranslations("categories");
@@ -138,9 +156,13 @@ export default async function HomePage() {
 
       {/* Leaderboard Tabs */}
       <section className="mb-12">
-        <Tabs defaultValue="trending" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <div className="mb-6 overflow-x-auto scrollbar-hide px-4 sm:px-0">
           <TabsList className="flex w-max mx-auto">
+            <TabsTrigger value="favorites" className="gap-1">
+              <Heart className="h-4 w-4" />
+              {t("tabs.favorites")}
+            </TabsTrigger>
             <TabsTrigger value="trending" className="gap-1">
               <TrendingUp className="h-4 w-4" />
               {t("tabs.trending")}
@@ -178,6 +200,9 @@ export default async function HomePage() {
           </TabsContent>
           <TabsContent value="newest">
             {renderToolGrid(newestTools, t("empty.newest"))}
+          </TabsContent>
+          <TabsContent value="favorites">
+            <MyFavoritesGrid initialTools={favoritedToolsFormatted} />
           </TabsContent>
         </Tabs>
       </section>
