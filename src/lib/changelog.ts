@@ -14,19 +14,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
-    version: "v0.27.7",
+    version: "v0.28.0",
     date: "2026-05-04",
-    title: "工具收藏功能",
+    title: "太好了！可以收藏喜歡的工具了",
     summary:
-      "全站工具卡片右上多了愛心按鈕，點一下就能收藏。首頁多一個「我的收藏」tab 並放在最左邊，按收藏時間最新排序；有收藏時自動成為首頁預設 tab，沒收藏時保留原本的本週熱門。工具詳細頁也有收藏按鈕，跨頁狀態同步。",
+      "全站工具卡片右上多了愛心按鈕，點一下就能收藏。同時，首頁也多一個「我的收藏」tab ，可以更快速的找到你所愛的工具",
     items: [
       "新 ToolFavorite 表，per-user-per-tool 唯一、cascade delete",
-      "POST/DELETE /api/tools/[id]/favorite 皆 idempotent",
-      "卡片愛心採樂觀更新：點擊立即翻轉，失敗自動回滾並 toast 提示",
       "首頁、category、search、leaderboard 一次 query 收藏 id set 給整頁卡片",
-      "有收藏時 default tab = 我的收藏，沒收藏時 fallback trending 不打壞 onboarding tour",
     ],
-    showDialog: false,
+    showDialog: true,
   },
   {
     version: "v0.27.6",
@@ -78,7 +75,7 @@ export const changelog: ChangelogEntry[] = [
     items: [
       "新增 MODEL_MAX_OUTPUT_TOKENS 表與 getDefaultMaxOutputTokens() helper",
       "主 streamText 與工具用盡 fallback streamText 都套用上限",
-      "finishReason === \"length\" 時 console.warn 記錄 step / model / cap",
+      'finishReason === "length" 時 console.warn 記錄 step / model / cap',
       "generateConversationTitle 既有 30 tokens 上限不變",
     ],
     showDialog: false,
@@ -145,9 +142,7 @@ export const changelog: ChangelogEntry[] = [
     title: "新增 Claude Opus 4.7 模型",
     summary:
       "模型選單新增 Claude Opus 4.7，與現有 Opus 4.6 並列，使用者可自行選擇。",
-    items: [
-      "新增：Claude Opus 4.7 模型，API 定價 $5/$25 per 1M tokens",
-    ],
+    items: ["新增：Claude Opus 4.7 模型，API 定價 $5/$25 per 1M tokens"],
     showDialog: false,
   },
   {
@@ -193,7 +188,8 @@ export const changelog: ChangelogEntry[] = [
     version: "v0.24.1",
     date: "2026-04-14",
     title: "修正工具無法下載檔案",
-    summary: "修正工具在 preview 或執行時，按下載（例如匯出 CSV）沒有反應的問題。",
+    summary:
+      "修正工具在 preview 或執行時，按下載（例如匯出 CSV）沒有反應的問題。",
     items: [
       "修正：工具 iframe 放寬 sandbox 設定，允許觸發檔案下載與 window.open",
     ],
@@ -217,9 +213,7 @@ export const changelog: ChangelogEntry[] = [
     date: "2026-04-14",
     title: "修正使用者訊息換行顯示",
     summary: "修正聊天中使用者訊息的換行與空白會跑掉的問題。",
-    items: [
-      "修正：使用者訊息內的換行、空白原樣保留，不再被吃掉",
-    ],
+    items: ["修正：使用者訊息內的換行、空白原樣保留，不再被吃掉"],
     showDialog: false,
   },
   {
@@ -467,9 +461,10 @@ export const changelog: ChangelogEntry[] = [
     version: "v0.8.2",
     date: "2026-03-09",
     title: "重新整理了大語言模型清單",
-    summary:
-      "現在的太古老了，我們嘗試重新整理新的名單",
-    items: ["現在的太古老了，我們嘗試重新整理新的名單 (Gemini 3.5 還在 Preview ，要再等等)"],
+    summary: "現在的太古老了，我們嘗試重新整理新的名單",
+    items: [
+      "現在的太古老了，我們嘗試重新整理新的名單 (Gemini 3.5 還在 Preview ，要再等等)",
+    ],
   },
   {
     version: "v0.8.1",
