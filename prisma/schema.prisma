@@ -72,6 +72,8 @@ model User {
   knowledgePointReviews    KnowledgePoint[]      @relation("KnowledgePointReviewer")
   apiKeys                  UserApiKey[]
   toolFavorites            ToolFavorite[]
+  memories                 Memory[]
+  suggestedMemories        SuggestedMemory[]
 }
 
 model Tool {
@@ -150,6 +152,7 @@ model Conversation {
 
   tool                 Tool?
   conversationMessages ConversationMessage[]
+  suggestedMemories    SuggestedMemory[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -633,5 +636,67 @@ model ToolFavorite {
   @@unique([userId, toolId])
   @@index([userId, createdAt(sort: Desc)])
   @@index([toolId])
+}
+
+// ===== Personal Memory =====
+
+enum MemoryType {
+  PREFERENCE
+  CONTEXT
+  RULE
+  FACT
+}
+
+enum MemorySource {
+  EXPLICIT
+  SUGGESTED
+}
+
+enum MemoryConfidence {
+  HIGH
+  MEDIUM
+}
+
+model Memory {
+  id         String           @id @default(cuid())
+  userId     String
+  type       MemoryType
+  title      String           @db.VarChar(120)
+  content    String           @db.Text
+  source     MemorySource
+  confidence MemoryConfidence
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  embedding Unsupported("vector(1024)")?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([userId, createdAt])
+}
+
+enum SuggestedMemoryStatus {
+  PENDING
+  ACCEPTED
+  DISMISSED
+}
+
+model SuggestedMemory {
+  id               String                @id @default(cuid())
+  userId           String
+  conversationId   String?
+  type             MemoryType
+  title            String                @db.VarChar(120)
+  content          String                @db.Text
+  status           SuggestedMemoryStatus @default(PENDING)
+  acceptedMemoryId String?
+  createdAt        DateTime              @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([conversationId])
 }
 

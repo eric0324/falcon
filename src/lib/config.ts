@@ -96,6 +96,11 @@ export async function getConfig(key: string): Promise<string | undefined> {
     // DB not available
   }
 
+  // Fallback to process.env if DB doesn't have the value (useful for dev / bootstrap)
+  if (value === undefined && process.env[key]) {
+    value = process.env[key];
+  }
+
   cache.set(key, { value, expiresAt: now + CACHE_TTL_MS });
   return value;
 }

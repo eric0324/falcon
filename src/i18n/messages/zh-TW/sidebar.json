@@ -37,6 +37,7 @@
     "darkMode": "深色模式",
     "lightMode": "淺色模式",
     "systemMode": "跟隨系統",
+    "memory": "我的記憶",
     "changelog": "開發日記",
     "about": "關於 Falcon",
     "logout": "登出"

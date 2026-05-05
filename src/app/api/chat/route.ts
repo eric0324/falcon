@@ -1,5 +1,10 @@
 import { getSession } from "@/lib/session";
 import { streamText } from "ai";
+import {
+  processExplicitMemory,
+  processPassiveMemory,
+  safeRecall,
+} from "@/lib/memory/integration";
 import { getModel, ModelId, defaultModel, getDefaultMaxOutputTokens } from "@/lib/ai/models";
 import {
   createStudioTools,
@@ -404,6 +409,15 @@ export async function POST(req: Request) {
 
     // Build dynamic system prompt based on selected data sources + available unselected
     let systemPrompt = buildSystemPrompt(dataSources, availableSources, !!imageProviderChoice);
+
+    // Recall personal memories and inject into system prompt (best-effort, never blocks)
+    const memoryRecall = await safeRecall(message, userId);
+    if (memoryRecall.promptText) {
+      systemPrompt += `\n\n${memoryRecall.promptText}`;
+    }
+
+    // Fire explicit memory extraction in parallel — don't block stream
+    const explicitMemoryPromise = processExplicitMemory(message, userId);
 
     // Append skill prompt if provided
     if (skillPrompt && typeof skillPrompt === "string") {
@@ -842,6 +856,30 @@ export async function POST(req: Request) {
           } catch (e) {
             console.error(`[Chat API] Failed to save token usage:`, e);
           }
+        }
+
+        // Memory: emit explicit-extraction result (if any) then fire passive extraction
+        try {
+          const memoryEvent = await explicitMemoryPromise;
+          if (memoryEvent) {
+            enqueue(`m:${JSON.stringify(memoryEvent)}\n`);
+          }
+        } catch (e) {
+          console.error(`[Chat API] Memory event emit failed:`, e);
+        }
+
+        if (conversationId && finalAssistantText.length > 0) {
+          const recentForPassive = [
+            ...messages.slice(-5).map((m: { role: string; content: string }) => ({
+              role: m.role as "user" | "assistant",
+              content: m.content,
+            })),
+            { role: "assistant" as const, content: finalAssistantText },
+          ];
+          // Fire-and-forget; never blocks response close
+          processPassiveMemory(recentForPassive, userId, conversationId).catch(
+            (e) => console.error(`[Chat API] passive memory failed:`, e)
+          );
         }
 
         } catch (streamError) {

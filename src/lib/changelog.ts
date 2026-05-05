@@ -14,6 +14,22 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.29.0",
+    date: "2026-05-05",
+    title: "AI 開始記得你",
+    summary:
+      "對話中說「記住⋯」「以後都⋯」「我喜歡⋯」這類話，Falcon 會自動記下偏好、規則與背景，下次新對話會自動帶入相關記憶，不用每次重交代一次。記憶可以到使用者選單的「我的記憶」管理。",
+    items: [
+      "新 Memory / SuggestedMemory 表，記憶分四類：偏好、背景、規則、事實",
+      "主動擷取：偵測到關鍵字後 Haiku 結構化存成記憶，stream 即時回 toast「已記住」",
+      "被動擷取：對話結束 fire-and-forget 跑 Haiku 找候選記憶（不阻塞回應）",
+      "召回：每則新訊息做 embedding 找最相關 5 條塞進 system prompt，總長上限 2000 字元",
+      "管理頁 /memory：按類型分組顯示，可編輯 / 刪除",
+      "config.ts 加 process.env fallback，避免 dev 環境 Voyage API key 沒寫進 SystemConfig 時 embedding 靜默失敗",
+    ],
+    showDialog: true,
+  },
+  {
     version: "v0.28.0",
     date: "2026-05-04",
     title: "太好了！可以收藏喜歡的工具了",

@@ -37,6 +37,7 @@
     "darkMode": "Dark Mode",
     "lightMode": "Light Mode",
     "systemMode": "System",
+    "memory": "My Memory",
     "changelog": "Changelog",
     "about": "About Falcon",
     "logout": "Logout"

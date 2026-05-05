@@ -769,6 +769,22 @@ function StudioContent() {
                 setQuotaStatus(data as QuotaStatus);
                 break;
               }
+
+              case "m": { // Memory captured (explicit extraction)
+                const mem = data as {
+                  id: string;
+                  type: string;
+                  title: string;
+                  isFirstMemory?: boolean;
+                };
+                toast({
+                  title: `已記住：${mem.title}`,
+                  description: mem.isFirstMemory
+                    ? "下次對話會自動帶入。到 /memory 管理記憶。"
+                    : undefined,
+                });
+                break;
+              }
             }
           }
         }

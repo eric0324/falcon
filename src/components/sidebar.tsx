@@ -26,6 +26,7 @@ import {
   Wand2,
   Home,
   BookMarked,
+  Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -330,6 +331,10 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                 </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuSub>
+            <DropdownMenuItem onClick={() => router.push("/memory")}>
+              <Heart className="mr-2 h-4 w-4" />
+              {t("userMenu.memory")}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => openSettings("changelog")}>
               <BookOpen className="mr-2 h-4 w-4" />
               {t("userMenu.changelog")}
@@ -587,6 +592,10 @@ function SidebarContent({ conversations: initialConversations, user }: SidebarPr
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
+              <DropdownMenuItem onClick={() => router.push("/memory")}>
+                <Heart className="mr-2 h-4 w-4" />
+                {t("userMenu.memory")}
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => openSettings("changelog")}>
                 <BookOpen className="mr-2 h-4 w-4" />
                 {t("userMenu.changelog")}
