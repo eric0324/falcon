@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, CopyPlus } from "lucide-react";
 
 interface Group {
   id: string;
@@ -18,6 +18,7 @@ export function GroupManager({ initialGroups }: { initialGroups: Group[] }) {
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleAdd() {
@@ -76,6 +77,30 @@ export function GroupManager({ initialGroups }: { initialGroups: Group[] }) {
     const res = await fetch(`/api/admin/groups/${group.id}`, { method: "DELETE" });
     if (res.ok) {
       setGroups((prev) => prev.filter((r) => r.id !== group.id));
+    }
+  }
+
+  async function handleDuplicate(group: Group) {
+    setError(null);
+    setDuplicatingId(group.id);
+
+    try {
+      const res = await fetch(`/api/admin/groups/${group.id}/duplicate`, {
+        method: "POST",
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error ?? "複製失敗");
+        return;
+      }
+
+      const newGroup = await res.json();
+      setGroups((prev) =>
+        [...prev, newGroup].sort((a, b) => a.name.localeCompare(b.name))
+      );
+    } finally {
+      setDuplicatingId(null);
     }
   }
 
@@ -140,6 +165,14 @@ export function GroupManager({ initialGroups }: { initialGroups: Group[] }) {
                     className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
                   >
                     <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDuplicate(group)}
+                    disabled={duplicatingId === group.id}
+                    title="複製此群組（含資料表/欄位權限）"
+                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  >
+                    <CopyPlus className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(group)}
