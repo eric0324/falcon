@@ -10,10 +10,14 @@ const groupMock = vi.hoisted(() => ({
   create: vi.fn(),
 }));
 
+type TxClient = { group: typeof groupMock };
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     group: groupMock,
-    $transaction: vi.fn(async (cb: any) => cb({ group: groupMock })),
+    $transaction: vi.fn((cb: (tx: TxClient) => Promise<unknown>) =>
+      cb({ group: groupMock })
+    ),
   },
 }));
 
