@@ -18,7 +18,7 @@ export const changelog: ChangelogEntry[] = [
     date: "2026-05-11",
     title: "聲音可以直接丟給 AI 處理了",
     summary:
-      "聊天時可以拖聲音檔（mp3 / wav / m4a / webm / ogg）進對話框，工具列新增聲音模型選單，選好後送出時系統會自動轉錄成文字嵌進訊息，AI 就能讀內容做摘要、找關鍵字、引用片段。未選模型時聲音不會被轉錄，只顯示檔名。前面對話用過的聲音，AI 之後可以再呼叫 transcribeAudio 工具回頭處理。Vibe Coding 也能透過 bridge.transcribe 給自製工具用。",
+      "把聲音檔拖進對話框，從工具列選一個聲音模型，AI 就能聽懂內容，做摘要、找重點或引用裡面的片段。",
     items: [
       "新增 src/lib/integrations/openai-audio client，呼叫 OpenAI /v1/audio/transcriptions，可選 gpt-4o-mini-transcribe / gpt-4o-transcribe / whisper-1 三個模型，language 自動偵測，25MB 拒收",
       "工具列新增 AudioProviderSelector：預設未選，使用者需先選一個轉錄模型才會啟用 audio attachment 轉錄",
@@ -28,7 +28,7 @@ export const changelog: ChangelogEntry[] = [
       "api-bridge 加 transcribe platform capability，user-built 工具可呼叫 bridge.transcribe({ audioUrl 或 audioBase64 })",
       "models.ts 加 audioPricing；estimateCost 支援 audio 分支；TokenUsage 紀錄 outputTokens = ceil(durationSec / 60)",
     ],
-    showDialog: false,
+    showDialog: true,
   },
   {
     version: "v0.30.2",
