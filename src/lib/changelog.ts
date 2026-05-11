@@ -14,6 +14,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.30.2",
+    date: "2026-05-11",
+    title: "Preview 錯誤訊息顯示在下方，改用按鈕觸發修正",
+    summary:
+      "Preview 出錯時直接把錯誤內容顯示在 preview 下方，原本一出錯就自動連發訊息給 AI 的行為已移除，改成右側多一個「修正」按鈕，使用者按了才把錯誤丟給 AI 處理。",
+    items: [
+      "Preview 下方新增紅色錯誤區塊：含 AlertTriangle icon、錯誤標題、monospace 顯示完整錯誤內容，過長時內捲不會撐高 panel",
+      "錯誤區塊右側加「修正」按鈕（含 Wand2 icon），AI 還在跑時 disabled",
+      "移除原本的 auto-fix useEffect 與 errorRetryCount / lastCodeRef / MAX_ERROR_RETRIES 三個 state",
+      "handleSubmit 支援 overrideMessage 參數，系統觸發的修正請求不會消耗使用者已選好的附件",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.30.1",
     date: "2026-05-11",
     title: "對話框可以拖曳檔案、圖片改縮圖顯示",

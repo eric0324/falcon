@@ -223,9 +223,6 @@ function StudioContent() {
 
   // Auto-fix preview errors
   const [previewError, setPreviewError] = useState<string | null>(null);
-  const [errorRetryCount, setErrorRetryCount] = useState(0);
-  const lastCodeRef = useRef<string>("");
-  const MAX_ERROR_RETRIES = 2;
 
   const hasCode = code.length > 0;
   const hasPreview = hasCode || !!docContent;
@@ -517,20 +514,24 @@ function StudioContent() {
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
+  const handleSubmit = async (e?: React.FormEvent, overrideMessage?: string) => {
+    e?.preventDefault();
+    const userMessage = (overrideMessage ?? input).trim();
+    if (!userMessage || isLoading) return;
 
-    const userMessage = input.trim();
-    // Attachments for both local preview (with base64) and persistence payload
-    const messageAttachments = uploadedFiles.map((f) => ({
-      name: f.name,
-      type: f.type,
-      size: f.size,
-      ...(f.s3Key ? { s3Key: f.s3Key } : {}),
-      ...(f.type.startsWith("image/") ? { base64: f.base64 } : {}),
-    }));
-    setInput("");
+    // System-generated messages (e.g. preview-error fix request) don't carry attachments
+    const useAttachments = !overrideMessage;
+
+    const messageAttachments = useAttachments
+      ? uploadedFiles.map((f) => ({
+          name: f.name,
+          type: f.type,
+          size: f.size,
+          ...(f.s3Key ? { s3Key: f.s3Key } : {}),
+          ...(f.type.startsWith("image/") ? { base64: f.base64 } : {}),
+        }))
+      : [];
+    if (!overrideMessage) setInput("");
     isSubmittingRef.current = true;
     setMessages((prev) => [
       ...prev,
@@ -551,21 +552,23 @@ function StudioContent() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    // Prepare files for API
-    const filesToSend = uploadedFiles.map((f) => ({
-      name: f.name,
-      type: f.type,
-      base64: f.base64,
-      ...(f.truncateMode ? { truncateMode: f.truncateMode } : {}),
-    }));
+    // Prepare files for API (skipped for system-generated overrides)
+    const filesToSend = useAttachments
+      ? uploadedFiles.map((f) => ({
+          name: f.name,
+          type: f.type,
+          base64: f.base64,
+          ...(f.truncateMode ? { truncateMode: f.truncateMode } : {}),
+        }))
+      : [];
 
     // Pull S3 keys of image uploads so generateImage can use them as sourceImageKey
-    const attachedImageKeys = uploadedFiles
-      .map((f) => f.s3Key)
-      .filter((k): k is string => !!k);
+    const attachedImageKeys = useAttachments
+      ? uploadedFiles.map((f) => f.s3Key).filter((k): k is string => !!k)
+      : [];
 
-    // Clear uploaded files after sending
-    setUploadedFiles([]);
+    // Clear uploaded files after sending (only when user-initiated)
+    if (useAttachments) setUploadedFiles([]);
 
     try {
       const res = await fetch("/api/chat", {
@@ -854,169 +857,16 @@ function StudioContent() {
     localStorage.setItem("studio:enterToSend", String(checked));
   };
 
-  // Handle preview errors - auto request fix from AI
   const handlePreviewError = useCallback((error: string | null) => {
     setPreviewError(error);
+  }, []);
 
-    // Reset retry count when code changes
-    if (code !== lastCodeRef.current) {
-      lastCodeRef.current = code;
-      setErrorRetryCount(0);
-    }
-  }, [code]);
-
-  // Auto-fix preview errors
-  useEffect(() => {
-    if (!previewError || isLoading || errorRetryCount >= MAX_ERROR_RETRIES) return;
-
-    const autoFix = async () => {
-      setErrorRetryCount((prev) => prev + 1);
-
-      const fixMessage = `Preview 出現錯誤，請修正程式碼：\n\n\`\`\`\n${previewError}\n\`\`\``;
-
-      setMessages((prev) => [...prev, { role: "user", content: fixMessage }]);
-      setIsLoading(true);
-      setCurrentToolCalls([]);
-
-      try {
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: [...messages, { role: "user", content: fixMessage }],
-            model: selectedModel,
-            imageProvider: imageProvider || undefined,
-            conversationId: convId || undefined,
-          }),
-        });
-
-        if (!res.ok) throw new Error("Failed to get response");
-
-        const reader = res.body?.getReader();
-        const decoder = new TextDecoder();
-        let assistantMessage = "";
-        let buffer = "";
-        const toolCallsMap = new Map<string, ToolCall>();
-
-        if (reader) {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value, { stream: true });
-            buffer += chunk;
-            const lines = buffer.split("\n");
-            buffer = lines.pop() || "";
-
-            for (const line of lines) {
-              const parsed = parseDataStreamLine(line);
-              if (!parsed) continue;
-
-              const { type, data } = parsed;
-
-              switch (type) {
-                case "0":
-                  assistantMessage += data as string;
-                  setMessages((prev) => {
-                    const lastMessage = prev[prev.length - 1];
-                    if (lastMessage?.role === "assistant") {
-                      return [
-                        ...prev.slice(0, -1),
-                        { ...lastMessage, content: assistantMessage },
-                      ];
-                    } else {
-                      return [...prev, { role: "assistant", content: assistantMessage }];
-                    }
-                  });
-
-                  const extractedCode = extractCode(assistantMessage);
-                  if (extractedCode) {
-                    setCode(extractedCode);
-                  }
-                  break;
-
-                case "9": {
-                  const toolData = data as { toolCallId: string; toolName: string; args: Record<string, unknown> };
-                  const toolCall: ToolCall = {
-                    id: toolData.toolCallId,
-                    name: toolData.toolName,
-                    args: toolData.args,
-                    status: "calling",
-                  };
-                  toolCallsMap.set(toolCall.id, toolCall);
-                  setCurrentToolCalls(Array.from(toolCallsMap.values()));
-                  break;
-                }
-
-                case "a": {
-                  const resultData = data as { toolCallId: string; result: unknown };
-                  const existing = toolCallsMap.get(resultData.toolCallId);
-                  if (existing) {
-                    existing.status = "completed";
-                    existing.result = resultData.result;
-                    toolCallsMap.set(existing.id, existing);
-                    setCurrentToolCalls(Array.from(toolCallsMap.values()));
-
-                    if ((existing.name === "updateCode" || existing.name === "editCode") && typeof resultData.result === "object" && resultData.result) {
-                      const result = resultData.result as { type?: string; code?: string; toolId?: string };
-                      if (result.type !== "edit_code_error") {
-                        if (result.toolId) setDraftToolId(result.toolId);
-                        if (result.code) {
-                          const extracted = extractCode(result.code);
-                          const finalCode = extracted || result.code;
-                          setCode(finalCode);
-                          setDocContent(null);
-                        }
-                      }
-                    }
-
-                    if (existing.name === "updateDocument" && typeof resultData.result === "object" && resultData.result) {
-                      const result = resultData.result as { markdown?: string; title?: string };
-                      if (result.markdown && result.title) {
-                        setDocContent({ markdown: result.markdown, title: result.title });
-                        setCode("");
-                      }
-                    }
-
-                    if (existing.name === "suggestDataSources" && typeof resultData.result === "object" && resultData.result) {
-                      const result = resultData.result as { sources?: string[]; reason?: string };
-                      if (result.sources && result.reason) {
-                        setSuggestedSources({ sources: result.sources, reason: result.reason });
-                      }
-                    }
-                  }
-                  break;
-                }
-              }
-            }
-          }
-
-          if (toolCallsMap.size > 0) {
-            setMessages((prev) => {
-              const lastMessage = prev[prev.length - 1];
-              if (lastMessage?.role === "assistant") {
-                return [
-                  ...prev.slice(0, -1),
-                  { ...lastMessage, content: assistantMessage, toolCalls: Array.from(toolCallsMap.values()) },
-                ];
-              }
-              return prev;
-            });
-          }
-        }
-      } catch {
-        // Auto-fix failure is non-critical
-      } finally {
-        setIsLoading(false);
-        setCurrentToolCalls([]);
-      }
-    };
-
-    // Small delay before auto-fix
-    const timer = setTimeout(autoFix, 1000);
-    return () => clearTimeout(timer);
+  const handleRequestFix = useCallback(() => {
+    if (!previewError || isLoading) return;
+    const fixMessage = `Preview 出現錯誤，請修正程式碼：\n\n\`\`\`\n${previewError}\n\`\`\``;
+    handleSubmit(undefined, fixMessage);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewError, isLoading, errorRetryCount, messages, selectedModel, parseDataStreamLine, extractCode]);
+  }, [previewError, isLoading]);
 
   const handleDeploy = async (data: {
     name: string;
@@ -1538,7 +1388,10 @@ function StudioContent() {
                 code={code}
                 toolId={editId || draftToolId}
                 dataSources={selectedDataSources}
+                error={previewError}
                 onError={handlePreviewError}
+                onRequestFix={handleRequestFix}
+                fixDisabled={isLoading}
                 onShare={() => setShowDeployDialog(true)}
                 onCollapsedChange={setPreviewCollapsed}
                 onCodeRestored={(restored) => {

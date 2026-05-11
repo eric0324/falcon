@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { RefreshCw, Share2, Maximize2, Minimize2, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { RefreshCw, Share2, Maximize2, Minimize2, PanelRightClose, PanelRightOpen, AlertTriangle, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VersionHistoryButton } from "@/components/version-history-button";
 import { generateSandboxApiClient } from "@/lib/sandbox-api-client";
@@ -10,7 +10,10 @@ interface PreviewPanelProps {
   code: string;
   toolId?: string | null;
   dataSources?: string[];
+  error?: string | null;
+  fixDisabled?: boolean;
   onError?: (error: string | null) => void;
+  onRequestFix?: () => void;
   onShare?: () => void;
   onCollapsedChange?: (collapsed: boolean) => void;
   onCodeRestored?: (code: string) => void;
@@ -75,7 +78,7 @@ function buildPreviewHtml(code: string, apiClientCode?: string): string {
 </html>`;
 }
 
-export function PreviewPanel({ code, toolId, dataSources, onError, onShare, onCollapsedChange, onCodeRestored }: PreviewPanelProps) {
+export function PreviewPanel({ code, toolId, dataSources, error, fixDisabled, onError, onRequestFix, onShare, onCollapsedChange, onCodeRestored }: PreviewPanelProps) {
   const [key, setKey] = useState(0);
   const [, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -263,7 +266,7 @@ export function PreviewPanel({ code, toolId, dataSources, onError, onShare, onCo
           </Button>
         </div>
       </div>
-      <div className="flex-1 relative bg-white">
+      <div className="flex-1 relative bg-white min-h-0">
         <iframe
           key={key}
           srcDoc={buildPreviewHtml(displayCode, apiClientCode)}
@@ -272,6 +275,34 @@ export function PreviewPanel({ code, toolId, dataSources, onError, onShare, onCo
           title="Preview"
         />
       </div>
+      {error && (
+        <div className="shrink-0 border-t bg-red-50 dark:bg-red-950/30">
+          <div className="px-3 py-2 flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
+            <div className="flex-1 min-w-0 max-h-32 overflow-y-auto">
+              <div className="text-xs font-medium text-red-700 dark:text-red-300 mb-1">
+                Preview 錯誤
+              </div>
+              <pre className="text-xs font-mono text-red-700 dark:text-red-200 whitespace-pre-wrap break-words">
+                {error}
+              </pre>
+            </div>
+            {onRequestFix && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="shrink-0 h-7 gap-1 border-red-300 text-red-700 hover:bg-red-100 dark:border-red-800 dark:text-red-200 dark:hover:bg-red-900/40"
+                onClick={onRequestFix}
+                disabled={fixDisabled}
+              >
+                <Wand2 className="h-3 w-3" />
+                修正
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
