@@ -84,6 +84,7 @@ const SOURCE_NAMES: Record<string, string> = {
   asana: "Asana",
   github: "GitHub",
   vimeo: "Vimeo",
+  webinarjam: "WebinarJam",
   plausible: "Plausible Analytics",
   ga4: "Google Analytics 4",
   meta_ads: "Meta Ads",

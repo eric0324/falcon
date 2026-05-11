@@ -24,6 +24,7 @@ import { createMetaAdsTools } from "@/lib/ai/meta-ads-tools";
 import { createGitHubTools } from "@/lib/ai/github-tools";
 import { createYouTubeTools } from "@/lib/ai/youtube-tools";
 import { createVimeoTools } from "@/lib/ai/vimeo-tools";
+import { createWebinarjamTools } from "@/lib/ai/webinarjam-tools";
 import { createExternalDbTools } from "@/lib/ai/external-db-tools";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 import { isNotionConfigured } from "@/lib/integrations/notion";
@@ -34,6 +35,7 @@ import { isGA4Configured } from "@/lib/integrations/ga4";
 import { isMetaAdsConfigured } from "@/lib/integrations/meta-ads";
 import { isGitHubConfigured } from "@/lib/integrations/github";
 import { isVimeoConfigured } from "@/lib/integrations/vimeo";
+import { isWebinarjamConfigured } from "@/lib/integrations/webinarjam";
 import { createKnowledgeBaseTools } from "@/lib/ai/knowledge-base-tools";
 import { shouldCompact, estimateTokens, estimateMessagesTokens, trimMessagesToFit } from "@/lib/ai/token-utils";
 import { compactMessages } from "@/lib/ai/compact";
@@ -355,6 +357,12 @@ export async function POST(req: Request) {
         filteredTools = { ...filteredTools, ...vimeoTools };
       }
 
+      // WebinarJam - only if explicitly selected
+      if (selectedSources.has("webinarjam")) {
+        const webinarjamTools = createWebinarjamTools();
+        filteredTools = { ...filteredTools, ...webinarjamTools };
+      }
+
       // External databases - match extdb_ prefix
       const extDbIds = Array.from(selectedSources)
         .filter((s) => s.startsWith("extdb_"))
@@ -403,6 +411,7 @@ export async function POST(req: Request) {
       isMetaAdsConfigured().then((ok) => ok ? "meta_ads" : null),
       isGitHubConfigured().then((ok) => ok ? "github" : null),
       isVimeoConfigured().then((ok) => ok ? "vimeo" : null),
+      isWebinarjamConfigured().then((ok) => ok ? "webinarjam" : null),
     ]);
     const availableSources = integrationChecks
       .filter((id) => id !== null && !selectedSet.has(id)) as string[];

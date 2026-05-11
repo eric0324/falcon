@@ -8,6 +8,7 @@ import { isGA4Configured } from "@/lib/integrations/ga4";
 import { isMetaAdsConfigured } from "@/lib/integrations/meta-ads";
 import { isGitHubConfigured } from "@/lib/integrations/github";
 import { isVimeoConfigured } from "@/lib/integrations/vimeo";
+import { isWebinarjamConfigured } from "@/lib/integrations/webinarjam";
 
 // GET /api/integrations/status - Check which integrations are configured
 export async function GET() {
@@ -17,7 +18,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const [notion, slack, asana, plausible, ga4, meta_ads, github, vimeo] =
+  const [notion, slack, asana, plausible, ga4, meta_ads, github, vimeo, webinarjam] =
     await Promise.all([
       isNotionConfigured(),
       isSlackConfigured(),
@@ -27,9 +28,10 @@ export async function GET() {
       isMetaAdsConfigured(),
       isGitHubConfigured(),
       isVimeoConfigured(),
+      isWebinarjamConfigured(),
     ]);
 
   return NextResponse.json({
-    notion, slack, asana, plausible, ga4, meta_ads, github, vimeo,
+    notion, slack, asana, plausible, ga4, meta_ads, github, vimeo, webinarjam,
   });
 }

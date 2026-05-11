@@ -14,6 +14,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.30.0",
+    date: "2026-05-11",
+    title: "聊天時可以查 WebinarJam 場次與報名名單",
+    summary:
+      "聊天頁面新增 WebinarJam 資料來源。AI 可以列出 webinars、查單一場次詳情含 schedule 與報名連結，以及拉某場次的報名 / 出席名單，並支援以「有沒有出席直播、看 replay、是否購買」做 server-side 篩選。本版唯讀，不做報名與取消訂閱。",
+    items: [
+      "新增 src/lib/integrations/webinarjam client：listWebinars / getWebinar / getRegistrants 三個端點，POST + form-encoded body 帶 api_key",
+      "AI 工具 webinarjamQuery：action 列舉 list / get / registrants，attendedLive / attendedReplay / purchased / search / page 直接走 server-side filter",
+      "WEBINARJAM_API_KEY 註冊到 admin system config，敏感欄位加密儲存",
+      "Chat data source 選單、admin settings 翻譯、integrations status API 全部登記 webinarjam",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.29.1",
     date: "2026-05-11",
     title: "AI 在 Notion 找資料變聰明了",

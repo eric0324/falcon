@@ -38,6 +38,10 @@
     "name": "Vimeo",
     "description": "Query Vimeo video data and view analytics"
   },
+  "webinarjam": {
+    "name": "WebinarJam",
+    "description": "Query WebinarJam webinars and attendee lists"
+  },
   "videoPlatform": "Video Platform",
   "connected": "Connected",
   "notConnected": "Not configured",

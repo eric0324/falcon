@@ -38,6 +38,10 @@
     "name": "Vimeo",
     "description": "查詢 Vimeo 影片資料與觀看分析"
   },
+  "webinarjam": {
+    "name": "WebinarJam",
+    "description": "查詢 WebinarJam 場次與報名 / 出席名單"
+  },
   "videoPlatform": "影音平台",
   "connected": "已連接",
   "notConnected": "未設定",

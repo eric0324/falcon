@@ -83,6 +83,7 @@ type IntegrationStatus = {
   meta_ads: boolean;
   github: boolean;
   vimeo: boolean;
+  webinarjam: boolean;
 };
 
 export function DataSourceSelector({
@@ -110,6 +111,7 @@ export function DataSourceSelector({
     meta_ads: false,
     github: false,
     vimeo: false,
+    webinarjam: false,
   });
   const [externalDbs, setExternalDbs] = useState<ExternalDb[]>([]);
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBaseItem[]>([]);
@@ -227,6 +229,9 @@ export function DataSourceSelector({
     }
     if (value.includes("vimeo")) {
       names.push(tIntegrations("vimeo.name"));
+    }
+    if (value.includes("webinarjam")) {
+      names.push(tIntegrations("webinarjam.name"));
     }
 
     // External databases
@@ -580,11 +585,11 @@ export function DataSourceSelector({
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
-        {/* Video Platform - Vimeo */}
+        {/* Video Platform - Vimeo, WebinarJam */}
         <DropdownMenuSub>
           <DropdownMenuSubTrigger className="flex items-center gap-2.5 py-2.5 cursor-pointer">
             <div className="w-4 flex items-center justify-center shrink-0">
-              {value.includes("vimeo") && <Check className="h-4 w-4" />}
+              {(value.includes("vimeo") || value.includes("webinarjam")) && <Check className="h-4 w-4" />}
             </div>
             <span className="font-medium text-sm">{tIntegrations("videoPlatform")}</span>
           </DropdownMenuSubTrigger>
@@ -612,6 +617,35 @@ export function DataSourceSelector({
               </div>
               <div className="w-14 flex justify-end shrink-0 mt-0.5">
                 {!integrationStatus.vimeo && (
+                  <span className="text-xs text-muted-foreground">
+                    {tIntegrations("notConnected")}
+                  </span>
+                )}
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.preventDefault();
+                if (integrationStatus.webinarjam) {
+                  handleToggle("webinarjam");
+                }
+              }}
+              className="flex items-start gap-2 py-2.5 cursor-pointer"
+            >
+              <div className="w-4 flex items-center justify-center shrink-0 mt-0.5">
+                {value.includes("webinarjam") && integrationStatus.webinarjam && <Check className="h-4 w-4" />}
+              </div>
+              <Video className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <span className="font-medium text-sm block">
+                  {tIntegrations("webinarjam.name")}
+                </span>
+                <p className="text-xs text-muted-foreground">
+                  {tIntegrations("webinarjam.description")}
+                </p>
+              </div>
+              <div className="w-14 flex justify-end shrink-0 mt-0.5">
+                {!integrationStatus.webinarjam && (
                   <span className="text-xs text-muted-foreground">
                     {tIntegrations("notConnected")}
                   </span>

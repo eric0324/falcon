@@ -49,6 +49,9 @@ export const CONFIG_DEFINITIONS: Record<string, ConfigDef[]> = {
   vimeo: [
     { key: "VIMEO_ACCESS_TOKEN", description: "Access Token", sensitive: true },
   ],
+  webinarjam: [
+    { key: "WEBINARJAM_API_KEY", description: "API Key", sensitive: true },
+  ],
   plausible: [
     { key: "PLAUSIBLE_API_KEY", description: "API Key", sensitive: true },
     { key: "PLAUSIBLE_SITE_ID", description: "Site ID", sensitive: false },
