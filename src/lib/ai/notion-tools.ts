@@ -6,11 +6,14 @@ import {
   queryDatabaseAll,
   buildTitleContainsFilter,
   getPage,
+  getDatabase,
   getBlockChildrenDeep,
   blocksToText,
   notionSearch,
   listDatabases,
   extractProperties,
+  extractDatabaseSchema,
+  translatePropertyFilter,
   NotionDatabase,
   NotionPage,
 } from "@/lib/integrations/notion";
@@ -48,20 +51,59 @@ export function createNotionTools() {
 操作：
 - list：列出所有資料庫和頁面（永遠先做這步）
 - searchAll：跨所有資料庫搜尋標題含關鍵字的頁面（找資料優先用這個）
-- query：查詢特定資料庫的頁面（用 databaseId，可加 search 過濾標題），每筆會帶 properties（Status / Tags / Date 等資料庫欄位）
+- query：查詢特定資料庫的頁面（用 databaseId）。要找人名／tag／status／日期條件時用 propertyFilter 在 server 端篩；search 只篩標題
 - read：讀取頁面完整正文和子頁面（用 pageId），含 properties
 - search：全文搜尋（中文不準確，盡量不用）
 
-properties 範例：{ Status: "Done", Tags: ["frontend"], Due: { start: "2026-05-20" }, Owner: ["Alice"] }。Relation 欄位只回 page id 陣列，要看標題請對該 id 再 read。`,
+properties 範例：{ Status: "Done", Tags: ["frontend"], Due: { start: "2026-05-20" }, Owner: ["Alice"] }。Relation 欄位只回 page id 陣列，要看標題請對該 id 再 read。
+
+propertyFilter 例：
+- 找狀態 = Done：{ property: "Status", equals: "Done" }
+- 找含某 tag：{ property: "Tags", contains: "frontend" }
+- 找某人負責：{ property: "Assignee", contains: "<user_id>" }
+- 數值區間：{ property: "Estimate", between: { from: 3, to: 8 } }
+- 日期：{ property: "Due", before: "2026-06-01" } 或 { property: "Due", past_week: true }
+- 是空：{ property: "Owner", is_empty: true }
+一次只能帶一個 operator key。`,
       inputSchema: z.object({
-        action: z.enum(["list", "searchAll", "query", "search", "read"]).optional().describe("list: 列出所有資料庫和頁面, searchAll: 跨所有資料庫搜尋（推薦）, query: 查詢特定資料庫（可搭配 search 過濾標題）, search: 全文搜尋, read: 讀取頁面完整內容（含正文和子頁面）。預設為 list"),
+        action: z.enum(["list", "searchAll", "query", "search", "read"]).optional().describe("list: 列出所有資料庫和頁面, searchAll: 跨所有資料庫搜尋（推薦）, query: 查詢特定資料庫, search: 全文搜尋, read: 讀取頁面完整內容（含正文和子頁面）。預設為 list"),
         databaseId: z.string().optional().describe("資料庫 ID (用於 query)"),
         pageId: z.string().optional().describe("頁面 ID (用於 read 讀取頁面正文)"),
-        search: z.string().optional().describe("搜尋關鍵字"),
+        search: z.string().optional().describe("搜尋關鍵字（只過濾頁面標題）"),
+        propertyFilter: z.object({
+          property: z.string().describe("資料庫欄位名（大小寫敏感）"),
+          equals: z.union([z.string(), z.number(), z.boolean()]).optional(),
+          contains: z.string().optional(),
+          is_empty: z.literal(true).optional(),
+          is_not_empty: z.literal(true).optional(),
+          greater_than: z.number().optional(),
+          less_than: z.number().optional(),
+          between: z.object({
+            from: z.union([z.number(), z.string()]),
+            to: z.union([z.number(), z.string()]),
+          }).optional(),
+          before: z.string().optional(),
+          after: z.string().optional(),
+          on_or_before: z.string().optional(),
+          on_or_after: z.string().optional(),
+          past_week: z.literal(true).optional(),
+          past_month: z.literal(true).optional(),
+          past_year: z.literal(true).optional(),
+          next_week: z.literal(true).optional(),
+          next_month: z.literal(true).optional(),
+          next_year: z.literal(true).optional(),
+        }).optional().refine(
+          (val) => {
+            if (!val) return true;
+            const opKeys = Object.keys(val).filter((k) => k !== "property");
+            return opKeys.length === 1;
+          },
+          { message: "propertyFilter 必須恰好帶一個 operator key（例如 equals、contains、before、between 等）" }
+        ).describe("在指定欄位上的 server-side 過濾條件，搭配 query 使用"),
         limit: z.number().optional().describe("最多返回幾筆結果，預設 20"),
       }),
       execute: async (params) => {
-        const { action, databaseId, pageId, search, limit = 20 } = params;
+        const { action, databaseId, pageId, search, propertyFilter, limit = 20 } = params;
 
         try {
           // Check if Notion is configured
@@ -183,9 +225,32 @@ properties 範例：{ Status: "Done", Tags: ["frontend"], Due: { start: "2026-05
 
           // Query specific database - return id, title, properties per row
           if (databaseId) {
+            // Build server-side filter from search and/or propertyFilter
+            const clauses: Record<string, unknown>[] = [];
+            let titlePropName = "Name";
+
+            if (propertyFilter) {
+              const db = await getDatabase(databaseId);
+              const schema = extractDatabaseSchema(db);
+              titlePropName = schema.titlePropertyName;
+              const translated = translatePropertyFilter(propertyFilter, schema);
+              if ("error" in translated) {
+                return {
+                  success: false,
+                  service: "notion",
+                  error: translated.error,
+                  availableProperties: translated.availableProperties,
+                };
+              }
+              clauses.push(translated.filter);
+            }
+
             if (search) {
-              // Use Notion native title filter for server-side search across ALL pages
-              const filter = buildTitleContainsFilter(search);
+              clauses.push(buildTitleContainsFilter(search, titlePropName));
+            }
+
+            if (clauses.length > 0) {
+              const filter = clauses.length === 1 ? clauses[0] : { and: clauses };
               const { results, hasMore } = await queryDatabaseAll(databaseId, { filter }, limit);
               const data = results.slice(0, limit).map((page) => ({
                 id: page.id,
@@ -203,7 +268,7 @@ properties 範例：{ Status: "Done", Tags: ["frontend"], Due: { start: "2026-05
               };
             }
 
-            // No search filter - just fetch the requested amount
+            // No filter - just fetch the requested amount
             const result = await queryDatabase(databaseId, { page_size: limit });
             const data = result.results.map((page) => ({
               id: page.id,

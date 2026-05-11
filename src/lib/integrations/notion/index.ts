@@ -17,6 +17,10 @@ export {
 } from "./client";
 
 export { extractProperties } from "./properties";
+export {
+  extractDatabaseSchema,
+  translatePropertyFilter,
+} from "./property-filter";
 
 export type {
   NotionDatabase,
@@ -30,3 +34,9 @@ export type {
 } from "./client";
 
 export type { ExtractedPropertyValue, DateValue } from "./properties";
+export type {
+  PropertyFilter,
+  NotionFilter,
+  DatabaseSchema,
+  TranslateResult,
+} from "./property-filter";

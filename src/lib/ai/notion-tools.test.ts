@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { extractProperties as realExtractProperties } from "@/lib/integrations/notion/properties";
+import {
+  extractDatabaseSchema as realExtractDatabaseSchema,
+  translatePropertyFilter as realTranslatePropertyFilter,
+} from "@/lib/integrations/notion/property-filter";
 
 // Mock the notion integration module
 vi.mock("@/lib/integrations/notion", () => ({
@@ -9,10 +13,13 @@ vi.mock("@/lib/integrations/notion", () => ({
   buildTitleContainsFilter: vi.fn(),
   listDatabases: vi.fn(),
   getPage: vi.fn(),
+  getDatabase: vi.fn(),
   getBlockChildrenDeep: vi.fn(),
   blocksToText: vi.fn(),
   notionSearch: vi.fn(),
   extractProperties: vi.fn((p: Record<string, unknown>) => realExtractProperties(p)),
+  extractDatabaseSchema: vi.fn((db) => realExtractDatabaseSchema(db)),
+  translatePropertyFilter: vi.fn((f, s) => realTranslatePropertyFilter(f, s)),
 }));
 
 import { createNotionTools } from "./notion-tools";
@@ -23,6 +30,7 @@ import {
   listDatabases,
   notionSearch,
   getPage,
+  getDatabase,
   getBlockChildrenDeep,
   blocksToText,
 } from "@/lib/integrations/notion";
@@ -33,16 +41,33 @@ const mockBuildTitleContainsFilter = vi.mocked(buildTitleContainsFilter);
 const mockListDatabases = vi.mocked(listDatabases);
 const mockNotionSearch = vi.mocked(notionSearch);
 const mockGetPage = vi.mocked(getPage);
+const mockGetDatabase = vi.mocked(getDatabase);
 const mockGetBlockChildrenDeep = vi.mocked(getBlockChildrenDeep);
 const mockBlocksToText = vi.mocked(blocksToText);
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockBuildTitleContainsFilter.mockImplementation((keyword: string) => ({
-    property: "Name",
-    title: { contains: keyword },
-  }));
+  mockBuildTitleContainsFilter.mockImplementation(
+    (keyword: string, titleName: string = "Name") => ({
+      property: titleName,
+      title: { contains: keyword },
+    })
+  );
 });
+
+function makeDatabase(props: Array<{ name: string; type: string }>) {
+  const properties: Record<string, { id: string; name: string; type: string }> = {};
+  for (const p of props) {
+    properties[p.name] = { id: `id_${p.name}`, name: p.name, type: p.type };
+  }
+  return {
+    id: "db-1",
+    title: [{ plain_text: "Tasks" }],
+    description: [],
+    url: "https://notion.so/db-1",
+    properties,
+  };
+}
 
 function makePage(
   id: string,
@@ -97,7 +122,7 @@ describe("notionSearch tool - query with search filter", () => {
     expect(result.data[1].title).toBe("請假申請表");
 
     // Should use native filter, not client-side filtering
-    expect(mockBuildTitleContainsFilter).toHaveBeenCalledWith("請假");
+    expect(mockBuildTitleContainsFilter).toHaveBeenCalledWith("請假", "Name");
     expect(mockQueryDatabaseAll).toHaveBeenCalledWith(
       "db-1",
       { filter: { property: "Name", title: { contains: "請假" } } },
@@ -493,5 +518,189 @@ describe("notionSearch tool - query action surfaces properties", () => {
       Name: "Meeting A",
       Owner: ["Alice"],
     });
+  });
+});
+
+describe("notionSearch tool - propertyFilter (server-side filtering)", () => {
+  it("translates equals propertyFilter and sends to queryDatabaseAll", async () => {
+    mockGetDatabase.mockResolvedValueOnce(
+      makeDatabase([
+        { name: "Name", type: "title" },
+        { name: "Status", type: "status" },
+      ])
+    );
+    mockQueryDatabaseAll.mockResolvedValueOnce({
+      results: [
+        makePage("p1", "Task A", "database_id", {
+          Status: { type: "status", status: { name: "Done" } },
+        }),
+      ],
+      hasMore: false,
+    });
+
+    const result = await executeNotionTool({
+      action: "query",
+      databaseId: "db-1",
+      propertyFilter: { property: "Status", equals: "Done" },
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockQueryDatabaseAll).toHaveBeenCalledWith(
+      "db-1",
+      { filter: { property: "Status", status: { equals: "Done" } } },
+      20
+    );
+    expect(result.data[0].properties.Status).toBe("Done");
+  });
+
+  it("translates people contains propertyFilter for finding a person", async () => {
+    mockGetDatabase.mockResolvedValueOnce(
+      makeDatabase([
+        { name: "Name", type: "title" },
+        { name: "Assignee", type: "people" },
+      ])
+    );
+    mockQueryDatabaseAll.mockResolvedValueOnce({
+      results: [],
+      hasMore: false,
+    });
+
+    await executeNotionTool({
+      action: "query",
+      databaseId: "db-1",
+      propertyFilter: { property: "Assignee", contains: "user-123" },
+    });
+
+    expect(mockQueryDatabaseAll).toHaveBeenCalledWith(
+      "db-1",
+      { filter: { property: "Assignee", people: { contains: "user-123" } } },
+      20
+    );
+  });
+
+  it("combines search and propertyFilter as AND using actual title property name", async () => {
+    mockGetDatabase.mockResolvedValueOnce(
+      makeDatabase([
+        { name: "任務名稱", type: "title" },
+        { name: "Status", type: "status" },
+      ])
+    );
+    mockQueryDatabaseAll.mockResolvedValueOnce({
+      results: [],
+      hasMore: false,
+    });
+
+    await executeNotionTool({
+      action: "query",
+      databaseId: "db-1",
+      search: "設計",
+      propertyFilter: { property: "Status", equals: "Done" },
+    });
+
+    expect(mockQueryDatabaseAll).toHaveBeenCalledWith(
+      "db-1",
+      {
+        filter: {
+          and: [
+            { property: "Status", status: { equals: "Done" } },
+            { property: "任務名稱", title: { contains: "設計" } },
+          ],
+        },
+      },
+      20
+    );
+  });
+
+  it("returns friendly error when property name not found", async () => {
+    mockGetDatabase.mockResolvedValueOnce(
+      makeDatabase([
+        { name: "Name", type: "title" },
+        { name: "Status", type: "status" },
+        { name: "Assignee", type: "people" },
+      ])
+    );
+
+    const result = await executeNotionTool({
+      action: "query",
+      databaseId: "db-1",
+      propertyFilter: { property: "Assignne", contains: "u1" },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Assignne/);
+    expect(result.availableProperties).toEqual([
+      { name: "Name", type: "title" },
+      { name: "Status", type: "status" },
+      { name: "Assignee", type: "people" },
+    ]);
+    expect(mockQueryDatabaseAll).not.toHaveBeenCalled();
+  });
+
+  it("returns error when operator not supported for property type", async () => {
+    mockGetDatabase.mockResolvedValueOnce(
+      makeDatabase([{ name: "Status", type: "status" }])
+    );
+
+    const result = await executeNotionTool({
+      action: "query",
+      databaseId: "db-1",
+      propertyFilter: { property: "Status", greater_than: 5 },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/greater_than/);
+    expect(result.error).toMatch(/status/);
+    expect(mockQueryDatabaseAll).not.toHaveBeenCalled();
+  });
+
+  it("expands between for number into AND of >= and <=", async () => {
+    mockGetDatabase.mockResolvedValueOnce(
+      makeDatabase([{ name: "Estimate", type: "number" }])
+    );
+    mockQueryDatabaseAll.mockResolvedValueOnce({
+      results: [],
+      hasMore: false,
+    });
+
+    await executeNotionTool({
+      action: "query",
+      databaseId: "db-1",
+      propertyFilter: { property: "Estimate", between: { from: 3, to: 8 } },
+    });
+
+    expect(mockQueryDatabaseAll).toHaveBeenCalledWith(
+      "db-1",
+      {
+        filter: {
+          and: [
+            { property: "Estimate", number: { greater_than_or_equal_to: 3 } },
+            { property: "Estimate", number: { less_than_or_equal_to: 8 } },
+          ],
+        },
+      },
+      20
+    );
+  });
+
+  it("translates past_week to date relative filter", async () => {
+    mockGetDatabase.mockResolvedValueOnce(
+      makeDatabase([{ name: "Due", type: "date" }])
+    );
+    mockQueryDatabaseAll.mockResolvedValueOnce({
+      results: [],
+      hasMore: false,
+    });
+
+    await executeNotionTool({
+      action: "query",
+      databaseId: "db-1",
+      propertyFilter: { property: "Due", past_week: true },
+    });
+
+    expect(mockQueryDatabaseAll).toHaveBeenCalledWith(
+      "db-1",
+      { filter: { property: "Due", date: { past_week: {} } } },
+      20
+    );
   });
 });

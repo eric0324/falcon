@@ -3,12 +3,19 @@ import { getConfig } from "@/lib/config";
 const NOTION_API_VERSION = "2022-06-28";
 const NOTION_BASE_URL = "https://api.notion.com/v1";
 
+export interface NotionDatabasePropertySchema {
+  id: string;
+  name: string;
+  type: string;
+}
+
 export interface NotionDatabase {
   id: string;
   title: Array<{ plain_text: string }>;
   description: Array<{ plain_text: string }>;
   icon?: { type: string; emoji?: string };
   url: string;
+  properties?: Record<string, NotionDatabasePropertySchema>;
 }
 
 export interface NotionPage {
