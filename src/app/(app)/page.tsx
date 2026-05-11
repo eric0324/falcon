@@ -10,7 +10,8 @@ import { getFavoriteToolIds, getFavoritedTools } from "@/lib/tool-favorites";
 import { MarketplaceToolCard } from "@/components/marketplace-tool-card";
 import { MyFavoritesGrid } from "@/components/my-favorites-grid";
 import { SearchBar } from "@/components/search-bar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MarketplaceTabs } from "@/components/marketplace-tabs";
 import { TrendingUp, Star, Eye, Sparkles, Clock, Heart } from "lucide-react";
 import { HeroGreeting } from "@/components/hero-greeting";
 import { MarketplaceTour } from "@/components/onboarding/marketplace-tour";
@@ -156,7 +157,7 @@ export default async function HomePage() {
 
       {/* Leaderboard Tabs */}
       <section className="mb-12">
-        <Tabs defaultValue={defaultTab} className="w-full">
+        <MarketplaceTabs defaultTab={defaultTab} className="w-full">
           <div className="mb-6 overflow-x-auto scrollbar-hide px-4 sm:px-0">
           <TabsList className="flex w-max mx-auto">
             <TabsTrigger value="favorites" className="gap-1">
@@ -204,7 +205,7 @@ export default async function HomePage() {
           <TabsContent value="favorites">
             <MyFavoritesGrid initialTools={favoritedToolsFormatted} />
           </TabsContent>
-        </Tabs>
+        </MarketplaceTabs>
       </section>
 
       <hr className="border-border mb-12 mx-auto w-1/3" />

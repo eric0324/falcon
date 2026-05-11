@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Users, Wrench, Database, Shield, FileText, ShieldCheck, Settings, ArrowLeft, PanelLeft } from "lucide-react";
+import { Users, Wrench, Database, Shield, FileText, ShieldCheck, Settings, ArrowLeft, PanelLeft, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -11,6 +11,7 @@ const MOBILE_BREAKPOINT = 768;
 
 const navItems = [
   { href: "/admin/members", label: "使用者管理", icon: Users },
+  { href: "/admin/conversations", label: "對話管理", icon: MessageSquare },
   { href: "/admin/tools", label: "工具管理", icon: Wrench },
   { href: "/admin/databases", label: "資料庫管理", icon: Database },
   { href: "/admin/groups", label: "群組管理", icon: Shield },
