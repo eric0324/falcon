@@ -14,9 +14,9 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
-    version: "v0.31.0",
+    version: "v0.31.1",
     date: "2026-05-11",
-    title: "聲音可以直接丟給 AI 處理了",
+    title: "調整首頁分頁為獨立頁面",
     summary:
       "調整首頁分頁為獨立頁面。",
     items: [
