@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { extractProperties as realExtractProperties } from "@/lib/integrations/notion/properties";
 
 // Mock the notion integration module
 vi.mock("@/lib/integrations/notion", () => ({
@@ -11,6 +12,7 @@ vi.mock("@/lib/integrations/notion", () => ({
   getBlockChildrenDeep: vi.fn(),
   blocksToText: vi.fn(),
   notionSearch: vi.fn(),
+  extractProperties: vi.fn((p: Record<string, unknown>) => realExtractProperties(p)),
 }));
 
 import { createNotionTools } from "./notion-tools";
@@ -20,6 +22,9 @@ import {
   buildTitleContainsFilter,
   listDatabases,
   notionSearch,
+  getPage,
+  getBlockChildrenDeep,
+  blocksToText,
 } from "@/lib/integrations/notion";
 
 const mockQueryDatabase = vi.mocked(queryDatabase);
@@ -27,6 +32,9 @@ const mockQueryDatabaseAll = vi.mocked(queryDatabaseAll);
 const mockBuildTitleContainsFilter = vi.mocked(buildTitleContainsFilter);
 const mockListDatabases = vi.mocked(listDatabases);
 const mockNotionSearch = vi.mocked(notionSearch);
+const mockGetPage = vi.mocked(getPage);
+const mockGetBlockChildrenDeep = vi.mocked(getBlockChildrenDeep);
+const mockBlocksToText = vi.mocked(blocksToText);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -36,7 +44,12 @@ beforeEach(() => {
   }));
 });
 
-function makePage(id: string, title: string, parentType = "database_id") {
+function makePage(
+  id: string,
+  title: string,
+  parentType = "database_id",
+  extraProps: Record<string, unknown> = {}
+) {
   return {
     id,
     url: `https://notion.so/${id}`,
@@ -47,6 +60,7 @@ function makePage(id: string, title: string, parentType = "database_id") {
         type: "title",
         title: [{ plain_text: title }],
       },
+      ...extraProps,
     },
   };
 }
@@ -368,5 +382,116 @@ describe("notionSearch tool - searchAll across all databases and pages", () => {
 
     expect(result.success).toBe(true);
     expect(result.data).toHaveLength(3);
+  });
+
+  it("does not include properties in searchAll results (keeps payload lightweight)", async () => {
+    setupSearchAll({
+      databases: [{ id: "db-1", title: "人事" }],
+      dbResults: { "db-1": [{ id: "p1", title: "請假規定" }] },
+      standalonePages: [
+        { id: "p2", title: "請假流程總覽", parentType: "workspace" },
+      ],
+    });
+
+    const result = await executeNotionTool({ action: "searchAll", search: "請假" });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toHaveLength(2);
+    for (const item of result.data) {
+      expect(item).not.toHaveProperty("properties");
+    }
+  });
+});
+
+describe("notionSearch tool - read action surfaces properties", () => {
+  it("includes parsed properties in read response", async () => {
+    mockGetPage.mockResolvedValueOnce(
+      makePage("p1", "Ship feature", "database_id", {
+        Status: { type: "status", status: { name: "In Progress" } },
+        Tags: {
+          type: "multi_select",
+          multi_select: [{ name: "backend" }, { name: "p1" }],
+        },
+        Due: {
+          type: "date",
+          date: { start: "2026-05-20", end: null },
+        },
+      })
+    );
+    mockGetBlockChildrenDeep.mockResolvedValueOnce([]);
+    mockBlocksToText.mockReturnValueOnce("");
+
+    const result = await executeNotionTool({ pageId: "p1" });
+
+    expect(result.success).toBe(true);
+    expect(result.data.properties).toEqual({
+      Name: "Ship feature",
+      Status: "In Progress",
+      Tags: ["backend", "p1"],
+      Due: { start: "2026-05-20" },
+    });
+  });
+});
+
+describe("notionSearch tool - query action surfaces properties", () => {
+  it("includes properties on each row when search is provided", async () => {
+    mockQueryDatabaseAll.mockResolvedValueOnce({
+      results: [
+        makePage("p1", "Task A", "database_id", {
+          Status: { type: "status", status: { name: "Done" } },
+        }),
+        makePage("p2", "Task B", "database_id", {
+          Status: { type: "status", status: { name: "Todo" } },
+          Estimate: { type: "number", number: 3 },
+        }),
+      ],
+      hasMore: false,
+    });
+
+    const result = await executeNotionTool({
+      action: "query",
+      databaseId: "db-1",
+      search: "Task",
+      limit: 20,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data[0].properties).toEqual({
+      Name: "Task A",
+      Status: "Done",
+    });
+    expect(result.data[1].properties).toEqual({
+      Name: "Task B",
+      Status: "Todo",
+      Estimate: 3,
+    });
+  });
+
+  it("includes properties on each row when search is not provided", async () => {
+    mockQueryDatabase.mockResolvedValueOnce({
+      object: "list",
+      results: [
+        makePage("p1", "Meeting A", "database_id", {
+          Owner: {
+            type: "people",
+            people: [{ id: "u1", name: "Alice" }],
+          },
+        }),
+      ],
+      next_cursor: null,
+      has_more: false,
+    });
+
+    const result = await executeNotionTool({
+      action: "query",
+      databaseId: "db-1",
+      limit: 20,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data[0].properties).toEqual({
+      Name: "Meeting A",
+      Owner: ["Alice"],
+    });
   });
 });

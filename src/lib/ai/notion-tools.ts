@@ -10,6 +10,7 @@ import {
   blocksToText,
   notionSearch,
   listDatabases,
+  extractProperties,
   NotionDatabase,
   NotionPage,
 } from "@/lib/integrations/notion";
@@ -47,9 +48,11 @@ export function createNotionTools() {
 操作：
 - list：列出所有資料庫和頁面（永遠先做這步）
 - searchAll：跨所有資料庫搜尋標題含關鍵字的頁面（找資料優先用這個）
-- query：查詢特定資料庫的頁面（用 databaseId，可加 search 過濾標題）
-- read：讀取頁面完整正文和子頁面（用 pageId）
-- search：全文搜尋（中文不準確，盡量不用）`,
+- query：查詢特定資料庫的頁面（用 databaseId，可加 search 過濾標題），每筆會帶 properties（Status / Tags / Date 等資料庫欄位）
+- read：讀取頁面完整正文和子頁面（用 pageId），含 properties
+- search：全文搜尋（中文不準確，盡量不用）
+
+properties 範例：{ Status: "Done", Tags: ["frontend"], Due: { start: "2026-05-20" }, Owner: ["Alice"] }。Relation 欄位只回 page id 陣列，要看標題請對該 id 再 read。`,
       inputSchema: z.object({
         action: z.enum(["list", "searchAll", "query", "search", "read"]).optional().describe("list: 列出所有資料庫和頁面, searchAll: 跨所有資料庫搜尋（推薦）, query: 查詢特定資料庫（可搭配 search 過濾標題）, search: 全文搜尋, read: 讀取頁面完整內容（含正文和子頁面）。預設為 list"),
         databaseId: z.string().optional().describe("資料庫 ID (用於 query)"),
@@ -78,6 +81,7 @@ export function createNotionTools() {
               id: page.id,
               title: extractPageTitle(page),
               icon: page.icon?.type === "emoji" ? page.icon.emoji : undefined,
+              properties: extractProperties(page.properties),
             };
 
             // Fetch page blocks (content)
@@ -177,7 +181,7 @@ export function createNotionTools() {
             };
           }
 
-          // Query specific database - return lightweight list (id + title only)
+          // Query specific database - return id, title, properties per row
           if (databaseId) {
             if (search) {
               // Use Notion native title filter for server-side search across ALL pages
@@ -187,6 +191,7 @@ export function createNotionTools() {
                 id: page.id,
                 title: extractPageTitle(page),
                 icon: page.icon?.type === "emoji" ? page.icon.emoji : undefined,
+                properties: extractProperties(page.properties),
               }));
               return {
                 success: true,
@@ -204,6 +209,7 @@ export function createNotionTools() {
               id: page.id,
               title: extractPageTitle(page),
               icon: page.icon?.type === "emoji" ? page.icon.emoji : undefined,
+              properties: extractProperties(page.properties),
             }));
             return {
               success: true,

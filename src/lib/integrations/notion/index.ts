@@ -16,6 +16,8 @@ export {
   createParentCache,
 } from "./client";
 
+export { extractProperties } from "./properties";
+
 export type {
   NotionDatabase,
   NotionPage,
@@ -26,3 +28,5 @@ export type {
   NotionParentInfo,
   NotionParentCache,
 } from "./client";
+
+export type { ExtractedPropertyValue, DateValue } from "./properties";
