@@ -40,7 +40,7 @@
   },
   "webinarjam": {
     "name": "WebinarJam",
-    "description": "查詢 WebinarJam 場次與報名 / 出席名單"
+    "description": "查詢直播資料"
   },
   "videoPlatform": "影音平台",
   "connected": "已連接",

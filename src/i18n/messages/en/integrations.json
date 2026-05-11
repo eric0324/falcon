@@ -40,7 +40,7 @@
   },
   "webinarjam": {
     "name": "WebinarJam",
-    "description": "Query WebinarJam webinars and attendee lists"
+    "description": "Query webinar data"
   },
   "videoPlatform": "Video Platform",
   "connected": "Connected",
