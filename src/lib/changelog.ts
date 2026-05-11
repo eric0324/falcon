@@ -14,6 +14,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.30.1",
+    date: "2026-05-11",
+    title: "對話框可以拖曳檔案、圖片改縮圖顯示",
+    summary:
+      "對話框可以直接拖曳圖片或文件進去當附件，不用再按迴紋針按鈕。已加入的圖片改用縮圖呈現，滑鼠移上去才浮出刪除按鈕，比檔名條更省版面。",
+    items: [
+      "chat 對話框接 drag handlers，drop 範圍涵蓋整個對話視窗；overlay 只蓋輸入框，不擋下方模型 / 技能 / 資料來源選單",
+      "拖入的檔案走與按鈕上傳相同的處理：型別與大小檢查、圖片自動壓縮、文字檔 token 估算與截斷預設",
+      "FileList 圖片附件改用 56×56 縮圖卡片，hover 才顯示右上角移除按鈕",
+      "file-upload.tsx 抽出 processFile helper，讓 drop 與按鈕兩條路徑共用同一份檔案處理邏輯",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.30.0",
     date: "2026-05-11",
     title: "聊天時可以查 WebinarJam 場次與報名名單",

@@ -7,6 +7,8 @@ import { Paperclip, X, FileText, Image as ImageIcon, Code, AlertTriangle } from 
 import { cn } from "@/lib/utils";
 import { uploadImageToS3 } from "@/lib/chat/upload-image-client";
 import { useToast } from "@/components/ui/use-toast";
+
+type ToastFn = ReturnType<typeof useToast>["toast"];
 import { estimateTokens } from "@/lib/ai/token-utils";
 import { classifyAttachmentSize, HARD_TOKENS, WARN_TOKENS } from "@/lib/attachments/limits";
 
@@ -118,6 +120,84 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/**
+ * Process a single file picked or dropped by the user.
+ * Returns the UploadedFile entry on success, or null when rejected
+ * (unsupported type, too large, or text content over hard token cap).
+ * Toasts are emitted for rejections that are worth surfacing.
+ */
+export async function processFile(
+  file: File,
+  toast: ToastFn
+): Promise<UploadedFile | null> {
+  if (!ACCEPTED_TYPES[file.type as keyof typeof ACCEPTED_TYPES]) {
+    console.warn(`Unsupported file type: ${file.type}`);
+    return null;
+  }
+
+  if (file.size > MAX_FILE_SIZE) {
+    console.warn(`File too large: ${file.name} (${formatFileSize(file.size)})`);
+    return null;
+  }
+
+  let base64: string;
+  if (file.type.startsWith("image/")) {
+    base64 = await compressImage(file);
+  } else {
+    base64 = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(",")[1]);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  let s3Key: string | undefined;
+  if (S3_UPLOADABLE_IMAGE_TYPES.has(file.type)) {
+    try {
+      s3Key = await uploadImageToS3(file);
+    } catch (err) {
+      console.warn("[FileUpload] S3 upload failed, continuing with base64 only:", err);
+    }
+  }
+
+  let tokenEstimate: number | undefined;
+  let truncateMode: AttachmentTruncateMode | undefined;
+  if (isTextReadable(file.type)) {
+    const text = await file.text();
+    tokenEstimate = estimateTokens(text);
+    const sizeClass = classifyAttachmentSize(tokenEstimate);
+    if (sizeClass === "reject") {
+      toast({
+        title: "附件過大",
+        description: `「${file.name}」約 ${tokenEstimate.toLocaleString()} tokens，超過上限 ${HARD_TOKENS.toLocaleString()}。請拆分檔案後再上傳。`,
+        variant: "destructive",
+      });
+      return null;
+    }
+    if (sizeClass === "warn") {
+      truncateMode = file.type === "text/csv" ? "csv" : "head";
+      toast({
+        title: "附件較大，已預設截斷",
+        description: `「${file.name}」約 ${tokenEstimate.toLocaleString()} tokens，將自動截斷至 ${WARN_TOKENS.toLocaleString()} 內。可在檔案標籤切換為「完整送出」。`,
+      });
+    }
+  }
+
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    name: file.name,
+    type: file.type,
+    size: file.size,
+    base64,
+    s3Key,
+    tokenEstimate,
+    truncateMode,
+  };
+}
+
 export function FileUpload({ files, onChange, disabled }: FileUploadProps) {
   const t = useTranslations("fileUpload");
   const { toast } = useToast();
@@ -132,90 +212,15 @@ export function FileUpload({ files, onChange, disabled }: FileUploadProps) {
     if (!selectedFiles) return;
 
     const newFiles: UploadedFile[] = [];
-
     for (const file of Array.from(selectedFiles)) {
-      // Check file type
-      if (!ACCEPTED_TYPES[file.type as keyof typeof ACCEPTED_TYPES]) {
-        console.warn(`Unsupported file type: ${file.type}`);
-        continue;
-      }
-
-      // Check file size
-      if (file.size > MAX_FILE_SIZE) {
-        console.warn(`File too large: ${file.name} (${formatFileSize(file.size)})`);
-        continue;
-      }
-
-      // Convert to base64 (compress images to stay under Vercel body limit)
-      let base64: string;
-      if (file.type.startsWith("image/")) {
-        base64 = await compressImage(file);
-      } else {
-        base64 = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const result = reader.result as string;
-            const base64Data = result.split(",")[1];
-            resolve(base64Data);
-          };
-          reader.readAsDataURL(file);
-        });
-      }
-
-      // For whitelisted image types, also upload the original to S3 so it can
-      // be used as sourceImageKey for generateImage. Failure is non-fatal —
-      // the file is still usable for vision understanding via base64.
-      let s3Key: string | undefined;
-      if (S3_UPLOADABLE_IMAGE_TYPES.has(file.type)) {
-        try {
-          s3Key = await uploadImageToS3(file);
-        } catch (err) {
-          console.warn("[FileUpload] S3 upload failed, continuing with base64 only:", err);
-        }
-      }
-
-      // For text-readable files, estimate tokens and decide whether to
-      // reject (HARD), pre-set truncate mode (WARN), or pass through (OK).
-      let tokenEstimate: number | undefined;
-      let truncateMode: AttachmentTruncateMode | undefined;
-      if (isTextReadable(file.type)) {
-        const text = await file.text();
-        tokenEstimate = estimateTokens(text);
-        const sizeClass = classifyAttachmentSize(tokenEstimate);
-        if (sizeClass === "reject") {
-          toast({
-            title: "附件過大",
-            description: `「${file.name}」約 ${tokenEstimate.toLocaleString()} tokens，超過上限 ${HARD_TOKENS.toLocaleString()}。請拆分檔案後再上傳。`,
-            variant: "destructive",
-          });
-          continue;
-        }
-        if (sizeClass === "warn") {
-          truncateMode = file.type === "text/csv" ? "csv" : "head";
-          toast({
-            title: "附件較大，已預設截斷",
-            description: `「${file.name}」約 ${tokenEstimate.toLocaleString()} tokens，將自動截斷至 ${WARN_TOKENS.toLocaleString()} 內。可在檔案標籤切換為「完整送出」。`,
-          });
-        }
-      }
-
-      newFiles.push({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        base64,
-        s3Key,
-        tokenEstimate,
-        truncateMode,
-      });
+      const processed = await processFile(file, toast);
+      if (processed) newFiles.push(processed);
     }
 
     if (newFiles.length > 0) {
       onChange([...files, ...newFiles]);
     }
 
-    // Reset input
     e.target.value = "";
   }, [files, onChange, toast]);
 
@@ -274,6 +279,31 @@ export function FileList({ files, onRemove, onChange }: FileListProps) {
   return (
     <div className="flex flex-wrap gap-2 px-3 pb-2">
       {files.map((file) => {
+        if (file.type.startsWith("image/")) {
+          return (
+            <div
+              key={file.id}
+              className="relative h-14 w-14 rounded-md overflow-hidden border bg-muted group"
+              title={`${file.name} (${formatFileSize(file.size)})`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`data:image/jpeg;base64,${file.base64}`}
+                alt={file.name}
+                className="h-full w-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => onRemove(file.id)}
+                className="absolute top-0.5 right-0.5 bg-black/60 hover:bg-black/80 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label="移除附件"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          );
+        }
+
         const inWarnZone = file.tokenEstimate !== undefined && file.tokenEstimate >= WARN_TOKENS;
         return (
           <div

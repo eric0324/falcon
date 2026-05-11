@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Send, Loader2, CornerDownLeft, ChevronDown, Star, Pencil, Trash2, PlugZap, X } from "lucide-react";
+import { Send, Loader2, CornerDownLeft, ChevronDown, Star, Pencil, Trash2, PlugZap, X, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,7 +18,7 @@ import { ImageProviderSelector } from "@/components/image-provider-selector";
 import type { ImageProvider } from "@/lib/ai/image-generation";
 import { DataSourceSelector } from "@/components/data-source-selector";
 import { SkillSelector } from "@/components/skill-selector";
-import { FileUpload, FileList, UploadedFile } from "@/components/file-upload";
+import { FileUpload, FileList, UploadedFile, processFile } from "@/components/file-upload";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
@@ -183,6 +183,8 @@ function StudioContent() {
   const [selectedModel, setSelectedModel] = useState<ModelId>(defaultModel);
   const [imageProvider, setImageProvider] = useState<ImageProvider | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [isFileDragging, setIsFileDragging] = useState(false);
+  const dragCounterRef = useRef(0);
   const [selectedDataSources, setSelectedDataSources] = useState<string[]>([]);
   const [selectedSkill, setSelectedSkill] = useState<{ id: string; name: string; prompt: string; requiredDataSources: string[] } | null>(null);
   const [, setUsedDataSources] = useState<ToolDataSource[]>([]);
@@ -1166,6 +1168,48 @@ function StudioContent() {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
+  const hasFileDrag = (e: React.DragEvent) =>
+    Array.from(e.dataTransfer.types).includes("Files");
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    if (!hasFileDrag(e) || isLoading || isQuotaBlocked) return;
+    e.preventDefault();
+    dragCounterRef.current += 1;
+    setIsFileDragging(true);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!hasFileDrag(e) || isLoading || isQuotaBlocked) return;
+    e.preventDefault();
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (!hasFileDrag(e)) return;
+    e.preventDefault();
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+    if (dragCounterRef.current === 0) setIsFileDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    if (!hasFileDrag(e)) return;
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setIsFileDragging(false);
+    if (isLoading || isQuotaBlocked) return;
+
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (droppedFiles.length === 0) return;
+
+    const newFiles: UploadedFile[] = [];
+    for (const file of droppedFiles) {
+      const processed = await processFile(file, toast);
+      if (processed) newFiles.push(processed);
+    }
+    if (newFiles.length > 0) {
+      setUploadedFiles((prev) => [...prev, ...newFiles]);
+    }
+  };
+
   return (
     <PageTour pageKey="chat" steps={chatSteps} hideButton>
     <div className="h-full flex flex-col">
@@ -1256,6 +1300,10 @@ function StudioContent() {
         <div
           className="flex flex-col min-w-0 min-h-0"
           style={hasPreview && !isMobileChat && !previewCollapsed ? { width: `${panelRatio}%` } : { flex: 1 }}
+          onDragEnter={handleDragEnter}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
         >
           <ScrollArea className="flex-1 p-4" ref={scrollRef}>
             <div className="space-y-4">
@@ -1376,6 +1424,14 @@ function StudioContent() {
             {/* Input */}
             <form onSubmit={handleSubmit} className="p-4 pt-2">
               <div className="relative">
+                {isFileDragging && (
+                  <div className="absolute inset-0 z-50 flex items-center justify-center bg-primary/10 border-2 border-dashed border-primary rounded-md pointer-events-none">
+                    <div className="flex flex-col items-center gap-2 text-primary">
+                      <Upload className="h-6 w-6" />
+                      <span className="text-sm font-medium">放開以加入附件</span>
+                    </div>
+                  </div>
+                )}
                 <Textarea
                   ref={textareaRef}
                   data-tour="chat-input"
