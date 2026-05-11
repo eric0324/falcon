@@ -14,6 +14,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.29.1",
+    date: "2026-05-11",
+    title: "AI 在 Notion 找資料變聰明了",
+    summary:
+      "聊天時連上 Notion，AI 現在看得到資料庫頁面的所有欄位 — Status、Tags、Due Date、負責人等，不再只看標題。也能直接請 Notion 在 server 端篩條件，例如「Status 是 Done 的任務」「某人負責的項目」「Due 在下週的事項」，不用一筆筆撈回來慢慢找。",
+    items: [
+      "Notion AI 工具 read / query 動作回傳資料附上解析過的 properties，支援 title、rich_text、status、select、multi_select、date、number、checkbox、people、files、relation、formula、rollup 等常見欄位型別",
+      "新 propertyFilter 參數：可指定 equals / contains / is_empty / between / before / after / past_week / next_month 等 operator，後端翻譯成 Notion 原生 filter 做 server-side 過濾",
+      "propertyFilter 與 search 可同時使用，內部組成 AND；title clause 自動使用該資料庫實際的 title 欄位名，不再硬寫 Name",
+      "拼錯 property 名稱或 operator 與型別不相容時，回友善錯誤並列出可用欄位，AI 可自行修正後重試",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.29.0",
     date: "2026-05-05",
     title: "AI 開始記得你",
