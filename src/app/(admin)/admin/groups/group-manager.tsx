@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, Check, X, CopyPlus } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, CopyPlus, Search } from "lucide-react";
 
 interface Group {
   id: string;
@@ -20,6 +20,13 @@ export function GroupManager({ initialGroups }: { initialGroups: Group[] }) {
   const [editName, setEditName] = useState("");
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredGroups = searchQuery.trim()
+    ? groups.filter((g) =>
+        g.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
+      )
+    : groups;
 
   async function handleAdd() {
     if (!newName.trim()) return;
@@ -126,14 +133,32 @@ export function GroupManager({ initialGroups }: { initialGroups: Group[] }) {
         <p className="text-sm text-red-600 bg-red-50 rounded p-2 mb-4">{error}</p>
       )}
 
+      {/* Search */}
+      {groups.length > 0 && (
+        <div className="relative mb-4">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="搜尋群組名稱"
+            className="w-full border rounded-md pl-8 pr-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+      )}
+
       {/* Group list */}
       {groups.length === 0 ? (
         <div className="border rounded-lg p-8 text-center text-muted-foreground">
           尚未建立任何群組
         </div>
+      ) : filteredGroups.length === 0 ? (
+        <div className="border rounded-lg p-8 text-center text-muted-foreground">
+          找不到符合條件的群組
+        </div>
       ) : (
         <div className="border rounded-lg divide-y">
-          {groups.map((group) => (
+          {filteredGroups.map((group) => (
             <div key={group.id} className="flex items-center gap-3 p-3">
               {editingId === group.id ? (
                 <>

@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import Link from "next/link";
 import { Pagination } from "../pagination";
+import { SearchInput } from "../search-input";
 import { DatabaseForm } from "./database-form";
 
 export const metadata = { title: "資料庫管理" };
@@ -25,13 +27,19 @@ const typeLabel: Record<string, string> = {
 export default async function AdminDatabasesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; q?: string }>;
 }) {
   const params = await searchParams;
   const currentPage = Math.max(1, parseInt(params.page || "1", 10) || 1);
+  const q = (params.q ?? "").trim();
+
+  const where: Prisma.ExternalDatabaseWhereInput = q
+    ? { name: { contains: q, mode: "insensitive" } }
+    : {};
 
   const [databases, totalCount] = await Promise.all([
     prisma.externalDatabase.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       skip: (currentPage - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
@@ -46,10 +54,13 @@ export default async function AdminDatabasesPage({
         _count: { select: { tables: true } },
       },
     }),
-    prisma.externalDatabase.count(),
+    prisma.externalDatabase.count({ where }),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const basePath = q
+    ? `/admin/databases?q=${encodeURIComponent(q)}`
+    : "/admin/databases";
 
   return (
     <div className="p-4 sm:p-6">
@@ -61,6 +72,14 @@ export default async function AdminDatabasesPage({
           </p>
         </div>
         <DatabaseForm />
+      </div>
+
+      <div className="mb-4">
+        <SearchInput
+          basePath="/admin/databases"
+          initialValue={q}
+          placeholder="搜尋名稱"
+        />
       </div>
 
       {databases.length === 0 && currentPage === 1 ? (
@@ -111,7 +130,7 @@ export default async function AdminDatabasesPage({
         </div>
       )}
 
-      <Pagination currentPage={currentPage} totalPages={totalPages} basePath="/admin/databases" />
+      <Pagination currentPage={currentPage} totalPages={totalPages} basePath={basePath} />
     </div>
   );
 }

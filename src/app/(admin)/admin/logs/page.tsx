@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { Pagination } from "../pagination";
+import { SearchInput } from "../search-input";
 import { LogFilters } from "./log-filters";
 import { LogDetailRow } from "./log-detail-row";
 
@@ -25,6 +26,7 @@ export default async function AdminLogsPage({
     source?: string;
     ds?: string;
     status?: string;
+    q?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -34,6 +36,7 @@ export default async function AdminLogsPage({
   const sourceFilter = params.source || undefined;
   const dsFilter = params.ds || undefined;
   const statusFilter = params.status || undefined;
+  const q = (params.q ?? "").trim();
 
   const where: Prisma.DataSourceLogWhereInput = {};
   if (userFilter) where.userId = userFilter;
@@ -41,6 +44,12 @@ export default async function AdminLogsPage({
   if (dsFilter) where.dataSourceId = dsFilter;
   if (statusFilter === "success") where.success = true;
   if (statusFilter === "error") where.success = false;
+  if (q) {
+    where.OR = [
+      { toolName: { contains: q, mode: "insensitive" } },
+      { error: { contains: q, mode: "insensitive" } },
+    ];
+  }
 
   const [logs, totalCount, users, dataSourceRows] = await Promise.all([
     prisma.dataSourceLog.findMany({
@@ -70,6 +79,7 @@ export default async function AdminLogsPage({
   if (sourceFilter) filterParams.set("source", sourceFilter);
   if (dsFilter) filterParams.set("ds", dsFilter);
   if (statusFilter) filterParams.set("status", statusFilter);
+  if (q) filterParams.set("q", q);
   const qs = filterParams.toString();
   const basePath = `/admin/logs${qs ? `?${qs}` : ""}`;
 
@@ -80,6 +90,20 @@ export default async function AdminLogsPage({
         <p className="text-muted-foreground mt-1">
           共 {totalCount} 筆紀錄
         </p>
+      </div>
+
+      <div className="flex flex-wrap gap-3 mb-4">
+        <SearchInput
+          basePath="/admin/logs"
+          initialValue={q}
+          extraParams={{
+            user: userFilter,
+            source: sourceFilter,
+            ds: dsFilter,
+            status: statusFilter,
+          }}
+          placeholder="搜尋工具名稱、錯誤訊息"
+        />
       </div>
 
       <LogFilters

@@ -14,6 +14,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.31.1",
+    date: "2026-05-11",
+    title: "後台列表都可以搜尋了",
+    summary:
+      "後台的工具、成員、資料庫、稽核日誌、弱點掃描、群組六個列表頁，最上方都加了搜尋框，輸入關鍵字就會即時過濾。",
+    items: [
+      "新共用元件 src/app/(admin)/admin/search-input.tsx，受控 input + 300ms debounce + router push 帶 q",
+      "5 個 server-side 列表頁加 q searchParam，Prisma where 用 contains + mode: insensitive；搜尋變動自動回第 1 頁、翻頁保留搜尋",
+      "tools / scans 搜尋對應工具名 + 作者名 / email；members 對應 name + email；logs 對應 toolName + error；databases 對應 name",
+      "groups 因走 client-side 一次撈全表，搜尋改為本地 array filter",
+      "搜尋與既有 status / source / dataSource 等 filter 用 AND 組合",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.31.0",
     date: "2026-05-11",
     title: "聲音可以直接丟給 AI 處理了",

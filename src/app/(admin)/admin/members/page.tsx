@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { estimateCost } from "@/lib/ai/models";
 import Link from "next/link";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Pagination } from "../pagination";
+import { SearchInput } from "../search-input";
 
 export const metadata = { title: "成員管理" };
 
@@ -38,13 +40,24 @@ function getInitials(name: string | null): string {
 export default async function AdminMembersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; q?: string }>;
 }) {
   const params = await searchParams;
   const currentPage = Math.max(1, parseInt(params.page || "1", 10) || 1);
+  const q = (params.q ?? "").trim();
+
+  const where: Prisma.UserWhereInput = q
+    ? {
+        OR: [
+          { name: { contains: q, mode: "insensitive" } },
+          { email: { contains: q, mode: "insensitive" } },
+        ],
+      }
+    : {};
 
   const [users, totalCount, tokenAggregation] = await Promise.all([
     prisma.user.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       skip: (currentPage - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
@@ -58,7 +71,7 @@ export default async function AdminMembersPage({
         _count: { select: { conversations: true } },
       },
     }),
-    prisma.user.count(),
+    prisma.user.count({ where }),
     prisma.tokenUsage.groupBy({
       by: ["userId", "model"],
       _sum: { inputTokens: true, outputTokens: true, totalTokens: true },
@@ -67,6 +80,9 @@ export default async function AdminMembersPage({
   ]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const basePath = q
+    ? `/admin/members?q=${encodeURIComponent(q)}`
+    : "/admin/members";
 
   // Build token stats map (only for users on this page)
   const userIds = new Set(users.map((u) => u.id));
@@ -106,6 +122,14 @@ export default async function AdminMembersPage({
         <p className="text-muted-foreground mt-1 text-sm">
           共 {totalCount} 位成員
         </p>
+      </div>
+
+      <div className="mb-4">
+        <SearchInput
+          basePath="/admin/members"
+          initialValue={q}
+          placeholder="搜尋姓名、Email"
+        />
       </div>
 
       <div className="border rounded-lg overflow-x-auto">
@@ -161,7 +185,7 @@ export default async function AdminMembersPage({
         </table>
       </div>
 
-      <Pagination currentPage={currentPage} totalPages={totalPages} basePath="/admin/members" />
+      <Pagination currentPage={currentPage} totalPages={totalPages} basePath={basePath} />
     </div>
   );
 }

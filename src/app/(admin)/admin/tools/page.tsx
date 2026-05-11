@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { TOOL_CATEGORIES } from "@/lib/categories";
 import { ToolDetailPanel } from "./tool-detail-panel";
 import { Pagination } from "../pagination";
+import { SearchInput } from "../search-input";
 
 export const metadata = { title: "工具管理" };
 
@@ -34,13 +36,25 @@ const visibilityLabel: Record<string, { text: string; className: string }> = {
 export default async function AdminToolsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; q?: string }>;
 }) {
   const params = await searchParams;
   const currentPage = Math.max(1, parseInt(params.page || "1", 10) || 1);
+  const q = (params.q ?? "").trim();
+
+  const where: Prisma.ToolWhereInput = q
+    ? {
+        OR: [
+          { name: { contains: q, mode: "insensitive" } },
+          { author: { name: { contains: q, mode: "insensitive" } } },
+          { author: { email: { contains: q, mode: "insensitive" } } },
+        ],
+      }
+    : {};
 
   const [tools, totalCount] = await Promise.all([
     prisma.tool.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       skip: (currentPage - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
@@ -65,10 +79,13 @@ export default async function AdminToolsPage({
         },
       },
     }),
-    prisma.tool.count(),
+    prisma.tool.count({ where }),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const basePath = q
+    ? `/admin/tools?q=${encodeURIComponent(q)}`
+    : "/admin/tools";
 
   return (
     <div className="p-4 sm:p-6">
@@ -77,6 +94,14 @@ export default async function AdminToolsPage({
         <p className="text-muted-foreground mt-1 text-sm">
           共 {totalCount} 個工具
         </p>
+      </div>
+
+      <div className="mb-4">
+        <SearchInput
+          basePath="/admin/tools"
+          initialValue={q}
+          placeholder="搜尋工具名稱、作者"
+        />
       </div>
 
       {tools.length === 0 && currentPage === 1 ? (
@@ -128,7 +153,7 @@ export default async function AdminToolsPage({
         </div>
       )}
 
-      <Pagination currentPage={currentPage} totalPages={totalPages} basePath="/admin/tools" />
+      <Pagination currentPage={currentPage} totalPages={totalPages} basePath={basePath} />
     </div>
   );
 }

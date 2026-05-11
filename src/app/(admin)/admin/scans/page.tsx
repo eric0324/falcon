@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { Pagination } from "../pagination";
+import { SearchInput } from "../search-input";
 import { ScanList } from "./scan-list";
 
 export const metadata = { title: "弱點掃描" };
@@ -10,15 +11,25 @@ const PAGE_SIZE = 20;
 export default async function AdminScansPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; status?: string }>;
+  searchParams: Promise<{ page?: string; status?: string; q?: string }>;
 }) {
   const params = await searchParams;
   const currentPage = Math.max(1, parseInt(params.page || "1", 10) || 1);
   const statusFilter = params.status || undefined;
+  const q = (params.q ?? "").trim();
 
   const where: Prisma.CodeScanWhereInput = {};
   if (statusFilter && ["PASS", "WARN", "FAIL"].includes(statusFilter)) {
     where.status = statusFilter as "PASS" | "WARN" | "FAIL";
+  }
+  if (q) {
+    where.tool = {
+      OR: [
+        { name: { contains: q, mode: "insensitive" } },
+        { author: { name: { contains: q, mode: "insensitive" } } },
+        { author: { email: { contains: q, mode: "insensitive" } } },
+      ],
+    };
   }
 
   const [scans, totalCount] = await Promise.all([
@@ -46,6 +57,7 @@ export default async function AdminScansPage({
 
   const filterParams = new URLSearchParams();
   if (statusFilter) filterParams.set("status", statusFilter);
+  if (q) filterParams.set("q", q);
   const qs = filterParams.toString();
   const basePath = `/admin/scans${qs ? `?${qs}` : ""}`;
 
@@ -72,6 +84,15 @@ export default async function AdminScansPage({
       <div className="mb-6">
         <h1 className="text-xl sm:text-2xl font-bold">弱點掃描</h1>
         <p className="text-muted-foreground mt-1">共 {totalCount} 筆掃描紀錄</p>
+      </div>
+
+      <div className="mb-4">
+        <SearchInput
+          basePath="/admin/scans"
+          initialValue={q}
+          extraParams={{ status: statusFilter }}
+          placeholder="搜尋工具名稱、作者"
+        />
       </div>
 
       <ScanList
