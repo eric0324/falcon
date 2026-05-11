@@ -16,6 +16,26 @@
       "description": "OpenAI 圖片生成，支援原生 images.edit"
     }
   },
+  "audioProviders": {
+    "label": "聲音轉錄模型",
+    "trigger": "聲音模型",
+    "unset": {
+      "name": "未選",
+      "description": "不指定，聲音附件不會被轉錄"
+    },
+    "gpt-4o-mini-transcribe": {
+      "name": "GPT-4o Mini Transcribe",
+      "description": "便宜，$0.003 / 分鐘，乾淨音源足夠"
+    },
+    "gpt-4o-transcribe": {
+      "name": "GPT-4o Transcribe",
+      "description": "WER 較低，$0.006 / 分鐘"
+    },
+    "whisper-1": {
+      "name": "Whisper",
+      "description": "經典 Whisper，$0.006 / 分鐘"
+    }
+  },
   "claude-opus-47": {
     "name": "Claude Opus 4.7",
     "description": "最新旗艦模型，軟體工程與複雜推理能力再提升"

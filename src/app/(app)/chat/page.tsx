@@ -16,6 +16,8 @@ import { ToolCallDisplay, ToolCall } from "@/components/tool-call-display";
 import { ModelSelector } from "@/components/model-selector";
 import { ImageProviderSelector } from "@/components/image-provider-selector";
 import type { ImageProvider } from "@/lib/ai/image-generation";
+import { AudioProviderSelector } from "@/components/audio-provider-selector";
+import type { AudioProvider } from "@/lib/integrations/openai-audio";
 import { DataSourceSelector } from "@/components/data-source-selector";
 import { SkillSelector } from "@/components/skill-selector";
 import { FileUpload, FileList, UploadedFile, processFile } from "@/components/file-upload";
@@ -182,6 +184,7 @@ function StudioContent() {
   const chatSteps = useChatSteps();
   const [selectedModel, setSelectedModel] = useState<ModelId>(defaultModel);
   const [imageProvider, setImageProvider] = useState<ImageProvider | null>(null);
+  const [audioProvider, setAudioProvider] = useState<AudioProvider | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isFileDragging, setIsFileDragging] = useState(false);
   const dragCounterRef = useRef(0);
@@ -277,6 +280,7 @@ function StudioContent() {
     setSuggestedSources(null);
     setCompactInfo(null);
     setImageProvider(null);
+    setAudioProvider(null);
   }, []);
 
   // Reset state when navigating to /chat without id (new conversation)
@@ -369,6 +373,7 @@ function StudioContent() {
         setConvStarred(conv.starred ?? false);
         setSelectedDataSources(conv.dataSources || []);
         setImageProvider(null);
+        setAudioProvider(null);
 
         // Extract code or document from messages - check tool calls first, then content
         const messages = conv.messages || [];
@@ -559,6 +564,9 @@ function StudioContent() {
           type: f.type,
           base64: f.base64,
           ...(f.truncateMode ? { truncateMode: f.truncateMode } : {}),
+          ...(f.kind ? { kind: f.kind } : {}),
+          ...(f.kind === "audio" && f.s3Key ? { s3Key: f.s3Key } : {}),
+          ...(f.durationSec !== undefined ? { durationSec: f.durationSec } : {}),
         }))
       : [];
 
@@ -579,6 +587,7 @@ function StudioContent() {
           message: userMessage,
           model: selectedModel,
           imageProvider: imageProvider || undefined,
+          audioProvider: audioProvider || undefined,
           files: filesToSend.length > 0 ? filesToSend : undefined,
           attachedImageKeys: attachedImageKeys.length > 0 ? attachedImageKeys : undefined,
           attachments: messageAttachments.length > 0
@@ -1313,6 +1322,9 @@ function StudioContent() {
                 </div>
                 <div data-tour="chat-image-provider">
                   <ImageProviderSelector value={imageProvider} onChange={setImageProvider} />
+                </div>
+                <div data-tour="chat-audio-provider">
+                  <AudioProviderSelector value={audioProvider} onChange={setAudioProvider} />
                 </div>
                 <div data-tour="chat-skill">
                   <SkillSelector

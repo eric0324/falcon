@@ -16,6 +16,26 @@
       "description": "OpenAI image generation with native images.edit support"
     }
   },
+  "audioProviders": {
+    "label": "Audio transcription model",
+    "trigger": "Audio model",
+    "unset": {
+      "name": "None",
+      "description": "Leave off — audio attachments won't be transcribed"
+    },
+    "gpt-4o-mini-transcribe": {
+      "name": "GPT-4o Mini Transcribe",
+      "description": "Cheap, $0.003 / min, fine for clean audio"
+    },
+    "gpt-4o-transcribe": {
+      "name": "GPT-4o Transcribe",
+      "description": "Lower WER, $0.006 / min"
+    },
+    "whisper-1": {
+      "name": "Whisper",
+      "description": "Classic Whisper, $0.006 / min"
+    }
+  },
   "claude-opus-47": {
     "name": "Claude Opus 4.7",
     "description": "Latest flagship model with improved software engineering and reasoning"

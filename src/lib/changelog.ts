@@ -14,6 +14,23 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.31.0",
+    date: "2026-05-11",
+    title: "聲音可以直接丟給 AI 處理了",
+    summary:
+      "聊天時可以拖聲音檔（mp3 / wav / m4a / webm / ogg）進對話框，工具列新增聲音模型選單，選好後送出時系統會自動轉錄成文字嵌進訊息，AI 就能讀內容做摘要、找關鍵字、引用片段。未選模型時聲音不會被轉錄，只顯示檔名。前面對話用過的聲音，AI 之後可以再呼叫 transcribeAudio 工具回頭處理。Vibe Coding 也能透過 bridge.transcribe 給自製工具用。",
+    items: [
+      "新增 src/lib/integrations/openai-audio client，呼叫 OpenAI /v1/audio/transcriptions，可選 gpt-4o-mini-transcribe / gpt-4o-transcribe / whisper-1 三個模型，language 自動偵測，25MB 拒收",
+      "工具列新增 AudioProviderSelector：預設未選，使用者需先選一個轉錄模型才會啟用 audio attachment 轉錄",
+      "file-upload.tsx 接 audio MIME，上傳走新 /api/chat/upload-audio endpoint 存 S3 audios/<userId>/<uuid>.<ext>；FileList 顯示聲音卡片含時長",
+      "chat route 的 buildMessageContent 加 audio 分支：從 S3 拉檔、依使用者選的模型轉錄、把 text 嵌進 prompt（格式 [聲音: name, 時長 X:XX, 轉錄:]\\n...）",
+      "AI tool createAudioTools 提供 transcribeAudio({ audioKey, language? })，可對先前訊息的聲音再轉錄",
+      "api-bridge 加 transcribe platform capability，user-built 工具可呼叫 bridge.transcribe({ audioUrl 或 audioBase64 })",
+      "models.ts 加 audioPricing；estimateCost 支援 audio 分支；TokenUsage 紀錄 outputTokens = ceil(durationSec / 60)",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.30.2",
     date: "2026-05-11",
     title: "Preview 錯誤訊息顯示在下方，改用按鈕觸發修正",

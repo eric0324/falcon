@@ -35,7 +35,11 @@ export async function POST(req: Request) {
     }
 
     // 2. Platform capabilities (always allowed, skip permission check)
-    const isPlatformCapability = dataSourceId === "llm" || dataSourceId === "tooldb" || dataSourceId === "scrape";
+    const isPlatformCapability =
+      dataSourceId === "llm" ||
+      dataSourceId === "tooldb" ||
+      dataSourceId === "scrape" ||
+      dataSourceId === "transcribe";
 
     // 3. For non-platform calls, check data source permissions
     let toolName: string | undefined;

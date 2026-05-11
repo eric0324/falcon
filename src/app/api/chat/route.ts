@@ -13,6 +13,7 @@ import {
 } from "@/lib/ai/tools";
 import { createScraperTools } from "@/lib/ai/scraper-tools";
 import { createImageTools } from "@/lib/ai/image-tools";
+import { createAudioTools } from "@/lib/ai/audio-tools";
 import type { ImageProvider } from "@/lib/ai/image-generation";
 import { createGoogleTools } from "@/lib/ai/google-tools";
 import { createNotionTools } from "@/lib/ai/notion-tools";
@@ -45,6 +46,14 @@ import { estimateTokens as estimateTokenCount } from "@/lib/ai/token-utils";
 import { classifyAttachmentSize, HARD_TOKENS, WARN_TOKENS } from "@/lib/attachments/limits";
 import { truncateHead, truncateCsvSmart } from "@/lib/attachments/text-truncate";
 import { generateConversationTitle } from "@/lib/ai/generate-title";
+import {
+  transcribeAudio,
+  AudioTranscriptionError,
+  AUDIO_PROVIDERS,
+  type AudioProvider,
+} from "@/lib/integrations/openai-audio";
+import { getObjectBuffer } from "@/lib/storage/s3";
+import { audioPricing } from "@/lib/ai/models";
 import { prisma } from "@/lib/prisma";
 import { getMessages, appendMessages } from "@/lib/conversation-messages";
 import { checkQuota, estimateCost } from "@/lib/quota";
@@ -59,6 +68,69 @@ interface FileData {
   base64: string;
   /** How to handle text files that exceed WARN_TOKENS. Defaults to "head". */
   truncateMode?: "head" | "csv" | "full";
+  /** Backend routing hint: "audio" triggers server-side transcription. */
+  kind?: "image" | "audio" | "text" | "binary";
+  /** S3 key for audio attachments (transcription source). */
+  s3Key?: string;
+  /** Client-reported duration, used for billing audio when API omits it. */
+  durationSec?: number;
+}
+
+function formatDurationLabel(seconds?: number): string {
+  if (!seconds || !Number.isFinite(seconds)) return "—";
+  const total = Math.round(seconds);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+async function transcribeAudioAttachment(
+  file: FileData,
+  userId: string,
+  model: AudioProvider | null
+): Promise<string> {
+  if (!model) {
+    // Deliberately omit audioKey so the AI cannot bypass the user's "未選" choice
+    // by calling transcribeAudio() with a leaked key. Ask the user to pick a model instead.
+    return `[聲音: ${file.name}（使用者未選擇轉錄模型，內容無法讀取。請告訴使用者在工具列選擇一個聲音模型後重送）]`;
+  }
+  if (!file.s3Key) {
+    return `[聲音: ${file.name}（無 s3Key，未轉錄）]`;
+  }
+  const keyHint = ` (audioKey: ${file.s3Key})`;
+  if (!file.s3Key.startsWith(`audios/${userId}/`)) {
+    return `[聲音: ${file.name}${keyHint}（s3 路徑不屬於該使用者，未轉錄）]`;
+  }
+
+  try {
+    const buffer = await getObjectBuffer({ key: file.s3Key });
+    const { text, durationSec } = await transcribeAudio(buffer, file.type, { model });
+    const reportedDuration = durationSec ?? file.durationSec;
+    const minutes = reportedDuration ? Math.max(1, Math.ceil(reportedDuration / 60)) : 1;
+
+    // Bill the transcription. Failure here must not break the chat.
+    try {
+      await prisma.tokenUsage.create({
+        data: {
+          userId,
+          model,
+          inputTokens: 0,
+          outputTokens: minutes,
+          totalTokens: minutes,
+          costUsd: (audioPricing[model] ?? 0) * minutes,
+        },
+      });
+    } catch (e) {
+      console.error(`[Chat API] Failed to bill audio transcription:`, e);
+    }
+
+    const durationLabel = formatDurationLabel(reportedDuration);
+    return `[聲音: ${file.name}${keyHint}, 時長 ${durationLabel}, 轉錄:]\n${text || "(空白)"}`;
+  } catch (e) {
+    const msg = e instanceof AudioTranscriptionError ? e.message : String(e);
+    console.error(`[Chat API] Transcription failed for ${file.s3Key}:`, msg);
+    return `[聲音: ${file.name}（轉錄失敗：${msg}）]`;
+  }
 }
 
 class AttachmentTooLargeError extends Error {
@@ -84,10 +156,12 @@ function isTextReadableMime(mime: string): boolean {
   );
 }
 
-function buildMessageContent(
+async function buildMessageContent(
   content: string,
-  files?: FileData[]
-): string | Array<{ type: "text"; text: string } | { type: "image"; image: string; mimeType: string }> {
+  files: FileData[] | undefined,
+  userId: string,
+  audioModel: AudioProvider | null
+): Promise<string | Array<{ type: "text"; text: string } | { type: "image"; image: string; mimeType: string }>> {
   if (!files || files.length === 0) {
     return content;
   }
@@ -105,12 +179,23 @@ function buildMessageContent(
     }
   }
 
-  // Add non-image files as context. Decode to UTF-8 only when it's a text-readable MIME
+  // Audio files: server-side transcription, inline as text
+  const audioFiles = files.filter(
+    (f) => f.kind === "audio" || f.type.startsWith("audio/")
+  );
+  const audioTranscripts = await Promise.all(
+    audioFiles.map((f) => transcribeAudioAttachment(f, userId, audioModel))
+  );
+
+  // Add non-image, non-audio files as context. Decode to UTF-8 only when it's a text-readable MIME
   // (txt, md, csv, json, code, ...). For binary formats (pdf, etc.) keep a filename hint.
-  const nonImageFiles = files.filter((f) => !f.type.startsWith("image/"));
+  const nonMediaFiles = files.filter(
+    (f) => !f.type.startsWith("image/") && f.kind !== "audio" && !f.type.startsWith("audio/")
+  );
   let textContent = content;
-  if (nonImageFiles.length > 0) {
-    const fileContext = nonImageFiles
+  const contextChunks: string[] = [...audioTranscripts];
+  if (nonMediaFiles.length > 0) {
+    const fileContext = nonMediaFiles
       .map((f) => {
         if (!isTextReadableMime(f.type)) {
           return `[附件: ${f.name}]（${f.type}，二進位檔案，未解析內容）`;
@@ -146,7 +231,10 @@ function buildMessageContent(
         return `[檔案: ${f.name}]\n${result.text}`;
       })
       .join("\n\n");
-    textContent = `${content}\n\n附件內容：\n${fileContext}`;
+    contextChunks.push(fileContext);
+  }
+  if (contextChunks.length > 0) {
+    textContent = `${content}\n\n附件內容：\n${contextChunks.join("\n\n")}`;
   }
 
   parts.push({ type: "text", text: textContent });
@@ -176,7 +264,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const { message, model, files, conversationId: incomingConversationId, dataSources, skillPrompt, currentCode, imageProvider, attachedImageKeys, attachments: rawAttachments } = await req.json();
+    const { message, model, files, conversationId: incomingConversationId, dataSources, skillPrompt, currentCode, imageProvider, audioProvider, attachedImageKeys, attachments: rawAttachments } = await req.json();
+
+    const audioModel: AudioProvider | null = AUDIO_PROVIDERS.includes(audioProvider)
+      ? (audioProvider as AudioProvider)
+      : null;
 
     // Normalise attachments (persist only; LLM view remains driven by files + attachedImageKeys)
     const attachments: import("@/types/message").MessageAttachment[] = Array.isArray(rawAttachments)
@@ -400,6 +492,12 @@ export async function POST(req: Request) {
       };
     }
 
+    // Audio transcription tool: always registered so AI can re-process prior audio uploads
+    filteredTools = {
+      ...filteredTools,
+      ...createAudioTools({ userId }),
+    };
+
     // Build list of available-but-unselected data sources for AI to suggest
     const selectedSet = new Set((dataSources as string[]) || []);
     const integrationChecks = await Promise.all([
@@ -489,7 +587,7 @@ export async function POST(req: Request) {
         // before any output) — replace with a placeholder so history stays valid
         // instead of breaking the whole request with AI_APICallError.
         const rawContent = isLastUserMessage
-          ? buildMessageContent(m.content, files)
+          ? await buildMessageContent(m.content, files, userId, audioModel)
           : m.content;
         const content =
           typeof rawContent === "string" && rawContent.length === 0

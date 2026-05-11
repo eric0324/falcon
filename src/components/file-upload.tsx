@@ -3,9 +3,10 @@
 import { useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Paperclip, X, FileText, Image as ImageIcon, Code, AlertTriangle } from "lucide-react";
+import { Paperclip, X, FileText, Image as ImageIcon, Code, AlertTriangle, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { uploadImageToS3 } from "@/lib/chat/upload-image-client";
+import { uploadAudioToS3 } from "@/lib/chat/upload-audio-client";
 import { useToast } from "@/components/ui/use-toast";
 
 type ToastFn = ReturnType<typeof useToast>["toast"];
@@ -14,6 +15,8 @@ import { classifyAttachmentSize, HARD_TOKENS, WARN_TOKENS } from "@/lib/attachme
 
 export type AttachmentTruncateMode = "head" | "csv" | "full";
 
+export type AttachmentKind = "image" | "audio" | "text" | "binary";
+
 export interface UploadedFile {
   id: string;
   name: string;
@@ -21,6 +24,10 @@ export interface UploadedFile {
   size: number;
   base64: string;
   s3Key?: string;
+  /** Classification for backend routing: audio is transcribed, image is vision-fed, etc. */
+  kind?: AttachmentKind;
+  /** Audio duration in seconds (audio attachments only) */
+  durationSec?: number;
   /** Estimated tokens for text attachments; undefined for images / binaries. */
   tokenEstimate?: number;
   /** How the backend should handle this file when over WARN_TOKENS. */
@@ -29,6 +36,19 @@ export interface UploadedFile {
 
 // MIME types also accepted by /api/chat/upload-image so image-to-image works
 const S3_UPLOADABLE_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+
+const AUDIO_MIME_TYPES = new Set([
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/m4a",
+  "audio/mp4",
+  "audio/x-m4a",
+  "audio/webm",
+  "audio/ogg",
+]);
+const MAX_AUDIO_SIZE = 25 * 1024 * 1024;
 
 // Mirror the backend `isTextReadableMime` heuristic so we can estimate tokens client-side.
 const TEXT_READABLE_PREFIXES = ["text/"];
@@ -65,10 +85,20 @@ const ACCEPTED_TYPES = {
   "application/json": true,
   "text/html": true,
   "text/css": true,
+  // Audio
+  "audio/mpeg": true,
+  "audio/mp3": true,
+  "audio/wav": true,
+  "audio/x-wav": true,
+  "audio/m4a": true,
+  "audio/mp4": true,
+  "audio/x-m4a": true,
+  "audio/webm": true,
+  "audio/ogg": true,
 };
 
-const ACCEPTED_EXTENSIONS = ".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.md,.csv,.js,.ts,.json,.html,.css";
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ACCEPTED_EXTENSIONS = ".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.md,.csv,.js,.ts,.json,.html,.css,.mp3,.wav,.m4a,.webm,.ogg";
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB (non-audio cap)
 const MAX_IMAGE_BASE64_SIZE = 512 * 1024; // Compress images to ~512KB base64 to stay under Vercel 4.5MB body limit
 
 function compressImage(file: File): Promise<string> {
@@ -108,6 +138,9 @@ export function getFileIcon(type: string) {
   if (type.startsWith("image/")) {
     return <ImageIcon className="h-3.5 w-3.5" />;
   }
+  if (type.startsWith("audio/")) {
+    return <Mic className="h-3.5 w-3.5" />;
+  }
   if (type.includes("javascript") || type.includes("typescript") || type === "application/json") {
     return <Code className="h-3.5 w-3.5" />;
   }
@@ -118,6 +151,31 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDuration(seconds: number): string {
+  const total = Math.round(seconds);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function readAudioDuration(file: File): Promise<number | undefined> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const audio = new window.Audio();
+    audio.preload = "metadata";
+    audio.onloadedmetadata = () => {
+      const d = audio.duration;
+      URL.revokeObjectURL(url);
+      resolve(Number.isFinite(d) ? d : undefined);
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(undefined);
+    };
+    audio.src = url;
+  });
 }
 
 /**
@@ -135,9 +193,43 @@ export async function processFile(
     return null;
   }
 
-  if (file.size > MAX_FILE_SIZE) {
-    console.warn(`File too large: ${file.name} (${formatFileSize(file.size)})`);
+  const isAudio = AUDIO_MIME_TYPES.has(file.type);
+  const sizeLimit = isAudio ? MAX_AUDIO_SIZE : MAX_FILE_SIZE;
+  if (file.size > sizeLimit) {
+    toast({
+      title: isAudio ? "聲音過大" : "附件過大",
+      description: `「${file.name}」${formatFileSize(file.size)}，超過上限 ${formatFileSize(sizeLimit)}。`,
+      variant: "destructive",
+    });
     return null;
+  }
+
+  // Audio path: upload to S3 (transcription happens server-side at chat send),
+  // skip base64 body to avoid bloating chat payload.
+  if (isAudio) {
+    let s3Key: string | undefined;
+    try {
+      s3Key = await uploadAudioToS3(file);
+    } catch (err) {
+      console.warn("[FileUpload] Audio S3 upload failed:", err);
+      toast({
+        title: "聲音上傳失敗",
+        description: `「${file.name}」無法上傳，請稍後再試。`,
+        variant: "destructive",
+      });
+      return null;
+    }
+    const durationSec = await readAudioDuration(file);
+    return {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      base64: "",
+      s3Key,
+      kind: "audio",
+      durationSec,
+    };
   }
 
   let base64: string;
@@ -279,6 +371,32 @@ export function FileList({ files, onRemove, onChange }: FileListProps) {
   return (
     <div className="flex flex-wrap gap-2 px-3 pb-2">
       {files.map((file) => {
+        if (file.kind === "audio") {
+          return (
+            <div
+              key={file.id}
+              className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs border bg-muted"
+              title={`${file.name} (${formatFileSize(file.size)})`}
+            >
+              <Mic className="h-3.5 w-3.5 shrink-0" />
+              <div className="flex flex-col min-w-0">
+                <span className="max-w-[180px] truncate">{file.name}</span>
+                <span className="text-muted-foreground">
+                  {file.durationSec ? formatDuration(file.durationSec) : "—"} · {formatFileSize(file.size)}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => onRemove(file.id)}
+                className="ml-1 hover:text-destructive"
+                aria-label="移除附件"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          );
+        }
+
         if (file.type.startsWith("image/")) {
           return (
             <div

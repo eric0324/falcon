@@ -80,9 +80,10 @@ import {
   getAnalytics as vimeoGetAnalytics,
 } from "@/lib/integrations/vimeo";
 import { generateText } from "ai";
-import { getModel, defaultModel, type ModelId } from "@/lib/ai/models";
+import { getModel, defaultModel, type ModelId, estimateCost } from "@/lib/ai/models";
 import { scrapeUrl } from "@/lib/scraper";
 import { handleToolDB } from "@/lib/bridge/tooldb-handler";
+import { transcribeAudio } from "@/lib/integrations/openai-audio";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Params = Record<string, any>;
@@ -552,6 +553,66 @@ async function handleScrape(action: string, params: Params): Promise<unknown> {
 
 // ===== Main Dispatcher =====
 
+const TRANSCRIBE_MODEL = "gpt-4o-mini-transcribe";
+
+async function handleTranscribe(
+  userId: string,
+  action: string,
+  params: Params
+): Promise<unknown> {
+  if (action !== "transcribe") {
+    throw new Error(`Unknown transcribe action: ${action}`);
+  }
+
+  const { audioUrl, audioBase64, mime, language } = params as {
+    audioUrl?: string;
+    audioBase64?: string;
+    mime?: string;
+    language?: string;
+  };
+
+  if (!audioUrl && !audioBase64) {
+    throw new Error("transcribe requires audioUrl or audioBase64");
+  }
+
+  let buffer: Buffer;
+  let inferredMime = mime;
+
+  if (audioBase64) {
+    buffer = Buffer.from(audioBase64, "base64");
+    inferredMime = inferredMime ?? "audio/mpeg";
+  } else {
+    const res = await fetch(audioUrl!);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch audioUrl (${res.status})`);
+    }
+    buffer = Buffer.from(await res.arrayBuffer());
+    inferredMime = inferredMime ?? res.headers.get("content-type") ?? "audio/mpeg";
+  }
+
+  const { text, durationSec } = await transcribeAudio(buffer, inferredMime, {
+    ...(language ? { language } : {}),
+  });
+
+  const minutes = durationSec ? Math.max(1, Math.ceil(durationSec / 60)) : 1;
+  prisma.tokenUsage
+    .create({
+      data: {
+        userId,
+        model: TRANSCRIBE_MODEL,
+        inputTokens: 0,
+        outputTokens: minutes,
+        totalTokens: minutes,
+        costUsd: estimateCost(TRANSCRIBE_MODEL, 0, minutes),
+      },
+    })
+    .catch((e: unknown) => {
+      console.error(`[bridge transcribe] Failed to save TokenUsage:`, e);
+    });
+
+  return { text, durationSec };
+}
+
 export async function dispatchBridge(
   userId: string,
   dataSourceId: string,
@@ -575,6 +636,11 @@ export async function dispatchBridge(
   if (dataSourceId === "tooldb") {
     if (!context?.toolId) throw new Error("tooldb requires toolId");
     return handleToolDB(action, params, { toolId: context.toolId, userId });
+  }
+
+  // Audio transcription (platform capability — always allowed, billed per minute)
+  if (dataSourceId === "transcribe") {
+    return handleTranscribe(userId, action, params);
   }
 
   // Simple prefix-to-handler mapping

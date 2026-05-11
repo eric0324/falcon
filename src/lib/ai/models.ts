@@ -73,6 +73,13 @@ export const imagePricing: Record<string, number> = {
   "gemini-2.5-flash-image": 0.03,
 };
 
+/** Pricing per audio minute in USD (applied to outputTokens as minute count) */
+export const audioPricing: Record<string, number> = {
+  "gpt-4o-mini-transcribe": 0.003,
+  "gpt-4o-transcribe": 0.006,
+  "whisper-1": 0.006,
+};
+
 export interface CacheTokenDetails {
   /** Cache hits — billed at provider-specific discount of input price */
   cacheReadTokens?: number;
@@ -92,7 +99,7 @@ const CACHE_MULTIPLIERS: Record<ModelProvider, { read: number; write: number }> 
   google: { read: 0.25, write: 0 },
 };
 
-/** Estimate cost in USD. For image models, `outputTokens` is treated as image count. */
+/** Estimate cost in USD. For image / audio models, `outputTokens` is treated as image count / minute count. */
 export function estimateCost(
   model: string,
   inputTokens: number,
@@ -102,6 +109,10 @@ export function estimateCost(
   const perImage = imagePricing[model];
   if (perImage !== undefined) {
     return perImage * outputTokens;
+  }
+  const perMinute = audioPricing[model];
+  if (perMinute !== undefined) {
+    return perMinute * outputTokens;
   }
   const pricing = modelPricing[model];
   if (!pricing) return 0;
