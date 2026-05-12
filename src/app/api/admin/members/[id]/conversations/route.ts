@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
-import { estimateCost } from "@/lib/ai/models";
 
 export async function GET(
   _req: Request,
@@ -34,20 +33,22 @@ export async function GET(
       _count: { select: { conversationMessages: true } },
       conversationMessages: {
         where: { role: "assistant" },
-        select: { tokenUsages: true },
+        select: {
+          tokenUsages: {
+            select: { totalTokens: true, costUsd: true },
+          },
+        },
       },
     },
   });
 
   const result = conversations.map((conv) => {
     let totalTokens = 0;
-    let estimatedCost = 0;
+    let billedCost = 0;
     for (const msg of conv.conversationMessages) {
       for (const usage of msg.tokenUsages) {
-        const input = usage.inputTokens || 0;
-        const output = usage.outputTokens || 0;
-        totalTokens += input + output;
-        estimatedCost += estimateCost(usage.model, input, output);
+        totalTokens += usage.totalTokens || 0;
+        billedCost += usage.costUsd || 0;
       }
     }
     return {
@@ -56,7 +57,7 @@ export async function GET(
       messageCount: conv._count.conversationMessages,
       model: conv.model,
       totalTokens,
-      estimatedCost,
+      estimatedCost: billedCost,
       updatedAt: conv.updatedAt,
       createdAt: conv.createdAt,
       deletedAt: conv.deletedAt,

@@ -1,4 +1,6 @@
 import { getConfig } from "@/lib/config";
+import { prisma } from "@/lib/prisma";
+import { estimateCost } from "@/lib/ai/models";
 
 const VOYAGE_API_URL = "https://api.voyageai.com/v1/embeddings";
 const VOYAGE_MODEL = "voyage-3";
@@ -34,7 +36,27 @@ async function callVoyageApi(texts: string[]): Promise<number[][]> {
   }
 
   const json: VoyageResponse = await res.json();
+  recordEmbeddingUsage(json.usage.total_tokens);
   return json.data.map((d) => d.embedding);
+}
+
+function recordEmbeddingUsage(totalTokens: number): void {
+  if (totalTokens <= 0) return;
+  prisma.tokenUsage
+    .create({
+      data: {
+        userId: null,
+        kind: "embedding",
+        model: VOYAGE_MODEL,
+        inputTokens: totalTokens,
+        outputTokens: 0,
+        totalTokens,
+        costUsd: estimateCost({ kind: "embedding", model: VOYAGE_MODEL, inputTokens: totalTokens }),
+      },
+    })
+    .catch((e: unknown) => {
+      console.error(`[embedding] Failed to save TokenUsage:`, e);
+    });
 }
 
 export async function embedText(text: string): Promise<number[]> {

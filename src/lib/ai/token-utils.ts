@@ -1,6 +1,18 @@
 import { ModelId } from "./models";
 
 /**
+ * Character-based token estimator. Used ONLY for pre-call decisions where
+ * the provider's real usage report is not yet available:
+ *   - compaction (shouldCompact / trimMessagesToFit)
+ *   - attachment size classification & truncation
+ *
+ * For any post-call value (admin pages, billing, quota), read the real numbers
+ * persisted on `TokenUsage` (inputTokens / outputTokens / units / costUsd).
+ * Whenever an estimated value is shown to the user, prefix with `≈` or label
+ * `預估` so the user can tell estimate from actual.
+ */
+
+/**
  * 各 model 的 context window 上限 (tokens)
  */
 export const MODEL_CONTEXT_LIMITS: Record<ModelId, number> = {

@@ -290,24 +290,31 @@ model CodeScan {
 
 model TokenUsage {
   id                     String   @id @default(cuid())
-  userId                 String
+  userId                 String?
   conversationMessageId  String?
 
-  model           String
-  inputTokens     Int
-  outputTokens    Int
-  totalTokens     Int
-  costUsd         Float    @default(0)
+  // chat | audio | image | embedding. Discriminator for which columns are meaningful.
+  kind             String   @default("chat")
+  model            String
+  inputTokens      Int
+  outputTokens     Int
+  totalTokens      Int
+  cacheReadTokens  Int      @default(0)
+  cacheWriteTokens Int      @default(0)
+  // Non-token units: minutes for audio, image count for image. 0 for chat/embedding.
+  units            Int      @default(0)
+  costUsd          Float    @default(0)
 
   createdAt       DateTime @default(now())
 
-  user                   User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                   User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
   conversationMessage    ConversationMessage?  @relation(fields: [conversationMessageId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([conversationMessageId])
   @@index([createdAt])
   @@index([model])
+  @@index([kind])
 }
 
 // ===== User Quota =====

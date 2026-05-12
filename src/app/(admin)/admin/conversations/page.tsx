@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import { estimateCost } from "@/lib/ai/models";
 import Link from "next/link";
 import { Star, Wrench, Trash2 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -112,10 +111,10 @@ export default async function AdminConversationsPage({
           conversationMessage: { conversationId: { in: conversationIds } },
         },
         select: {
-          model: true,
-          inputTokens: true,
-          outputTokens: true,
+          kind: true,
           totalTokens: true,
+          units: true,
+          costUsd: true,
           conversationMessage: { select: { conversationId: true } },
         },
       })
@@ -126,10 +125,10 @@ export default async function AdminConversationsPage({
     const convId = row.conversationMessage?.conversationId;
     if (!convId) continue;
     const prev = statsByConv.get(convId) || { tokens: 0, cost: 0 };
-    const input = row.inputTokens || 0;
-    const output = row.outputTokens || 0;
-    prev.tokens += (row.totalTokens || input + output) || 0;
-    prev.cost += estimateCost(row.model, input, output);
+    // Only count token-based rows toward the "tokens" column. Audio (minutes)
+    // and image (count) rows have totalTokens=0 so they don't pollute the sum.
+    prev.tokens += row.totalTokens || 0;
+    prev.cost += row.costUsd || 0;
     statsByConv.set(convId, prev);
   }
 

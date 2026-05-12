@@ -110,7 +110,7 @@ describe("createImageTools / generateImage", () => {
     );
   });
 
-  it("writes TokenUsage on success with outputTokens=1 and cost from imagePricing", async () => {
+  it("writes TokenUsage with kind=image, units=1 and cost from imagePricing", async () => {
     mockGenerateFromText.mockResolvedValue({
       s3Key: "k",
       presignedUrl: "u",
@@ -133,10 +133,12 @@ describe("createImageTools / generateImage", () => {
     expect(mockTokenUsageCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         userId: "user-42",
+        kind: "image",
         model: "imagen-4",
         inputTokens: 0,
-        outputTokens: 1,
-        totalTokens: 1,
+        outputTokens: 0,
+        totalTokens: 0,
+        units: 1,
         costUsd: 0.04,
       }),
     });

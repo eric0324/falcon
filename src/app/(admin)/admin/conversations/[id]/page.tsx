@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { estimateCost } from "@/lib/ai/models";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Star, Wrench, Trash2 } from "lucide-react";
@@ -66,10 +65,10 @@ export default async function AdminConversationViewPage({
           createdAt: true,
           tokenUsages: {
             select: {
-              model: true,
-              inputTokens: true,
-              outputTokens: true,
+              kind: true,
               totalTokens: true,
+              units: true,
+              costUsd: true,
             },
           },
         },
@@ -80,13 +79,19 @@ export default async function AdminConversationViewPage({
   if (!conv) notFound();
 
   let totalTokens = 0;
-  let estimatedCost = 0;
+  let totalAudioMinutes = 0;
+  let totalImages = 0;
+  let billedCost = 0;
   for (const msg of conv.conversationMessages) {
     for (const usage of msg.tokenUsages) {
-      const input = usage.inputTokens || 0;
-      const output = usage.outputTokens || 0;
-      totalTokens += usage.totalTokens || input + output;
-      estimatedCost += estimateCost(usage.model, input, output);
+      billedCost += usage.costUsd || 0;
+      if (usage.kind === "audio") {
+        totalAudioMinutes += usage.units || 0;
+      } else if (usage.kind === "image") {
+        totalImages += usage.units || 0;
+      } else {
+        totalTokens += usage.totalTokens || 0;
+      }
     }
   }
 
@@ -154,11 +159,14 @@ export default async function AdminConversationViewPage({
             <div>{messages.length}</div>
           </div>
           <div>
-            <div className="text-xs text-muted-foreground mb-1">Token / 費用</div>
-            <div>
-              {formatTokens(totalTokens)}{" "}
-              <span className="text-muted-foreground">·</span>{" "}
-              {formatCost(estimatedCost)}
+            <div className="text-xs text-muted-foreground mb-1">用量 / 費用</div>
+            <div className="space-y-0.5">
+              <div>
+                {formatTokens(totalTokens)} tokens
+                {totalAudioMinutes > 0 && ` · ${totalAudioMinutes} 分鐘`}
+                {totalImages > 0 && ` · ${totalImages} 張`}
+              </div>
+              <div className="text-muted-foreground">{formatCost(billedCost)}</div>
             </div>
           </div>
           <div>

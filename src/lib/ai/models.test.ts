@@ -28,6 +28,8 @@ import {
   getModel,
   estimateCost,
   imagePricing,
+  audioPricing,
+  embeddingPricing,
   getModelProvider,
   isAnthropicModel,
   getDefaultMaxOutputTokens,
@@ -98,76 +100,96 @@ describe("defaultModel", () => {
   });
 });
 
-describe("estimateCost", () => {
-  it("computes per-1M-token cost for text models", () => {
+describe("estimateCost (chat)", () => {
+  it("computes per-1M-token cost", () => {
     // claude-haiku: input $1, output $5 per 1M tokens
-    expect(estimateCost("claude-haiku", 1_000_000, 0)).toBeCloseTo(1, 5);
-    expect(estimateCost("claude-haiku", 0, 1_000_000)).toBeCloseTo(5, 5);
-  });
-
-  it("computes per-image cost for image models", () => {
-    // outputTokens is the image count for image models
-    expect(estimateCost("imagen-4", 0, 1)).toBe(imagePricing["imagen-4"]);
-    expect(estimateCost("gpt-image-1", 0, 3)).toBeCloseTo(
-      imagePricing["gpt-image-1"] * 3,
-      5
-    );
+    expect(
+      estimateCost({ kind: "chat", model: "claude-haiku", inputTokens: 1_000_000, outputTokens: 0 })
+    ).toBeCloseTo(1, 5);
+    expect(
+      estimateCost({ kind: "chat", model: "claude-haiku", inputTokens: 0, outputTokens: 1_000_000 })
+    ).toBeCloseTo(5, 5);
   });
 
   it("returns 0 for unknown model", () => {
-    expect(estimateCost("unknown-model", 1000, 1000)).toBe(0);
+    expect(
+      estimateCost({ kind: "chat", model: "unknown-model", inputTokens: 1000, outputTokens: 1000 })
+    ).toBe(0);
   });
 
-  it("applies 0.1x discount on cached input tokens (cacheRead)", () => {
-    // claude-haiku: input $1/M, output $5/M
-    // 1M cacheRead = 1M × $1 × 0.1 = $0.10
+  it("subtracts cache tokens from inputTokens before applying base price", () => {
+    // claude-haiku: input $1/M. Caller passes raw API total inputTokens=1_000_000
+    // which INCLUDES 1_000_000 of cacheRead. So nonCachedInput = 0.
+    // Cost = 0 base + 1M × $1 × 0.1 (Anthropic cache read multiplier) = $0.10
     expect(
-      estimateCost("claude-haiku", 0, 0, { cacheReadTokens: 1_000_000 })
+      estimateCost({
+        kind: "chat",
+        model: "claude-haiku",
+        inputTokens: 1_000_000,
+        outputTokens: 0,
+        cacheReadTokens: 1_000_000,
+      })
     ).toBeCloseTo(0.1, 5);
   });
 
-  it("applies 1.25x premium on cache write tokens (cacheCreation)", () => {
-    // 1M cacheWrite = 1M × $1 × 1.25 = $1.25
+  it("applies 1.25x premium on cache write tokens (Anthropic)", () => {
+    // inputTokens = cacheWriteTokens = 1M → nonCachedInput = 0
+    // Cost = 1M × $1 × 1.25 = $1.25
     expect(
-      estimateCost("claude-haiku", 0, 0, { cacheWriteTokens: 1_000_000 })
+      estimateCost({
+        kind: "chat",
+        model: "claude-haiku",
+        inputTokens: 1_000_000,
+        outputTokens: 0,
+        cacheWriteTokens: 1_000_000,
+      })
     ).toBeCloseTo(1.25, 5);
   });
 
-  it("sums non-cached, cached and creation correctly", () => {
-    // 0.5M non-cached + 0.5M cacheRead + 0.5M cacheWrite + 0.5M output
-    // = 0.5 × 1 + 0.5 × 1 × 0.1 + 0.5 × 1 × 1.25 + 0.5 × 5
-    // = 0.5 + 0.05 + 0.625 + 2.5 = 3.675
+  it("sums non-cached, cacheRead, cacheWrite and output correctly", () => {
+    // Raw API inputTokens = 1.5M (= 0.5M non-cached + 0.5M cacheRead + 0.5M cacheWrite)
+    // Output = 0.5M
+    // Cost = 0.5 × 1 + 0.5 × 1 × 0.1 + 0.5 × 1 × 1.25 + 0.5 × 5
+    //      = 0.5 + 0.05 + 0.625 + 2.5 = 3.675
     expect(
-      estimateCost("claude-haiku", 500_000, 500_000, {
+      estimateCost({
+        kind: "chat",
+        model: "claude-haiku",
+        inputTokens: 1_500_000,
+        outputTokens: 500_000,
         cacheReadTokens: 500_000,
         cacheWriteTokens: 500_000,
       })
     ).toBeCloseTo(3.675, 5);
   });
 
-  it("ignores cache options for image models", () => {
+  it("treats missing cache options as zero", () => {
     expect(
-      estimateCost("imagen-4", 0, 1, { cacheReadTokens: 999 })
-    ).toBe(imagePricing["imagen-4"]);
-  });
-
-  it("treats missing cache options as zero (backward compatible)", () => {
-    expect(estimateCost("claude-haiku", 1_000_000, 0)).toBeCloseTo(1, 5);
+      estimateCost({ kind: "chat", model: "claude-haiku", inputTokens: 1_000_000, outputTokens: 0 })
+    ).toBeCloseTo(1, 5);
   });
 
   it("applies 0.5x discount for OpenAI cache reads", () => {
-    // gpt-5-mini: input $0.25/M
-    // 1M cacheRead = 1M × $0.25 × 0.5 = $0.125
+    // gpt-5-mini: input $0.25/M. inputTokens includes the 1M cacheRead.
+    // Cost = 0 base + 1M × $0.25 × 0.5 = $0.125
     expect(
-      estimateCost("gpt-5-mini", 0, 0, { cacheReadTokens: 1_000_000 })
+      estimateCost({
+        kind: "chat",
+        model: "gpt-5-mini",
+        inputTokens: 1_000_000,
+        outputTokens: 0,
+        cacheReadTokens: 1_000_000,
+      })
     ).toBeCloseTo(0.125, 5);
   });
 
   it("ignores cacheWrite for OpenAI (no separate write cost)", () => {
-    // OpenAI does not bill cache writes separately; treat cacheWrite as zero impact
     expect(
-      estimateCost("gpt-5-mini", 0, 0, {
-        cacheReadTokens: 0,
+      estimateCost({
+        kind: "chat",
+        model: "gpt-5-mini",
+        inputTokens: 1_000_000,
+        outputTokens: 0,
         cacheWriteTokens: 1_000_000,
       })
     ).toBe(0);
@@ -175,25 +197,91 @@ describe("estimateCost", () => {
 
   it("applies 0.25x discount for Google Gemini cache reads", () => {
     // gemini-flash: input $0.15/M
-    // 1M cacheRead = 1M × $0.15 × 0.25 = $0.0375
+    // Cost = 1M × $0.15 × 0.25 = $0.0375
     expect(
-      estimateCost("gemini-flash", 0, 0, { cacheReadTokens: 1_000_000 })
+      estimateCost({
+        kind: "chat",
+        model: "gemini-flash",
+        inputTokens: 1_000_000,
+        outputTokens: 0,
+        cacheReadTokens: 1_000_000,
+      })
     ).toBeCloseTo(0.0375, 5);
   });
 
-  it("ignores cacheWrite for Gemini (implicit caching has no write cost)", () => {
+  it("ignores cacheWrite for Gemini", () => {
     expect(
-      estimateCost("gemini-flash", 0, 0, { cacheWriteTokens: 1_000_000 })
+      estimateCost({
+        kind: "chat",
+        model: "gemini-flash",
+        inputTokens: 1_000_000,
+        outputTokens: 0,
+        cacheWriteTokens: 1_000_000,
+      })
     ).toBe(0);
   });
 
-  it("Anthropic still applies 0.1x read / 1.25x write", () => {
+  it("Anthropic applies 0.1x read / 1.25x write", () => {
+    // claude-opus-47: input $5/M
     expect(
-      estimateCost("claude-opus-47", 0, 0, {
+      estimateCost({
+        kind: "chat",
+        model: "claude-opus-47",
+        inputTokens: 2_000_000,
+        outputTokens: 0,
         cacheReadTokens: 1_000_000,
         cacheWriteTokens: 1_000_000,
       })
     ).toBeCloseTo(5 * 0.1 + 5 * 1.25, 5);
+  });
+});
+
+describe("estimateCost (audio)", () => {
+  it("computes per-minute cost", () => {
+    expect(estimateCost({ kind: "audio", model: "gpt-4o-mini-transcribe", minutes: 2 })).toBeCloseTo(
+      audioPricing["gpt-4o-mini-transcribe"] * 2,
+      5
+    );
+    expect(estimateCost({ kind: "audio", model: "whisper-1", minutes: 1 })).toBe(
+      audioPricing["whisper-1"]
+    );
+  });
+
+  it("returns 0 for unknown audio model", () => {
+    expect(estimateCost({ kind: "audio", model: "unknown-audio", minutes: 5 })).toBe(0);
+  });
+});
+
+describe("estimateCost (image)", () => {
+  it("computes per-image cost", () => {
+    expect(estimateCost({ kind: "image", model: "imagen-4", imageCount: 1 })).toBe(
+      imagePricing["imagen-4"]
+    );
+    expect(estimateCost({ kind: "image", model: "gpt-image-1", imageCount: 3 })).toBeCloseTo(
+      imagePricing["gpt-image-1"] * 3,
+      5
+    );
+  });
+
+  it("returns 0 for unknown image model", () => {
+    expect(estimateCost({ kind: "image", model: "unknown-image", imageCount: 1 })).toBe(0);
+  });
+});
+
+describe("estimateCost (embedding)", () => {
+  it("computes per-1M-input-token cost", () => {
+    expect(
+      estimateCost({ kind: "embedding", model: "voyage-3", inputTokens: 1_000_000 })
+    ).toBeCloseTo(embeddingPricing["voyage-3"], 5);
+    expect(
+      estimateCost({ kind: "embedding", model: "voyage-3-lite", inputTokens: 500_000 })
+    ).toBeCloseTo(embeddingPricing["voyage-3-lite"] * 0.5, 5);
+  });
+
+  it("returns 0 for unknown embedding model", () => {
+    expect(
+      estimateCost({ kind: "embedding", model: "unknown-embed", inputTokens: 1000 })
+    ).toBe(0);
   });
 });
 

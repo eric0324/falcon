@@ -72,7 +72,7 @@ describe("GET /api/admin/members/[id]/conversations", () => {
         conversationMessages: [
           {
             tokenUsages: [
-              { model: "claude-sonnet", inputTokens: 3000, outputTokens: 2000 },
+              { totalTokens: 5000, costUsd: 0.025 },
             ],
           },
         ],
@@ -88,7 +88,7 @@ describe("GET /api/admin/members/[id]/conversations", () => {
     expect(data.conversations[0].title).toBe("Test Conversation");
     expect(data.conversations[0].messageCount).toBe(2);
     expect(data.conversations[0].totalTokens).toBe(5000);
-    expect(data.conversations[0].estimatedCost).toBeGreaterThan(0);
+    expect(data.conversations[0].estimatedCost).toBe(0.025);
 
     // Should use nested include instead of groupBy
     expect(mockFindMany).toHaveBeenCalledWith(
@@ -96,7 +96,11 @@ describe("GET /api/admin/members/[id]/conversations", () => {
         select: expect.objectContaining({
           conversationMessages: {
             where: { role: "assistant" },
-            select: { tokenUsages: true },
+            select: {
+              tokenUsages: {
+                select: { totalTokens: true, costUsd: true },
+              },
+            },
           },
         }),
       })

@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import { estimateCost } from "@/lib/ai/models";
 import Link from "next/link";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Pagination } from "../pagination";
@@ -73,8 +72,9 @@ export default async function AdminMembersPage({
     }),
     prisma.user.count({ where }),
     prisma.tokenUsage.groupBy({
-      by: ["userId", "model"],
-      _sum: { inputTokens: true, outputTokens: true, totalTokens: true },
+      by: ["userId"],
+      where: { userId: { not: null } },
+      _sum: { totalTokens: true, costUsd: true },
       _max: { createdAt: true },
     }),
   ]);
@@ -89,18 +89,11 @@ export default async function AdminMembersPage({
   const userStatsMap = new Map<string, { totalTokens: number; estimatedCost: number; lastActive: Date | null }>();
 
   for (const row of tokenAggregation) {
-    if (!userIds.has(row.userId)) continue;
-    const prev = userStatsMap.get(row.userId) || { totalTokens: 0, estimatedCost: 0, lastActive: null };
-    const inputTokens = row._sum.inputTokens || 0;
-    const outputTokens = row._sum.outputTokens || 0;
-    const totalTokens = row._sum.totalTokens || 0;
-    const cost = estimateCost(row.model, inputTokens, outputTokens);
-    const rowLastActive = row._max.createdAt;
-
+    if (!row.userId || !userIds.has(row.userId)) continue;
     userStatsMap.set(row.userId, {
-      totalTokens: prev.totalTokens + totalTokens,
-      estimatedCost: prev.estimatedCost + cost,
-      lastActive: !prev.lastActive || (rowLastActive && rowLastActive > prev.lastActive) ? rowLastActive : prev.lastActive,
+      totalTokens: row._sum.totalTokens || 0,
+      estimatedCost: row._sum.costUsd || 0,
+      lastActive: row._max.createdAt,
     });
   }
 

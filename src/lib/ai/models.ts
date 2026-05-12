@@ -73,11 +73,17 @@ export const imagePricing: Record<string, number> = {
   "gemini-2.5-flash-image": 0.03,
 };
 
-/** Pricing per audio minute in USD (applied to outputTokens as minute count) */
+/** Pricing per audio minute in USD */
 export const audioPricing: Record<string, number> = {
   "gpt-4o-mini-transcribe": 0.003,
   "gpt-4o-transcribe": 0.006,
   "whisper-1": 0.006,
+};
+
+/** Pricing per 1M input tokens in USD for embedding models */
+export const embeddingPricing: Record<string, number> = {
+  "voyage-3": 0.06,
+  "voyage-3-lite": 0.02,
 };
 
 export interface CacheTokenDetails {
@@ -86,6 +92,19 @@ export interface CacheTokenDetails {
   /** Cache writes — billed at provider-specific premium (Anthropic only) */
   cacheWriteTokens?: number;
 }
+
+export type CostInput =
+  | {
+      kind: "chat";
+      model: string;
+      inputTokens: number;
+      outputTokens: number;
+      cacheReadTokens?: number;
+      cacheWriteTokens?: number;
+    }
+  | { kind: "audio"; model: string; minutes: number }
+  | { kind: "image"; model: string; imageCount: number }
+  | { kind: "embedding"; model: string; inputTokens: number };
 
 /**
  * Per-provider cache pricing as multipliers of the base input price.
@@ -99,33 +118,52 @@ const CACHE_MULTIPLIERS: Record<ModelProvider, { read: number; write: number }> 
   google: { read: 0.25, write: 0 },
 };
 
-/** Estimate cost in USD. For image / audio models, `outputTokens` is treated as image count / minute count. */
-export function estimateCost(
-  model: string,
-  inputTokens: number,
-  outputTokens: number,
-  cache?: CacheTokenDetails
-): number {
-  const perImage = imagePricing[model];
-  if (perImage !== undefined) {
-    return perImage * outputTokens;
+/**
+ * Estimate cost in USD using a discriminated union keyed by `kind`.
+ *
+ * `chat`:      input/output tokens with optional cache breakdown. The function
+ *              subtracts cache portions from `inputTokens` before applying base
+ *              input pricing and adds cache costs separately using provider-specific
+ *              multipliers (Anthropic: 0.1x read, 1.25x write; OpenAI: 0.5x read;
+ *              Google: 0.25x read).
+ * `audio`:     per-minute pricing.
+ * `image`:     per-image pricing.
+ * `embedding`: per-1M-input-token pricing.
+ *
+ * Returns 0 when the model is unknown for its kind.
+ */
+export function estimateCost(input: CostInput): number {
+  switch (input.kind) {
+    case "audio": {
+      const perMinute = audioPricing[input.model];
+      return perMinute === undefined ? 0 : perMinute * input.minutes;
+    }
+    case "image": {
+      const perImage = imagePricing[input.model];
+      return perImage === undefined ? 0 : perImage * input.imageCount;
+    }
+    case "embedding": {
+      const perMillion = embeddingPricing[input.model];
+      return perMillion === undefined ? 0 : (perMillion * input.inputTokens) / 1_000_000;
+    }
+    case "chat": {
+      const pricing = modelPricing[input.model];
+      if (!pricing) return 0;
+      const cacheRead = input.cacheReadTokens ?? 0;
+      const cacheWrite = input.cacheWriteTokens ?? 0;
+      // inputTokens from the provider already INCLUDES cacheRead + cacheWrite.
+      // Subtract them so the base price isn't applied on top of the cache pricing.
+      const nonCachedInput = Math.max(0, input.inputTokens - cacheRead - cacheWrite);
+      const provider = MODEL_PROVIDER_MAP[input.model as ModelId]?.provider;
+      const mult = provider ? CACHE_MULTIPLIERS[provider] : { read: 1, write: 1 };
+      return (
+        nonCachedInput * pricing.input +
+        cacheRead * pricing.input * mult.read +
+        cacheWrite * pricing.input * mult.write +
+        input.outputTokens * pricing.output
+      ) / 1_000_000;
+    }
   }
-  const perMinute = audioPricing[model];
-  if (perMinute !== undefined) {
-    return perMinute * outputTokens;
-  }
-  const pricing = modelPricing[model];
-  if (!pricing) return 0;
-  const cacheRead = cache?.cacheReadTokens ?? 0;
-  const cacheWrite = cache?.cacheWriteTokens ?? 0;
-  const provider = MODEL_PROVIDER_MAP[model as ModelId]?.provider;
-  const mult = provider ? CACHE_MULTIPLIERS[provider] : { read: 1, write: 1 };
-  return (
-    inputTokens * pricing.input +
-    cacheRead * pricing.input * mult.read +
-    cacheWrite * pricing.input * mult.write +
-    outputTokens * pricing.output
-  ) / 1_000_000;
 }
 
 export type ModelProvider = "anthropic" | "openai" | "google";

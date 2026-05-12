@@ -264,7 +264,7 @@ export async function processFile(
     if (sizeClass === "reject") {
       toast({
         title: "附件過大",
-        description: `「${file.name}」約 ${tokenEstimate.toLocaleString()} tokens，超過上限 ${HARD_TOKENS.toLocaleString()}。請拆分檔案後再上傳。`,
+        description: `「${file.name}」預估 ≈${tokenEstimate.toLocaleString()} tokens，超過上限 ${HARD_TOKENS.toLocaleString()}。請拆分檔案後再上傳。`,
         variant: "destructive",
       });
       return null;
@@ -273,7 +273,7 @@ export async function processFile(
       truncateMode = file.type === "text/csv" ? "csv" : "head";
       toast({
         title: "附件較大，已預設截斷",
-        description: `「${file.name}」約 ${tokenEstimate.toLocaleString()} tokens，將自動截斷至 ${WARN_TOKENS.toLocaleString()} 內。可在檔案標籤切換為「完整送出」。`,
+        description: `「${file.name}」預估 ≈${tokenEstimate.toLocaleString()} tokens，將自動截斷至 ${WARN_TOKENS.toLocaleString()} 內。可在檔案標籤切換為「完整送出」。`,
       });
     }
   }
@@ -449,7 +449,7 @@ export function FileList({ files, onRemove, onChange }: FileListProps) {
                 }
               >
                 <AlertTriangle className="h-3 w-3" />
-                {file.tokenEstimate?.toLocaleString()} tokens
+                ≈{file.tokenEstimate?.toLocaleString()} tokens
                 <span className="ml-1 px-1 rounded bg-amber-100 dark:bg-amber-900/50">
                   {file.truncateMode === "full" ? "完整" : "截斷"}
                 </span>

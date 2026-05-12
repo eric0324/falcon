@@ -52,10 +52,10 @@ import {
   type AudioProvider,
 } from "@/lib/integrations/openai-audio";
 import { getObjectBuffer } from "@/lib/storage/s3";
-import { audioPricing } from "@/lib/ai/models";
+import { audioPricing, estimateCost } from "@/lib/ai/models";
 import { prisma } from "@/lib/prisma";
 import { getMessages, appendMessages } from "@/lib/conversation-messages";
-import { checkQuota, estimateCost } from "@/lib/quota";
+import { checkQuota } from "@/lib/quota";
 import { logDataSourceCall, extractDataSourceInfo, sanitizeResponse } from "@/lib/data-source-log";
 
 // Vercel serverless: increase timeout for AI streaming
@@ -112,10 +112,12 @@ async function transcribeAudioAttachment(
       await prisma.tokenUsage.create({
         data: {
           userId,
+          kind: "audio",
           model,
           inputTokens: 0,
-          outputTokens: minutes,
-          totalTokens: minutes,
+          outputTokens: 0,
+          totalTokens: 0,
+          units: minutes,
           costUsd: (audioPricing[model] ?? 0) * minutes,
         },
       });
@@ -904,20 +906,17 @@ export async function POST(req: Request) {
         // Save token usage to database
         if (totalInputTokens > 0 || totalOutputTokens > 0) {
           try {
-            // Anthropic's inputTokens already aggregates cacheRead + cacheWrite + noCache.
-            // To avoid double-billing, pass nonCachedInput as the base and add cache portions explicitly.
+            const costUsd = estimateCost({
+              kind: "chat",
+              model: modelName,
+              inputTokens: totalInputTokens,
+              outputTokens: totalOutputTokens,
+              cacheReadTokens: totalCacheReadTokens,
+              cacheWriteTokens: totalCacheWriteTokens,
+            });
             const nonCachedInput = Math.max(
               0,
               totalInputTokens - totalCacheReadTokens - totalCacheWriteTokens
-            );
-            const costUsd = estimateCost(
-              modelName,
-              nonCachedInput,
-              totalOutputTokens,
-              {
-                cacheReadTokens: totalCacheReadTokens,
-                cacheWriteTokens: totalCacheWriteTokens,
-              }
             );
             console.log(
               `[Chat API] tokens model=${modelName} input=${totalInputTokens} (noCache=${nonCachedInput}, cacheRead=${totalCacheReadTokens}, cacheWrite=${totalCacheWriteTokens}) output=${totalOutputTokens} cost=$${costUsd.toFixed(6)}`
@@ -925,10 +924,13 @@ export async function POST(req: Request) {
             await prisma.tokenUsage.create({
               data: {
                 userId,
+                kind: "chat",
                 model: modelName,
                 inputTokens: totalInputTokens,
                 outputTokens: totalOutputTokens,
                 totalTokens: totalInputTokens + totalOutputTokens,
+                cacheReadTokens: totalCacheReadTokens,
+                cacheWriteTokens: totalCacheWriteTokens,
                 costUsd,
               },
             });

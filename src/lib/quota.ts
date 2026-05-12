@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { getConfig } from "@/lib/config";
-import { estimateCost } from "@/lib/ai/models";
 
 async function getDefaultMonthlyQuotaUsd(): Promise<number> {
   const val = await getConfig("DEFAULT_MONTHLY_QUOTA_USD");
@@ -35,8 +34,11 @@ export async function getMonthlyUsage(
   userId: string,
   since: Date
 ): Promise<number> {
+  // Note: rows with userId=NULL (system-level cost, e.g. embedding) are
+  // automatically excluded because SQL NULL never equals a concrete string.
+  // The explicit `not: null` keeps intent clear for future readers.
   const result = await prisma.tokenUsage.aggregate({
-    where: { userId, createdAt: { gte: since } },
+    where: { userId: { equals: userId, not: null }, createdAt: { gte: since } },
     _sum: { costUsd: true },
   });
   return result._sum.costUsd ?? 0;
@@ -93,5 +95,3 @@ export async function checkQuota(userId: string): Promise<QuotaStatus> {
 function getMonthStart(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1);
 }
-
-export { estimateCost };

@@ -67,11 +67,13 @@ export function createAudioTools(ctx: { userId: string }) {
             .create({
               data: {
                 userId: ctx.userId,
+                kind: "audio",
                 model: TRANSCRIBE_MODEL,
                 inputTokens: 0,
-                outputTokens: minutes,
-                totalTokens: minutes,
-                costUsd: estimateCost(TRANSCRIBE_MODEL, 0, minutes),
+                outputTokens: 0,
+                totalTokens: 0,
+                units: minutes,
+                costUsd: estimateCost({ kind: "audio", model: TRANSCRIBE_MODEL, minutes }),
               },
             })
             .catch((e: unknown) => {

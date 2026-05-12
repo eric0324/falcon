@@ -97,7 +97,7 @@ describe("transcribeAudio tool", () => {
     expect(result.reason).toMatch(/rate limit/i);
   });
 
-  it("writes TokenUsage with minute-rounded outputTokens", async () => {
+  it("writes TokenUsage with kind=audio and minutes as units", async () => {
     // 75 seconds → 2 minutes
     mockTranscribe.mockResolvedValueOnce({ text: "x", durationSec: 75 });
 
@@ -106,10 +106,12 @@ describe("transcribeAudio tool", () => {
     expect(mockTokenUsageCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         userId: "user-42",
+        kind: "audio",
         model: "gpt-4o-mini-transcribe",
         inputTokens: 0,
-        outputTokens: 2,
-        totalTokens: 2,
+        outputTokens: 0,
+        totalTokens: 0,
+        units: 2,
         costUsd: 0.003 * 2,
       }),
     });

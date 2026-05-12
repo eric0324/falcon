@@ -95,15 +95,17 @@ export function createImageTools(ctx: {
 }
 
 function recordUsage(userId: string, modelUsed: string): void {
-  const costUsd = estimateCost(modelUsed, 0, 1);
+  const costUsd = estimateCost({ kind: "image", model: modelUsed, imageCount: 1 });
   prisma.tokenUsage
     .create({
       data: {
         userId,
+        kind: "image",
         model: modelUsed,
         inputTokens: 0,
-        outputTokens: 1,
-        totalTokens: 1,
+        outputTokens: 0,
+        totalTokens: 0,
+        units: 1,
         costUsd,
       },
     })

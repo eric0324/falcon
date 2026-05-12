@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { estimateCost } from "@/lib/ai/models";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -65,7 +64,11 @@ export default async function AdminMemberDetailPage({
         _count: { select: { conversationMessages: true } },
         conversationMessages: {
           where: { role: "assistant" },
-          select: { tokenUsages: true },
+          select: {
+            tokenUsages: {
+              select: { kind: true, totalTokens: true, units: true, costUsd: true },
+            },
+          },
         },
       },
     }),
@@ -76,13 +79,11 @@ export default async function AdminMemberDetailPage({
 
   const conversationData = conversations.map((conv) => {
     let totalTokens = 0;
-    let estimatedCost = 0;
+    let billedCost = 0;
     for (const msg of conv.conversationMessages) {
       for (const usage of msg.tokenUsages) {
-        const input = usage.inputTokens || 0;
-        const output = usage.outputTokens || 0;
-        totalTokens += input + output;
-        estimatedCost += estimateCost(usage.model, input, output);
+        totalTokens += usage.totalTokens || 0;
+        billedCost += usage.costUsd || 0;
       }
     }
     return {
@@ -91,7 +92,7 @@ export default async function AdminMemberDetailPage({
       messageCount: conv._count.conversationMessages,
       model: conv.model,
       totalTokens,
-      estimatedCost,
+      estimatedCost: billedCost,
       updatedAt: conv.updatedAt.toISOString(),
       deletedAt: conv.deletedAt?.toISOString() ?? null,
     };
