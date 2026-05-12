@@ -84,9 +84,23 @@ import { getModel, defaultModel, type ModelId, estimateCost } from "@/lib/ai/mod
 import { scrapeUrl } from "@/lib/scraper";
 import { handleToolDB } from "@/lib/bridge/tooldb-handler";
 import { transcribeAudio } from "@/lib/integrations/openai-audio";
+import { generateFromText, generateFromImage, type ImageProvider, type AspectRatio, type ImageQuality } from "@/lib/ai/image-generation";
+import { checkQuota } from "@/lib/quota";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Params = Record<string, any>;
+
+/** Error class that lets bridge handlers signal a specific HTTP status to the route. */
+export class BridgeError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public body?: Record<string, unknown>
+  ) {
+    super(message);
+    this.name = "BridgeError";
+  }
+}
 
 // ===== External Database =====
 
@@ -615,6 +629,98 @@ async function handleTranscribe(
   return { text, durationSec };
 }
 
+// ===== Image Generation =====
+
+export async function handleImage(
+  userId: string,
+  action: string,
+  params: Params
+): Promise<unknown> {
+  if (action !== "generate" && action !== "edit") {
+    throw new BridgeError(`Unknown image action: ${action}`, 400);
+  }
+
+  const quota = await checkQuota(userId);
+  if (quota.status === "blocked") {
+    throw new BridgeError("quota_exceeded", 403, {
+      error: "quota_exceeded",
+      quota,
+    });
+  }
+
+  const { prompt, sourceImageKey, provider, aspectRatio, quality } = params as {
+    prompt?: string;
+    sourceImageKey?: string;
+    provider?: ImageProvider;
+    aspectRatio?: AspectRatio;
+    quality?: ImageQuality;
+  };
+
+  if (!prompt || typeof prompt !== "string") {
+    throw new BridgeError("image requires a prompt", 400);
+  }
+  const usedProvider: ImageProvider = provider ?? "imagen";
+  const t0 = Date.now();
+  console.log(`[bridge image] start action=${action} provider=${usedProvider} aspectRatio=${aspectRatio ?? "default"} quality=${quality ?? "default"} promptLen=${prompt.length}`);
+
+  const result = action === "edit"
+    ? await (async () => {
+        if (!sourceImageKey || typeof sourceImageKey !== "string") {
+          throw new BridgeError("image.edit requires sourceImageKey", 400);
+        }
+        if (!sourceImageKey.startsWith(`images/${userId}/`)) {
+          throw new BridgeError(
+            "sourceImageKey does not belong to caller",
+            400
+          );
+        }
+        return generateFromImage({
+          prompt,
+          sourceImageKey,
+          provider: usedProvider,
+          userId,
+          ...(aspectRatio ? { aspectRatio } : {}),
+          ...(quality ? { quality } : {}),
+        });
+      })()
+    : await generateFromText({
+        prompt,
+        provider: usedProvider,
+        userId,
+        ...(aspectRatio ? { aspectRatio } : {}),
+        ...(quality ? { quality } : {}),
+      });
+
+  console.log(`[bridge image] done in ${Date.now() - t0}ms model=${result.modelUsed} s3Key=${result.s3Key}`);
+
+  prisma.tokenUsage
+    .create({
+      data: {
+        userId,
+        kind: "image",
+        model: result.modelUsed,
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        units: 1,
+        costUsd: estimateCost({
+          kind: "image",
+          model: result.modelUsed,
+          imageCount: 1,
+        }),
+      },
+    })
+    .catch((e: unknown) => {
+      console.error(`[bridge image] Failed to save TokenUsage:`, e);
+    });
+
+  return {
+    s3Key: result.s3Key,
+    presignedUrl: result.presignedUrl,
+    provider: result.provider,
+  };
+}
+
 export async function dispatchBridge(
   userId: string,
   dataSourceId: string,
@@ -643,6 +749,11 @@ export async function dispatchBridge(
   // Audio transcription (platform capability — always allowed, billed per minute)
   if (dataSourceId === "transcribe") {
     return handleTranscribe(userId, action, params);
+  }
+
+  // Image generation (platform capability — always allowed, billed per image)
+  if (dataSourceId === "image") {
+    return handleImage(userId, action, params);
   }
 
   // Simple prefix-to-handler mapping

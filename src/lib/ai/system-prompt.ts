@@ -477,9 +477,11 @@ No external data sources are currently enabled. If the user needs to search Goog
 
 const IMAGE_GENERATION_INSTRUCTIONS = `
 
-## Image Generation (built-in, always available)
+## Image Generation Agent Tool (for inserting images in THIS chat)
 
-Use the \`generateImage\` tool when the user explicitly asks to **create, draw, illustrate, or edit an image**. Do NOT call this for UI code or documents — use \`updateCode\` / \`updateDocument\` for those.
+\`generateImage\` is YOUR agent-side tool. Call it ONLY when the user wants an image inserted directly into the current conversation, NOT when they want the tool you're building to generate images at runtime — for that, write tool code that calls \`window.companyAPI.execute("image", "generate", ...)\` (see "Runtime Image Generation" below).
+
+Use the \`generateImage\` tool when the user explicitly asks to **create, draw, illustrate, or edit an image** for them right now in this chat. Do NOT call this for UI code or documents — use \`updateCode\` / \`updateDocument\` for those.
 
 ### Parameters
 - \`prompt\` (required): the image description or edit instruction, in the same language as the user
@@ -540,6 +542,44 @@ Important:
 - Max input ~6000 Chinese characters per call; longer text will be truncated
 - Use for button-triggered actions (e.g. "Generate summary", "Translate"). Do NOT call LLM inside useEffect or in loops
 - The result object has \`result.text\` for the LLM response text`;
+
+const IMAGE_BRIDGE_INSTRUCTIONS = `
+
+## Runtime Image Generation (for the TOOL you're building, not the chat)
+
+When the tool you're writing needs to generate or edit images **at runtime for its end users** (e.g. "button → produce an image"), write code that calls:
+
+\`\`\`js
+window.companyAPI.execute("image", "generate", { prompt, ... })
+\`\`\`
+
+**Important — do NOT confuse this with the agent-side \`generateImage\` tool.** The agent tool inserts images in this chat; the bridge API \`companyAPI.execute("image", ...)\` is what the deployed TOOL CODE uses at runtime. ALSO do NOT call \`companyAPI.execute("llm", "generateImage", ...)\` — \`"llm"\` only supports \`summarize / translate / extract / classify\`; for images the dataSourceId is literally \`"image"\`.
+
+\`\`\`js
+// Text-to-image
+const result = await window.companyAPI.execute("image", "generate", {
+  prompt: "a red panda eating bamboo, watercolor",
+  provider: "imagen",         // optional: "imagen" | "gpt-image"; defaults to "imagen"
+  aspectRatio: "16:9",        // optional: "1:1" | "16:9" | "9:16" | "4:3" | "3:4"
+  quality: "high",            // optional: "low" | "medium" | "high" (gpt-image only)
+});
+// result = { s3Key, presignedUrl, provider }
+
+// Image-to-image edit — sourceImageKey must belong to the current user
+// (s3 key starts with "images/<userId>/" — typically obtained from a prior generate)
+const edited = await window.companyAPI.execute("image", "edit", {
+  prompt: "make the background pink",
+  sourceImageKey: result.s3Key,
+  provider: "gpt-image",
+});
+\`\`\`
+
+Important:
+- Each call generates one image. There is no batch mode.
+- Generation takes 5-15 seconds — always show a loading state and disable the trigger button while waiting.
+- Use button-triggered actions only. Do NOT call this inside useEffect or in render loops — it costs real money.
+- Render the result via <img src={result.presignedUrl} />. Presigned URLs expire in 1 hour; for long-lived UIs, refresh via \`/api/chat/presign-image?key=<s3Key>\`.
+- Quota: if the caller is over their monthly quota, the call rejects with a 403. Surface the error gracefully.`;
 
 const SCRAPER_BRIDGE_INSTRUCTIONS = `
 
@@ -976,6 +1016,7 @@ export function buildSystemPrompt(
     }
     if (imageGenerationEnabled) {
       prompt += IMAGE_GENERATION_INSTRUCTIONS;
+      prompt += IMAGE_BRIDGE_INSTRUCTIONS;
     }
     prompt += LLM_BRIDGE_INSTRUCTIONS;
     prompt += SCRAPER_BRIDGE_INSTRUCTIONS;
@@ -1059,6 +1100,7 @@ export function buildSystemPrompt(
   // Image generation — only when the user has selected a provider
   if (imageGenerationEnabled) {
     prompt += IMAGE_GENERATION_INSTRUCTIONS;
+    prompt += IMAGE_BRIDGE_INSTRUCTIONS;
   }
 
   // LLM bridge — always available regardless of data source selection

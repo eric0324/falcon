@@ -65,7 +65,18 @@ window.companyAPI = {
 window.__bridgeCall = function(payload) {
   return new Promise(function(resolve, reject) {
     var id = 'bridge_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
-    var timeoutMs = (payload.dataSourceId === 'llm' || payload.dataSourceId === 'scrape') ? 60000 : 30000;
+    // Tiered timeouts by upstream latency:
+    //   30s: snappy data-source calls
+    //   60s: llm / scrape (longer text)
+    //   180s: image / transcribe (provider latency varies, gpt-image-1 can spike)
+    // Must match or stay below the bridge route maxDuration.
+    var SLOW_60S = ['llm', 'scrape'];
+    var SLOW_180S = ['image', 'transcribe'];
+    var timeoutMs = SLOW_180S.indexOf(payload.dataSourceId) !== -1
+      ? 180000
+      : SLOW_60S.indexOf(payload.dataSourceId) !== -1
+        ? 60000
+        : 30000;
     var timeout = setTimeout(function() {
       window.removeEventListener('message', handler);
       reject(new Error('API call timeout (' + (timeoutMs / 1000) + 's)'));

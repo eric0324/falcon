@@ -73,8 +73,9 @@ export function ToolRunner({ code, toolId, dataSources }: ToolRunnerProps) {
       }
 
       if (!event.data || event.data.type !== "api-bridge") return;
-      const isLLM = event.data.dataSourceId === "llm";
-      if (!isLLM && !hasDataSources) return;
+      const PLATFORM_CAPS = new Set(["llm", "tooldb", "scrape", "transcribe", "image"]);
+      const isPlatform = PLATFORM_CAPS.has(event.data.dataSourceId);
+      if (!isPlatform && !hasDataSources) return;
 
       const { id, dataSourceId, action, params } = event.data;
 

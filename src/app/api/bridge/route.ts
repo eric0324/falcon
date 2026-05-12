@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 
-// LLM calls can take 10-30 seconds
-export const maxDuration = 60;
+// Upstream latency: LLM 10-30s, image gen up to ~120s for gpt-image-1 with quality="high".
+// Vercel: requires Pro plan to go above 60s; Hobby will silently cap at 60.
+export const maxDuration = 180;
 import { prisma } from "@/lib/prisma";
-import { dispatchBridge } from "@/lib/bridge/handlers";
+import { dispatchBridge, BridgeError } from "@/lib/bridge/handlers";
 import { logDataSourceCall, sanitizeBridgeParams, sanitizeResponse } from "@/lib/data-source-log";
 
 async function getUser(session: { user?: { email?: string | null } } | null) {
@@ -39,7 +40,8 @@ export async function POST(req: Request) {
       dataSourceId === "llm" ||
       dataSourceId === "tooldb" ||
       dataSourceId === "scrape" ||
-      dataSourceId === "transcribe";
+      dataSourceId === "transcribe" ||
+      dataSourceId === "image";
 
     // 3. For non-platform calls, check data source permissions
     let toolName: string | undefined;
@@ -122,6 +124,12 @@ export async function POST(req: Request) {
         durationMs: Date.now() - start,
       });
       console.error("POST /api/bridge error:", error);
+      if (error instanceof BridgeError) {
+        return NextResponse.json(
+          error.body ?? { error: error.message },
+          { status: error.status }
+        );
+      }
       const message = error instanceof Error ? error.message : "Bridge request failed";
       return NextResponse.json({ error: message }, { status: 500 });
     }
