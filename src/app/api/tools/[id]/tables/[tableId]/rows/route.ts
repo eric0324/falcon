@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { canUserAccessTool } from "@/lib/tool-visibility";
+import { isPlatformAdmin } from "@/lib/admin";
 import { normalizeRow, type ColumnDef } from "@/lib/bridge/tooldb-handler";
 
 export async function GET(
@@ -25,13 +25,14 @@ export async function GET(
 
   const tool = await prisma.tool.findUnique({
     where: { id: toolId },
-    select: { id: true, authorId: true, visibility: true, status: true },
+    select: { id: true, authorId: true },
   });
   if (!tool) {
     return NextResponse.json({ error: "Tool not found" }, { status: 404 });
   }
-  const canAccess = await canUserAccessTool(tool, user.id);
-  if (!canAccess) {
+  const isOwner = tool.authorId === user.id;
+  const canView = isOwner || (await isPlatformAdmin(user.id));
+  if (!canView) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

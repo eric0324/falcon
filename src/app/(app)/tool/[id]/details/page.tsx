@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { canUserAccessTool } from "@/lib/tool-visibility";
+import { isPlatformAdmin } from "@/lib/admin";
 import { getCategoryById } from "@/lib/categories";
 import { formatDistanceToNow } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -61,6 +62,8 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
   }
 
   const isOwner = tool.authorId === session.user.id;
+  const isAdmin = isOwner ? false : await isPlatformAdmin(session.user.id);
+  const canViewData = isOwner || isAdmin;
   const category = tool.category ? getCategoryById(tool.category) : null;
 
   // Check if current user has already reviewed
@@ -129,12 +132,14 @@ export default async function ToolDetailsPage({ params }: ToolDetailsPageProps) 
                 size="md"
               />
               <ShareButton toolId={tool.id} visibility={tool.visibility} label={tCommon("share")} />
-              <Button variant="outline" size="sm" asChild>
-                <a href={`/tool/${tool.id}/data`} target="_blank" rel="noopener noreferrer">
-                  <Database className="h-4 w-4 mr-1" />
-                  {tDb("viewData")}
-                </a>
-              </Button>
+              {canViewData && (
+                <Button variant="outline" size="sm" asChild>
+                  <a href={`/tool/${tool.id}/data`} target="_blank" rel="noopener noreferrer">
+                    <Database className="h-4 w-4 mr-1" />
+                    {tDb("viewData")}
+                  </a>
+                </Button>
+              )}
               {isOwner && (
                 <Button variant="outline" size="sm" asChild>
                   <Link href={`/chat?${tool.conversationId ? `id=${tool.conversationId}&` : ""}edit=${tool.id}`}>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { canUserAccessTool } from "@/lib/tool-visibility";
+import { isPlatformAdmin } from "@/lib/admin";
 import { ToolDataClient } from "./client";
 
 interface Props {
@@ -25,13 +25,14 @@ export default async function ToolDataPage({ params }: Props) {
 
   const tool = await prisma.tool.findUnique({
     where: { id },
-    select: { id: true, name: true, authorId: true, visibility: true, status: true },
+    select: { id: true, name: true, authorId: true },
   });
 
   if (!tool) notFound();
 
-  const canAccess = await canUserAccessTool(tool, session.user.id);
-  if (!canAccess) notFound();
+  const isOwner = tool.authorId === session.user.id;
+  const isAdmin = isOwner ? false : await isPlatformAdmin(session.user.id);
+  if (!isOwner && !isAdmin) notFound();
 
   return <ToolDataClient toolId={tool.id} toolName={tool.name} />;
 }
