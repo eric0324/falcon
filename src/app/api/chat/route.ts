@@ -41,7 +41,6 @@ import { createKnowledgeBaseTools } from "@/lib/ai/knowledge-base-tools";
 import { shouldCompact, estimateTokens, estimateMessagesTokens, trimMessagesToFit } from "@/lib/ai/token-utils";
 import { compactMessages } from "@/lib/ai/compact";
 import { cacheableSystem, cacheableTools } from "@/lib/ai/cache-control";
-import { routeModel } from "@/lib/ai/route-model";
 import { estimateTokens as estimateTokenCount } from "@/lib/ai/token-utils";
 import { classifyAttachmentSize, HARD_TOKENS, WARN_TOKENS } from "@/lib/attachments/limits";
 import { truncateHead, truncateCsvSmart } from "@/lib/attachments/text-truncate";
@@ -325,24 +324,7 @@ export async function POST(req: Request) {
       conversationId = conv.id;
     }
 
-    // Smart routing: simple short queries on high-tier Anthropic models
-    // downgrade to Haiku to save cost. Complex intent keeps the selected model.
-    const hasFiles = Array.isArray(files) && files.length > 0;
-    const hasToolHistory = historyMessages.some(
-      (m) => Array.isArray(m.toolCalls) && m.toolCalls.length > 0
-    );
-    const modelName = routeModel({
-      userMessage: typeof message === "string" ? message : "",
-      selectedModel: selectedModelName,
-      hasFiles,
-      hasToolHistory,
-    });
-    const routedDown = modelName !== selectedModelName;
-    if (routedDown) {
-      console.log(
-        `[Chat API] model routed: ${selectedModelName} → ${modelName} (short_simple_query)`
-      );
-    }
+    const modelName = selectedModelName;
     const selectedModel = await getModel(modelName);
 
     // Build messages array: history + new user message.
@@ -669,8 +651,6 @@ export async function POST(req: Request) {
             `i:${JSON.stringify({
               conversationId,
               title: generatedTitle,
-              actualModel: routedDown ? modelName : undefined,
-              selectedModel: routedDown ? selectedModelName : undefined,
             })}\n`
           );
         }

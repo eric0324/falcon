@@ -38,7 +38,9 @@ export const webinarjamQueryInputSchema = z.object({
   scheduleId: z
     .number()
     .optional()
-    .describe("Schedule ID（registrants 必填，從 get 取得）"),
+    .describe(
+      "Schedule ID（registrants 必填）。整數，必須等於前一次 get 回傳的 schedules[].schedule 欄位值（不是陣列 index）。例如 schedules: [{ schedule: 44 }] 就傳 44"
+    ),
   attendedLive: attendedLiveSchema,
   attendedReplay: attendedReplaySchema,
   purchased: purchasedSchema,
@@ -57,7 +59,7 @@ export function createWebinarjamTools() {
 操作：
 - list：列出所有 webinars（webinar_id、name、type、schedules、timezone）
 - get：查單一 webinar 詳情，含 schedules 陣列（每個 schedule 有 date 與 schedule ID）、presenters、registration_url。需要 webinarId
-- registrants：列出某場次的報名與出席名單。需要 webinarId 與 scheduleId（scheduleId 要從 get 先拿，不能憑空）
+- registrants：列出某場次的報名與出席名單。需要 webinarId 與 scheduleId。scheduleId 必須是前一次 get 回傳的 schedules 陣列裡某個物件的 schedule 欄位（整數，可能很大例如 44、127），不要用陣列 index、不要憑空產生
 
 registrants 可加 server-side filter：
 - attendedLive 0/1/2/3/4：篩現場出席狀態

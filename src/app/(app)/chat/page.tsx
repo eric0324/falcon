@@ -281,6 +281,8 @@ function StudioContent() {
     setCompactInfo(null);
     setImageProvider(null);
     setAudioProvider(null);
+    setSelectedModel(defaultModel);
+    setSelectedSkill(null);
   }, []);
 
   // Reset state when navigating to /chat without id (new conversation)
@@ -639,7 +641,6 @@ function StudioContent() {
       let buffer = "";
       let savedConvId = convId;
       let savedTitle: string | undefined;
-      let routing: { selectedModel: string; actualModel: string } | undefined;
       const toolCallsMap = new Map<string, ToolCall>();
 
       if (reader) {
@@ -663,14 +664,13 @@ function StudioContent() {
                 assistantMessage += data as string;
                 setMessages((prev) => {
                   const lastMessage = prev[prev.length - 1];
-                  const routingProp = routing ? { routing } : {};
                   if (lastMessage?.role === "assistant") {
                     return [
                       ...prev.slice(0, -1),
-                      { ...lastMessage, content: assistantMessage, ...routingProp },
+                      { ...lastMessage, content: assistantMessage },
                     ];
                   } else {
-                    return [...prev, { role: "assistant", content: assistantMessage, ...routingProp }];
+                    return [...prev, { role: "assistant", content: assistantMessage }];
                   }
                 });
 
@@ -758,18 +758,10 @@ function StudioContent() {
                 const info = data as {
                   conversationId: string;
                   title?: string;
-                  actualModel?: string;
-                  selectedModel?: string;
                 };
                 if (info.conversationId && !savedConvId) {
                   savedConvId = info.conversationId;
                   if (info.title) savedTitle = info.title;
-                }
-                if (info.actualModel && info.selectedModel) {
-                  routing = {
-                    actualModel: info.actualModel,
-                    selectedModel: info.selectedModel,
-                  };
                 }
                 break;
               }

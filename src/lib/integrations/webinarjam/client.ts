@@ -132,7 +132,9 @@ export interface GetRegistrantsParams {
 export async function getRegistrants(
   params: GetRegistrantsParams
 ): Promise<Registrant[]> {
-  const data = await webinarjamPost<{ data?: Registrant[] }>("/registrants", {
+  // WebinarJam docs are ambiguous about the wrapper key — try the most likely
+  // candidates in order. Each successful response should have exactly one of these.
+  const raw = await webinarjamPost<Record<string, unknown>>("/registrants", {
     webinar_id: params.webinarId,
     schedule_id: params.scheduleId,
     attended_live: params.attendedLive,
@@ -141,5 +143,33 @@ export async function getRegistrants(
     search: params.search,
     page: params.page,
   });
-  return data.data || [];
+
+  // Top-level array: registrants might come directly under `data`, `users`, etc.
+  for (const key of ["data", "users", "registrants", "attendees"]) {
+    const val = raw[key];
+    if (Array.isArray(val) && val.length > 0) return val as Registrant[];
+  }
+
+  // Laravel-style paginated: { registrants: { data: [...], current_page, last_page, ... } }
+  for (const key of ["registrants", "data", "users", "attendees"]) {
+    const wrapper = raw[key];
+    if (wrapper && typeof wrapper === "object" && !Array.isArray(wrapper)) {
+      const inner = (wrapper as Record<string, unknown>).data;
+      if (Array.isArray(inner)) return inner as Registrant[];
+    }
+  }
+
+  // Nothing matched — dump shape for diagnosis.
+  const summary: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (Array.isArray(v)) summary[k] = `array(len=${v.length})`;
+    else if (v === null) summary[k] = "null";
+    else if (typeof v === "object") summary[k] = `object(${Object.keys(v as object).slice(0, 5).join(",")})`;
+    else summary[k] = `${typeof v}: ${String(v).slice(0, 80)}`;
+  }
+  console.warn(
+    "[WebinarJam] /registrants returned no rows. Raw response shape:",
+    summary
+  );
+  return [];
 }

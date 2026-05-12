@@ -14,13 +14,25 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.31.2",
+    date: "2026-05-12",
+    title: "WebinarJam 名單抓取修正、新對話會重置選單",
+    summary:
+      "修掉 WebinarJam 抓報名名單一直回傳空的問題。另外，開新對話時模型、技能、圖片 / 聲音模型、資料來源都會回到預設，不再帶上前一次的選擇。",
+    items: [
+      "修正 WebinarJam 抓報名 / 出席名單一直回空的問題",
+      "開新對話時把模型、技能、圖片 / 聲音模型、資料來源都回到預設，不再延續上一次的選擇",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.31.1",
     date: "2026-05-11",
     title: "調整首頁分頁為獨立頁面",
     summary:
       "調整首頁分頁為獨立頁面。",
     items: [
-      "調整首頁分頁為獨立頁面",
+      "首頁切換不同分頁後再點工具進去，返回時會記住你原本選的那一頁，不會跑回去預設那個",
     ],
     showDialog: false,
   },
@@ -31,13 +43,11 @@ export const changelog: ChangelogEntry[] = [
     summary:
       "把聲音檔拖進對話框，從工具列選一個聲音模型，AI 就能聽懂內容，做摘要、找重點或引用裡面的片段。",
     items: [
-      "新增 src/lib/integrations/openai-audio client，呼叫 OpenAI /v1/audio/transcriptions，可選 gpt-4o-mini-transcribe / gpt-4o-transcribe / whisper-1 三個模型，language 自動偵測，25MB 拒收",
-      "工具列新增 AudioProviderSelector：預設未選，使用者需先選一個轉錄模型才會啟用 audio attachment 轉錄",
-      "file-upload.tsx 接 audio MIME，上傳走新 /api/chat/upload-audio endpoint 存 S3 audios/<userId>/<uuid>.<ext>；FileList 顯示聲音卡片含時長",
-      "chat route 的 buildMessageContent 加 audio 分支：從 S3 拉檔、依使用者選的模型轉錄、把 text 嵌進 prompt（格式 [聲音: name, 時長 X:XX, 轉錄:]\\n...）",
-      "AI tool createAudioTools 提供 transcribeAudio({ audioKey, language? })，可對先前訊息的聲音再轉錄",
-      "api-bridge 加 transcribe platform capability，user-built 工具可呼叫 bridge.transcribe({ audioUrl 或 audioBase64 })",
-      "models.ts 加 audioPricing；estimateCost 支援 audio 分支；TokenUsage 紀錄 outputTokens = ceil(durationSec / 60)",
+      "支援 mp3、wav、m4a、webm、ogg 等聲音檔，單檔最大 25MB",
+      "工具列新增聲音模型選單：mini（便宜）、標準、Whisper 三選一；預設未選代表不轉錄",
+      "聲音檔會在送出時自動轉成文字嵌進訊息，AI 就能讀內容做摘要、找重點、引用片段",
+      "對話之後想再對前面的聲音做別的處理時，AI 會自動再轉錄一次",
+      "你自己做的工具也能呼叫聲音轉文字",
     ],
     showDialog: true,
   },
@@ -48,10 +58,9 @@ export const changelog: ChangelogEntry[] = [
     summary:
       "Preview 出錯時直接把錯誤內容顯示在 preview 下方，原本一出錯就自動連發訊息給 AI 的行為已移除，改成右側多一個「修正」按鈕，使用者按了才把錯誤丟給 AI 處理。",
     items: [
-      "Preview 下方新增紅色錯誤區塊：含 AlertTriangle icon、錯誤標題、monospace 顯示完整錯誤內容，過長時內捲不會撐高 panel",
-      "錯誤區塊右側加「修正」按鈕（含 Wand2 icon），AI 還在跑時 disabled",
-      "移除原本的 auto-fix useEffect 與 errorRetryCount / lastCodeRef / MAX_ERROR_RETRIES 三個 state",
-      "handleSubmit 支援 overrideMessage 參數，系統觸發的修正請求不會消耗使用者已選好的附件",
+      "Preview 出錯時下方會出現紅色錯誤區塊，顯示完整錯誤內容；過長會內捲不會把面板撐爆",
+      "錯誤區塊右邊多一顆「修正」按鈕，按下才把錯誤丟給 AI 修；AI 還在跑時按鈕會 disable",
+      "原本一出錯就自動連發訊息給 AI 的行為已移除，改成完全由你決定要不要請 AI 處理",
     ],
     showDialog: false,
   },
@@ -62,10 +71,10 @@ export const changelog: ChangelogEntry[] = [
     summary:
       "對話框可以直接拖曳圖片或文件進去當附件，不用再按迴紋針按鈕。已加入的圖片改用縮圖呈現，滑鼠移上去才浮出刪除按鈕，比檔名條更省版面。",
     items: [
-      "chat 對話框接 drag handlers，drop 範圍涵蓋整個對話視窗；overlay 只蓋輸入框，不擋下方模型 / 技能 / 資料來源選單",
-      "拖入的檔案走與按鈕上傳相同的處理：型別與大小檢查、圖片自動壓縮、文字檔 token 估算與截斷預設",
-      "FileList 圖片附件改用 56×56 縮圖卡片，hover 才顯示右上角移除按鈕",
-      "file-upload.tsx 抽出 processFile helper，讓 drop 與按鈕兩條路徑共用同一份檔案處理邏輯",
+      "對話視窗任一處都能直接把檔案拖進去，不用再按迴紋針",
+      "拖檔時下方輸入框會出現虛線提示，下方的模型 / 技能 / 資料來源選單不會被擋住",
+      "圖片附件改用縮圖卡片顯示，滑鼠移上去才浮出刪除按鈕",
+      "拖檔與按按鈕上傳走相同的檢查：型別、大小、圖片自動壓縮、文字檔 token 估算與截斷",
     ],
     showDialog: false,
   },
@@ -76,10 +85,10 @@ export const changelog: ChangelogEntry[] = [
     summary:
       "聊天頁面新增 WebinarJam 資料來源。AI 可以列出 webinars、查單一場次詳情含 schedule 與報名連結，以及拉某場次的報名 / 出席名單，並支援以「有沒有出席直播、看 replay、是否購買」做 server-side 篩選。本版唯讀，不做報名與取消訂閱。",
     items: [
-      "新增 src/lib/integrations/webinarjam client：listWebinars / getWebinar / getRegistrants 三個端點，POST + form-encoded body 帶 api_key",
-      "AI 工具 webinarjamQuery：action 列舉 list / get / registrants，attendedLive / attendedReplay / purchased / search / page 直接走 server-side filter",
-      "WEBINARJAM_API_KEY 註冊到 admin system config，敏感欄位加密儲存",
-      "Chat data source 選單、admin settings 翻譯、integrations status API 全部登記 webinarjam",
+      "新增 WebinarJam 為資料來源，需要管理者先在後台設定 API Key",
+      "可以列出所有 webinar、查單一場次詳情、拉某場次的報名與出席名單",
+      "支援篩選「有沒有出席直播」「有沒有看 replay」「是否購買」「關鍵字」",
+      "本版唯讀，不會幫你報名、也不會取消訂閱",
     ],
     showDialog: false,
   },
@@ -90,10 +99,11 @@ export const changelog: ChangelogEntry[] = [
     summary:
       "聊天時連上 Notion，AI 現在看得到資料庫頁面的所有欄位 — Status、Tags、Due Date、負責人等，不再只看標題。也能直接請 Notion 在 server 端篩條件，例如「Status 是 Done 的任務」「某人負責的項目」「Due 在下週的事項」，不用一筆筆撈回來慢慢找。",
     items: [
-      "Notion AI 工具 read / query 動作回傳資料附上解析過的 properties，支援 title、rich_text、status、select、multi_select、date、number、checkbox、people、files、relation、formula、rollup 等常見欄位型別",
-      "新 propertyFilter 參數：可指定 equals / contains / is_empty / between / before / after / past_week / next_month 等 operator，後端翻譯成 Notion 原生 filter 做 server-side 過濾",
-      "propertyFilter 與 search 可同時使用，內部組成 AND；title clause 自動使用該資料庫實際的 title 欄位名，不再硬寫 Name",
-      "拼錯 property 名稱或 operator 與型別不相容時，回友善錯誤並列出可用欄位，AI 可自行修正後重試",
+      "AI 看 Notion 頁面時，能直接讀到 Status、Tags、Due Date、負責人這類欄位，不再只看標題",
+      "可以直接跟 AI 說「找 Status 是 Done 的任務」「某人負責的項目」「Due 在下週的事項」，由 Notion 端篩選",
+      "支援等於、包含、空 / 非空、介於、早於 / 晚於、過去一週 / 下個月等多種篩選方式",
+      "篩選與關鍵字搜尋可同時使用",
+      "AI 若打錯欄位名或型別不符，會收到清楚提示後自己修正再試",
     ],
     showDialog: false,
   },
@@ -104,12 +114,11 @@ export const changelog: ChangelogEntry[] = [
     summary:
       "對話中說「記住⋯」「以後都⋯」「我喜歡⋯」這類話，Falcon 會自動記下偏好、規則與背景，下次新對話會自動帶入相關記憶，不用每次重交代一次。記憶可以到使用者選單的「我的記憶」管理。",
     items: [
-      "新 Memory / SuggestedMemory 表，記憶分四類：偏好、背景、規則、事實",
-      "主動擷取：偵測到關鍵字後 Haiku 結構化存成記憶，stream 即時回 toast「已記住」",
-      "被動擷取：對話結束 fire-and-forget 跑 Haiku 找候選記憶（不阻塞回應）",
-      "召回：每則新訊息做 embedding 找最相關 5 條塞進 system prompt，總長上限 2000 字元",
-      "管理頁 /memory：按類型分組顯示，可編輯 / 刪除",
-      "config.ts 加 process.env fallback，避免 dev 環境 Voyage API key 沒寫進 SystemConfig 時 embedding 靜默失敗",
+      "對話中說「記住⋯」「以後都⋯」「我喜歡⋯」這類話會被自動存成記憶",
+      "記憶分四類：偏好、背景、規則、事實",
+      "下次新對話會自動帶入最相關的幾條，不用每次重交代一次",
+      "對話結束後系統會在背景再掃一次，把漏掉的記憶補上",
+      "可以到使用者選單的「我的記憶」管理：查看、編輯、刪除",
     ],
     showDialog: true,
   },
@@ -120,8 +129,9 @@ export const changelog: ChangelogEntry[] = [
     summary:
       "全站工具卡片右上多了愛心按鈕，點一下就能收藏。同時，首頁也多一個「我的收藏」tab ，可以更快速的找到你所愛的工具",
     items: [
-      "新 ToolFavorite 表，per-user-per-tool 唯一、cascade delete",
-      "首頁、category、search、leaderboard 一次 query 收藏 id set 給整頁卡片",
+      "全站工具卡片右上多了愛心按鈕，點一下就能收藏 / 取消收藏",
+      "首頁多一個「我的收藏」分頁，集中看你收藏過的工具",
+      "分類頁、搜尋頁、排行榜的卡片也都看得到收藏狀態",
     ],
     showDialog: true,
   },
@@ -132,9 +142,8 @@ export const changelog: ChangelogEntry[] = [
     summary:
       "首頁導覽的第一步新增發音教學：顯示 Falcon 的音標，點喇叭按鈕可播放發音，想聽幾次都行。",
     items: [
-      "marketplace tour 第一步改為 PronunciationWelcome 元件",
-      "音檔放在 public/audio/falcon.mp3，按鈕每次點都從頭播",
-      "i18n 新增 onboarding.marketplace.phonetic 與 playPronunciation",
+      "首頁導覽的第一步改成發音教學，顯示 Falcon 的音標",
+      "旁邊有顆喇叭按鈕，點一下播放發音，想聽幾次都行",
     ],
     showDialog: false,
   },
@@ -145,10 +154,9 @@ export const changelog: ChangelogEntry[] = [
     summary:
       "某些對話在點 Edit Code 後會卡在 loading、或送訊息直接報錯無法繼續。原因是舊的失敗回合在 DB 留下沒完成的 tool call 和空白訊息，下一輪送到 Anthropic 就被擋。現在讀取歷史時會自動修復這些殘缺紀錄，失敗回合也不再寫進 DB。",
     items: [
-      "getMessages 讀取時把未完成的 tool call 治癒成 completed + stub result，前端不再永久轉圈",
-      "讀取歷史時空字串內容補 placeholder，避免 Anthropic 回 text content blocks must be non-empty",
-      "串流整輪沒產出（無文字、無 tool call）時略過 persist，不再污染對話歷史",
-      "串流每步結束補齊缺漏的 tool result，覆蓋 tool-error、maxOutputTokens 截斷、stream 中斷等路徑",
+      "讀取對話歷史時會自動修復沒完成的工具呼叫與空訊息，按 Edit Code 不再卡 loading",
+      "失敗的回合不再寫進對話歷史，下一輪送出不會再被 Anthropic 擋",
+      "串流被中斷或截斷時會自動補上必要的紀錄，避免後續對話爆錯",
     ],
     showDialog: false,
   },
@@ -159,10 +167,11 @@ export const changelog: ChangelogEntry[] = [
     summary:
       "你選了 Opus / Sonnet 但只問了一句簡單問題時，系統會自動改用 Haiku 回應、在回覆下方標示「自動改用 Haiku」。牽涉到寫程式、分析報告、附檔或對話中已呼叫過工具的訊息，還是會用你選的模型。",
     items: [
-      "新增 routeModel() 啟發式：訊息 <200 字、無附件、無工具歷史、無程式/分析/設計/圖片類關鍵字時降級 Haiku",
-      "使用者選 Haiku 或非 Anthropic 模型時完全不介入",
-      "stream i: 事件帶 actualModel / selectedModel，前端顯示自動改用標籤",
-      "費用與 TokenUsage 依實際模型計算",
+      "你選了 Opus / Sonnet 但訊息很短、沒附檔、沒涉及程式 / 分析 / 設計類關鍵字時，系統會自動改用 Haiku 回答",
+      "改用後會在回覆下方顯示「自動改用 Haiku」標籤，提示這次沒用你原本選的模型",
+      "牽涉到寫程式、分析報告、附檔、或對話中已用過工具的訊息，仍會用你選的模型",
+      "你選的就是 Haiku 或非 Anthropic 模型時，不會做任何改動",
+      "費用會依實際使用的模型計算，不會多收",
     ],
     showDialog: false,
   },
@@ -173,10 +182,9 @@ export const changelog: ChangelogEntry[] = [
     summary:
       "為主聊天 streamText 加上 per-model 的輸出 token 上限（Haiku / GPT-5 系列 4096、其他 8192），避免 AI 罕見的 runaway 生成把成本燒穿。觸頂時會 warn log 方便觀察。",
     items: [
-      "新增 MODEL_MAX_OUTPUT_TOKENS 表與 getDefaultMaxOutputTokens() helper",
-      "主 streamText 與工具用盡 fallback streamText 都套用上限",
-      'finishReason === "length" 時 console.warn 記錄 step / model / cap',
-      "generateConversationTitle 既有 30 tokens 上限不變",
+      "每個模型加上單次回應長度上限：Haiku / GPT-5 系列 4096 字單位，其他 8192",
+      "AI 罕見的失控生成不會再把費用一次燒爆",
+      "觸頂時系統會留下警告紀錄，方便事後觀察",
     ],
     showDialog: false,
   },
@@ -187,10 +195,11 @@ export const changelog: ChangelogEntry[] = [
     summary:
       "上傳文本附件時先估算 token：超過 32K 直接擋下並提示；介於 8K ~ 32K 預設自動截斷並在檔案標籤顯示 token 數，點一下可切換「截斷／完整送出」。圖片與二進位附件行為不變。",
     items: [
-      "新增 WARN_TOKENS=8_000、HARD_TOKENS=32_000 雙層閾值",
-      "CSV 走 csv-smart 截斷（保留 header + 前段 rows），其他文本走 head 截斷",
-      "截斷後 prompt 尾端附註「原始 X 行 / Y 字元，保留前 Z 行」",
-      "HARD 超標後端直接回 400 attachment_too_large，前端 toast 拒絕",
+      "上傳文字檔時先估算大小，超過上限（約 128KB 純文字）直接擋下並提示拆檔",
+      "介於中等大小（約 30KB 到 128KB）會預設自動截斷，檔案標籤上看得到 token 數",
+      "點一下檔案標籤可在「截斷」與「完整送出」之間切換",
+      "CSV 截斷會保留表頭與前段資料；其他文字檔截斷保留開頭",
+      "圖片與其他二進位附件不受影響",
     ],
     showDialog: false,
   },
@@ -201,10 +210,9 @@ export const changelog: ChangelogEntry[] = [
     summary:
       "Claude 模型對 system prompt 與 tool 定義加上顯式 cache 標記；OpenAI 與 Gemini 走 SDK 自動 / implicit caching。三家的 cache 命中都正確折算到費用統計，避免高估。",
     items: [
-      "Claude：system prompt 與最後一個 tool 加 cacheControl: ephemeral；cacheRead 以 0.1x、cacheWrite 以 1.25x 計",
-      "OpenAI：自動 caching（prompt ≥ 1024 tokens）；cacheRead 以 0.5x 計",
-      "Gemini：implicit caching（2.5 系列預設）；cacheRead 以 0.25x 計",
-      "TokenUsage log 新增 noCache / cacheRead / cacheWrite 欄位，便於觀察命中率",
+      "Claude、OpenAI、Gemini 三家的快取折扣都正確計入費用統計，不再高估",
+      "系統提示與工具定義會被自動快取，後續同一輪對話的相同 prompt 收費明顯下降",
+      "費用紀錄新增「快取命中」「快取寫入」欄位，方便看到實際省了多少",
     ],
     showDialog: false,
   },
