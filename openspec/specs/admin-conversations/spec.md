@@ -5,7 +5,7 @@ TBD - created by archiving change add-admin-conversations. Update Purpose after 
 ## Requirements
 ### Requirement: Admin Conversation List
 
-The system SHALL provide `/admin/conversations`, a server-rendered page listing all conversations across the platform, with search, filters, pagination, and per-conversation metrics (messages, token usage, estimated cost, deploy status, starred, deleted state).
+The system SHALL provide `/admin/conversations`, a server-rendered page listing all conversations across the platform, with search, filters, pagination, and per-conversation metrics (messages, token usage by kind, billed cost from `TokenUsage.costUsd`, deploy status, starred, deleted state).
 
 #### Scenario: Default listing
 
@@ -13,7 +13,22 @@ The system SHALL provide `/admin/conversations`, a server-rendered page listing 
 - WHEN the page renders
 - THEN conversations from all users appear, sorted by `updatedAt` descending
 - AND up to 20 rows are shown per page
-- AND each row displays title, user (name + email + avatar), model, message count, total tokens, estimated cost, starred icon, deploy-tool link if any, and delete badge if soft-deleted
+- AND each row displays title, user (name + email + avatar), model, message count, total tokens, billed cost, starred icon, deploy-tool link if any, and delete badge if soft-deleted
+
+#### Scenario: Cost reads from costUsd
+
+- GIVEN a conversation has rows in `TokenUsage` with various `costUsd` values
+- WHEN the list page renders the cost column for that conversation
+- THEN the displayed number equals `SUM(TokenUsage.costUsd)` for that conversation's messages
+- AND the page does NOT call `estimateCost()` at render time
+
+#### Scenario: Token display respects kind
+
+- GIVEN a conversation has 1 chat row (`inputTokens=1000`, `outputTokens=400`) and 1 audio row (`units=2`)
+- WHEN the list page renders the token column
+- THEN chat contribution shows as `1,400 tokens`
+- AND audio contribution shows as `2 分鐘`
+- AND the two are visually distinguishable rather than summed into one ambiguous number
 
 #### Scenario: Search by title or user
 
@@ -63,15 +78,16 @@ The system SHALL provide `/admin/conversations`, a server-rendered page listing 
 
 ### Requirement: Admin Conversation Viewer
 
-The system SHALL provide `/admin/conversations/[id]`, a read-only page showing one conversation's metadata and full message history.
+The system SHALL provide `/admin/conversations/[id]`, a read-only page showing one conversation's metadata and full message history, with cost data sourced from `TokenUsage.costUsd`.
 
 #### Scenario: Existing conversation
 
 - GIVEN a valid conversation id owned by some user
 - WHEN the admin visits `/admin/conversations/<id>`
-- THEN a header shows: user info, model, created/updated times, total messages, total tokens, estimated cost, deploy tool link if any
+- THEN a header shows: user info, model, created/updated times, total messages, token usage broken down by kind, billed cost from `SUM(TokenUsage.costUsd)`, deploy tool link if any
 - AND the message list shows every message in order (user / assistant / tool)
 - AND there is no input box or edit / delete controls
+- AND the displayed cost is NOT recomputed via `estimateCost()` at render time
 
 #### Scenario: Missing conversation
 

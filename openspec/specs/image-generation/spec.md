@@ -95,16 +95,18 @@ AI SHALL 能透過 `generateImage` tool 呼叫圖片生成。
 - AND 後端驗證 key 屬於該 user 後回傳
 
 ### Requirement: 計費記錄
-系統 SHALL 將圖片生成寫入 `TokenUsage`，沿用既有 schema。
+
+系統 SHALL 將圖片生成寫入 `TokenUsage`，採用 unified usage-tracking schema（`kind="image"`、`units = 圖片張數`），不再把張數塞進 `outputTokens`。
 
 #### Scenario: 寫入 TokenUsage
 - GIVEN 圖片生成成功
 - WHEN tool execute 結束前
 - THEN 建立一筆 `TokenUsage` 記錄
-- AND `model` 為 `imagen-4` 或 `gpt-image-1`
-- AND `inputTokens = 0`
-- AND `outputTokens = 1`（第一版固定 1 張）
-- AND `costUsd` 依 pricing 表計算
+- AND `kind = "image"`
+- AND `model` 為 `imagen-4` / `gpt-image-1` / `gemini-2.5-flash-image`
+- AND `units = 1`（第一版固定 1 張）
+- AND `inputTokens = 0`、`outputTokens = 0`、`totalTokens = 0`
+- AND `costUsd` 依 pricing 表計算（`imagePricing[model] * units`）
 
 #### Scenario: 生成失敗不計費
 - GIVEN 圖片生成失敗
