@@ -137,3 +137,168 @@ AI SHALL 能透過 `generateImage` tool 呼叫圖片生成。
 - WHEN 呼叫 upload endpoint
 - THEN 回傳 401 錯誤
 
+### Requirement: Vibe Coding Bridge Capability
+
+User-built tools running in the Vibe Coding sandbox SHALL be able to generate or edit images through the api-bridge as a platform capability (always allowed, same treatment as `llm`, `transcribe`, `scrape`).
+
+#### Scenario: Tool calls bridge.image.generate with text prompt
+
+- GIVEN a user-built tool calls `window.companyAPI.execute("image", "generate", { prompt: "a red apple", provider: "imagen", aspectRatio: "1:1" })`
+- WHEN the bridge dispatches the action
+- THEN the server calls `generateFromText` with the caller's userId
+- AND responds with `{ s3Key, presignedUrl, provider }` on success
+- AND the s3Key starts with `images/<callerUserId>/`
+
+#### Scenario: Tool calls bridge.image.edit with sourceImageKey
+
+- GIVEN a user-built tool calls `window.companyAPI.execute("image", "edit", { prompt: "make the apple green", sourceImageKey: "images/<userId>/abc.png", provider: "gpt-image" })`
+- WHEN the bridge dispatches
+- THEN the server calls `generateFromImage` with the source key and the caller's userId
+- AND responds with `{ s3Key, presignedUrl, provider }`
+
+#### Scenario: sourceImageKey ownership check
+
+- GIVEN the tool passes a `sourceImageKey` whose path does NOT start with `images/<callerUserId>/`
+- WHEN the bridge validates the params
+- THEN the bridge returns a 400-style error citing key ownership
+- AND no image generation or S3 read is performed
+
+#### Scenario: Missing prompt
+
+- GIVEN the tool calls either action without `prompt`
+- WHEN the bridge validates
+- THEN it returns a 400-style error stating that `prompt` is required
+
+#### Scenario: edit action missing sourceImageKey
+
+- GIVEN the tool calls `image.edit` without `sourceImageKey`
+- WHEN the bridge validates
+- THEN it returns a 400-style error stating that `sourceImageKey` is required for `edit`
+
+#### Scenario: Unknown action
+
+- GIVEN the tool calls `image` with action other than `generate` or `edit`
+- WHEN the bridge validates
+- THEN it returns a 400-style error citing the unknown action
+
+#### Scenario: image is treated as a platform capability
+
+- GIVEN `dataSourceId: "image"` is passed to `/api/bridge`
+- WHEN the route checks permissions
+- THEN the request is allowed without checking `tool.dataSources` (same treatment as `llm`, `transcribe`, `scrape`)
+
+#### Scenario: Quota-exceeded caller is blocked
+
+- GIVEN the caller's quota status is `"blocked"` at request time
+- WHEN the bridge dispatches `image.generate` or `image.edit`
+- THEN the bridge returns a 403 with `{ error: "quota_exceeded", quota }`
+- AND no image is generated or billed
+
+### Requirement: Bridge Billing
+
+The bridge image handler SHALL record usage in `TokenUsage` so it counts toward the caller's monthly quota, using the unified usage-tracking schema (`kind="image"`, `units = imageCount`).
+
+#### Scenario: Successful bridge image generation writes TokenUsage
+
+- GIVEN `bridge.image.generate` succeeds producing one image with `modelUsed = "imagen-4"`
+- WHEN the handler records usage
+- THEN a `TokenUsage` row is created with `kind = "image"`, `userId = caller`, `model = "imagen-4"`, `units = 1`
+- AND `inputTokens = 0`, `outputTokens = 0`, `totalTokens = 0`
+- AND `costUsd = imagePricing["imagen-4"] * 1`
+
+#### Scenario: Failed bridge image call does not bill
+
+- GIVEN `generateFromText` throws (provider error / quota issue / etc.)
+- WHEN the handler catches the error
+- THEN no `TokenUsage` row is created
+- AND the bridge returns a 500-style error carrying the upstream reason
+
+### Requirement: System Prompt Advertises Bridge Image
+
+The Vibe Coding system prompt SHALL include instructions describing `window.companyAPI.execute("image", ...)` whenever image generation is enabled in the current chat session, so the AI agent proactively designs runtime image features into the tools it builds.
+
+#### Scenario: Image enabled — instructions are injected
+
+- GIVEN the user has selected an image provider for the chat session (so `imageGenerationEnabled === true`)
+- WHEN the system prompt is assembled
+- THEN it contains an `IMAGE_BRIDGE_INSTRUCTIONS` block describing both `generate` and `edit` actions, alongside the existing agent-side `IMAGE_GENERATION_INSTRUCTIONS`
+
+#### Scenario: Image disabled — instructions are omitted
+
+- GIVEN `imageGenerationEnabled === false`
+- WHEN the system prompt is assembled
+- THEN the bridge image instructions block is NOT included
+- AND the AI agent does not propose runtime image features for that session
+
+### Requirement: Vibe Coding Bridge — Image Upload and Read
+
+User-built tools running in the Vibe Coding sandbox SHALL be able to upload images from end-user input and read back stored images via the api-bridge platform capability `image`, using actions `upload` and `read`.
+
+#### Scenario: Tool calls image.upload with base64 PNG
+
+- GIVEN a user-built tool calls `window.companyAPI.execute("image", "upload", { base64: "<png base64>", mimeType: "image/png" })`
+- WHEN the bridge dispatches
+- THEN the server decodes the base64, validates size and MIME, and uploads to S3 at `images/<callerUserId>/<uuid>.png`
+- AND responds with `{ s3Key, presignedUrl }` where `presignedUrl` expires in 1 hour
+- AND no `TokenUsage` row is created
+
+#### Scenario: image.upload accepts png, jpeg, webp only
+
+- GIVEN the tool calls `image.upload` with `mimeType` not in {`image/png`, `image/jpeg`, `image/webp`}
+- WHEN the bridge validates
+- THEN it returns a 415-style error citing the unsupported MIME
+
+#### Scenario: image.upload rejects files over 10MB
+
+- GIVEN the decoded base64 buffer exceeds 10 MB
+- WHEN the bridge validates
+- THEN it returns a 413-style error stating the size and 10MB limit
+- AND nothing is written to S3
+
+#### Scenario: image.upload missing base64 or mimeType
+
+- GIVEN the tool calls `image.upload` without `base64`, or without `mimeType`
+- WHEN the bridge validates
+- THEN it returns a 400-style error naming the missing field
+
+#### Scenario: image.upload result is reusable as sourceImageKey
+
+- GIVEN `image.upload` returned `{ s3Key: "images/<userId>/abc.png", presignedUrl }`
+- WHEN the tool subsequently calls `image.edit` passing `sourceImageKey: "images/<userId>/abc.png"`
+- THEN the edit proceeds (ownership check passes because the upload wrote to the caller's prefix)
+
+#### Scenario: image.read defaults to URL-only
+
+- GIVEN the tool calls `window.companyAPI.execute("image", "read", { s3Key: "images/<userId>/abc.png" })`
+- WHEN the bridge dispatches
+- THEN it returns `{ s3Key, presignedUrl }` only
+- AND it does NOT fetch the object body from S3
+- AND `base64` / `mimeType` are absent from the response
+
+#### Scenario: image.read with includeBytes returns base64 + mimeType
+
+- GIVEN the tool calls `image.read` with `includeBytes: true`
+- WHEN the bridge dispatches
+- THEN it fetches the buffer from S3
+- AND responds with `{ s3Key, presignedUrl, base64, mimeType }` where `mimeType` is derived from the file extension (`.png` → `image/png`, etc.)
+
+#### Scenario: image.read enforces ownership
+
+- GIVEN the tool calls `image.read` with `s3Key` whose path does NOT start with `images/<callerUserId>/`
+- WHEN the bridge validates
+- THEN it returns a 400-style error citing ownership
+- AND no S3 access is performed
+
+#### Scenario: image.read on missing key
+
+- GIVEN the tool calls `image.read` with `includeBytes: true` and an `s3Key` whose object does not exist in S3
+- WHEN the bridge tries to fetch the buffer
+- THEN it returns a 404-style error
+
+#### Scenario: image.read does not charge quota
+
+- GIVEN the caller is within their monthly quota
+- WHEN they call `image.read` any number of times
+- THEN no `TokenUsage` row is created
+- AND `getMonthlyUsage` is unchanged
+

@@ -14,6 +14,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.32.0",
+    date: "2026-05-14",
+    title: "工具能讓使用者產圖、上傳圖、讀圖",
+    summary:
+      "選了圖片模型之後，AI 幫你寫的工具可以在執行時呼叫圖片生成，也能讓使用者上傳照片再加工。Preview 出錯時也會顯示是哪一行，不再只說 Script error.。",
+    items: [
+      "工具可以呼叫 AI 即時產圖：在 chat 選好圖片模型後，AI 寫工具會主動加產圖功能",
+      "工具可以讓使用者上傳照片，再餵給 image edit 改成黑白 / 卡通 / 換背景等",
+      "工具可以讀回先前上傳或產生的圖片，presigned URL 過期了也能重新拿一張",
+      "Preview 出錯時會顯示是 SyntaxError / Runtime / UnhandledRejection、附行號與出錯行前後的程式碼，AI 接到後能精準修",
+    ],
+    showDialog: true,
+  },
+  {
     version: "v0.31.2",
     date: "2026-05-12",
     title: "WebinarJam 名單抓取修正、新對話會重置選單",
