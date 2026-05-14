@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.33.0",
+    date: "2026-05-14",
+    title: "工具可挾帶圖片素材、合成多張圖",
+    summary:
+      "作者拖進 chat 的圖會自動跟著工具一起部署，所有人跑工具時都能用，做浮水印 / 套相框 / 套模板這類工具不用再每個使用者重傳。圖片合成一次最多吃 4 張，可以做「人 + 背景」「使用者照片 + 工具 logo」之類的組合。",
+    items: [
+      "作者把 logo / 樣板 / 背景拖進 chat、AI 寫進工具裡，deploy 時系統自動把圖搬到工具自己的儲存空間，使用者跑工具就讀得到（過去：跨用戶會被擋）",
+      "image edit 接受最多 4 張參考圖（sourceImageKeys 陣列），方便做合成、套模板、人 + 物件等場景",
+      "AI 寫的工具現在會直接把 presignedUrl 放進 <img>，不會多繞一圈先 read bytes",
+    ],
+    showDialog: true,
+  },
+  {
     version: "v0.32.0",
     date: "2026-05-14",
     title: "工具能讓使用者產圖、上傳圖、讀圖",

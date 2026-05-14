@@ -2,6 +2,7 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  CopyObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getConfigRequired } from "@/lib/config";
@@ -35,6 +36,30 @@ export async function uploadImage(params: {
       Key: params.key,
       Body: params.buffer,
       ContentType: params.contentType,
+    })
+  );
+}
+
+/** Server-side copy within the same bucket. Used when promoting author-owned image keys to tool-asset namespace at deploy time. */
+export async function copyImage(params: {
+  fromKey: string;
+  toKey: string;
+  contentType?: string;
+}): Promise<void> {
+  const { client, bucket } = await getClientAndBucket();
+
+  await client.send(
+    new CopyObjectCommand({
+      Bucket: bucket,
+      // CopySource must be `bucket/key`, URL-encoded
+      CopySource: `${bucket}/${encodeURI(params.fromKey)}`,
+      Key: params.toKey,
+      ...(params.contentType
+        ? {
+            ContentType: params.contentType,
+            MetadataDirective: "REPLACE" as const,
+          }
+        : {}),
     })
   );
 }

@@ -78,7 +78,7 @@ describe("createImageTools / generateImage", () => {
 
     expect(mockGenerateFromImage).toHaveBeenCalledWith({
       prompt: "remove bg",
-      sourceImageKey: "images/u/src.png",
+      sourceImageKeys: ["images/u/src.png"],
       provider: "gpt-image",
       userId: "u",
     });

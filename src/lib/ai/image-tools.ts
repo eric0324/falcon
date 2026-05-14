@@ -31,7 +31,14 @@ export function createImageTools(ctx: {
           .string()
           .optional()
           .describe(
-            "S3 key of the user's uploaded source image. Only pass when doing image-to-image edit."
+            "S3 key of a single source image. Only pass when doing image-to-image edit with one reference. For multiple references, use sourceImageKeys instead."
+          ),
+        sourceImageKeys: z
+          .array(z.string())
+          .max(4)
+          .optional()
+          .describe(
+            "Up to 4 source image keys for multi-image edit (e.g. compose user photo + a template). When set, this wins over sourceImageKey."
           ),
         provider: z
           .enum(["imagen", "gpt-image"])
@@ -54,14 +61,19 @@ export function createImageTools(ctx: {
               "Currently only applied to the gpt-image provider; Imagen/Gemini ignore this."
           ),
       }),
-      execute: async ({ prompt, sourceImageKey, provider, aspectRatio, quality }) => {
+      execute: async ({ prompt, sourceImageKey, sourceImageKeys, provider, aspectRatio, quality }) => {
         const used: ImageProvider = provider ?? ctx.defaultProvider;
+        const keys = Array.isArray(sourceImageKeys) && sourceImageKeys.length > 0
+          ? sourceImageKeys
+          : sourceImageKey
+            ? [sourceImageKey]
+            : [];
 
         try {
-          const result = sourceImageKey
+          const result = keys.length > 0
             ? await generateFromImage({
                 prompt,
-                sourceImageKey,
+                sourceImageKeys: keys,
                 provider: used,
                 userId: ctx.userId,
                 aspectRatio: aspectRatio as AspectRatio | undefined,

@@ -4,12 +4,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockGetSession = vi.hoisted(() => vi.fn());
 const prismaMock = vi.hoisted(() => ({
   user: { findUnique: vi.fn() },
-  tool: { findMany: vi.fn(), create: vi.fn(), upsert: vi.fn() },
+  tool: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), upsert: vi.fn() },
   toolStats: { create: vi.fn() },
 }));
+const mockPromote = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/session", () => ({ getSession: mockGetSession }));
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
+vi.mock("@/lib/tool/asset-promote", () => ({
+  promoteAuthorAssets: (...args: unknown[]) => mockPromote(...args),
+}));
 
 import { GET, POST } from "./route";
 
@@ -53,7 +57,14 @@ describe("GET /api/tools", () => {
 });
 
 describe("POST /api/tools", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Default: no existing tool for the conversation; no assets to promote.
+    prismaMock.tool.findUnique.mockResolvedValue(null);
+    mockPromote.mockImplementation(
+      async ({ code }: { code: string }) => ({ rewrittenCode: code, promotedCount: 0 })
+    );
+  });
 
   it("returns 401 when not logged in", async () => {
     setLoggedOut();

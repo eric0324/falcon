@@ -83,24 +83,40 @@ export async function generateFromText(params: {
   };
 }
 
+export const MAX_SOURCE_IMAGES = 4;
+
 export async function generateFromImage(params: {
   prompt: string;
-  sourceImageKey: string;
+  sourceImageKeys: string[];
   provider: ImageProvider;
   userId: string;
   aspectRatio?: AspectRatio;
   quality?: ImageQuality;
 }): Promise<ImageGenerationResult> {
-  assertKeyOwnership(params.sourceImageKey, params.userId);
+  const keys = params.sourceImageKeys;
+  if (keys.length === 0) {
+    throw new Error("generateFromImage requires at least 1 sourceImageKey");
+  }
+  if (keys.length > MAX_SOURCE_IMAGES) {
+    throw new Error(
+      `generateFromImage accepts at most ${MAX_SOURCE_IMAGES} source images, got ${keys.length}`
+    );
+  }
 
-  const sourceBuffer = await getObjectBuffer({ key: params.sourceImageKey });
+  for (const key of keys) {
+    assertKeyOwnership(key, params.userId);
+  }
+
+  const sourceBuffers = await Promise.all(
+    keys.map((key) => getObjectBuffer({ key }))
+  );
 
   const outputBuffer =
     params.provider === "imagen"
-      ? await editWithGemini(params.prompt, sourceBuffer, params.aspectRatio)
+      ? await editWithGemini(params.prompt, sourceBuffers, params.aspectRatio)
       : await editWithOpenAI(
           params.prompt,
-          sourceBuffer,
+          sourceBuffers,
           params.aspectRatio,
           params.quality
         );
@@ -133,7 +149,7 @@ async function getTextModel(provider: ImageProvider) {
 
 async function editWithGemini(
   prompt: string,
-  sourceBuffer: Buffer,
+  sourceBuffers: Buffer[],
   aspectRatio?: AspectRatio
 ): Promise<Buffer> {
   const apiKey = await getConfigRequired("GOOGLE_GENERATIVE_AI_API_KEY");
@@ -142,25 +158,23 @@ async function editWithGemini(
   // Gemini 2.5 Flash Image doesn't take a structured size param — steer via prompt.
   const promptWithRatio = aspectRatio
     ? `${prompt}\n\nOutput aspect ratio: ${aspectRatio}.`
-    : `${prompt}\n\nPreserve the aspect ratio of the input image.`;
+    : `${prompt}\n\nPreserve the aspect ratio of the first image.`;
+
+  const parts: Array<
+    | { text: string }
+    | { inlineData: { mimeType: string; data: string } }
+  > = [{ text: promptWithRatio }];
+  for (const buf of sourceBuffers) {
+    parts.push({
+      inlineData: { mimeType: "image/png", data: buf.toString("base64") },
+    });
+  }
 
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      contents: [
-        {
-          parts: [
-            { text: promptWithRatio },
-            {
-              inlineData: {
-                mimeType: "image/png",
-                data: sourceBuffer.toString("base64"),
-              },
-            },
-          ],
-        },
-      ],
+      contents: [{ parts }],
       // Without this, the model replies with text describing the image
       // instead of generating a new image.
       generationConfig: {
@@ -193,7 +207,7 @@ async function editWithGemini(
 
 async function editWithOpenAI(
   prompt: string,
-  sourceBuffer: Buffer,
+  sourceBuffers: Buffer[],
   aspectRatio?: AspectRatio,
   quality?: ImageQuality
 ): Promise<Buffer> {
@@ -206,11 +220,16 @@ async function editWithOpenAI(
   form.append("size", aspectRatio ? OPENAI_EDIT_SIZE[aspectRatio] : "auto");
   if (quality) form.append("quality", quality);
   form.append("n", "1");
-  form.append(
-    "image",
-    new Blob([new Uint8Array(sourceBuffer)], { type: "image/png" }),
-    "source.png"
-  );
+  // gpt-image-1 multi-image edit: append the same `image[]` field for each
+  // reference. Single-image still works with the same key. Up to 16 supported
+  // upstream; we cap at 4 above to keep latency reasonable.
+  sourceBuffers.forEach((buf, i) => {
+    form.append(
+      "image[]",
+      new Blob([new Uint8Array(buf)], { type: "image/png" }),
+      `source-${i}.png`
+    );
+  });
 
   const response = await fetch("https://api.openai.com/v1/images/edits", {
     method: "POST",
@@ -237,9 +256,11 @@ function buildS3Key(userId: string): string {
 }
 
 function assertKeyOwnership(key: string, userId: string): void {
-  if (!key.startsWith(`images/${userId}/`)) {
-    throw new Error(
-      `Permission denied: source image key does not belong to user`
-    );
-  }
+  // Personal namespace: caller's own image
+  if (key.startsWith(`images/${userId}/`)) return;
+  // Tool-asset namespace: validated upstream by the bridge handler with
+  // tool-access check. This function only does a shape guard; the bridge
+  // is the authority on which tool the caller is currently invoking.
+  if (/^tools\/[^/]+\//.test(key)) return;
+  throw new Error(`Permission denied: source image key does not belong to user`);
 }

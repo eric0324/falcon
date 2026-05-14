@@ -135,7 +135,7 @@ describe("image-generation", () => {
       await expect(
         generateFromImage({
           prompt: "make it red",
-          sourceImageKey: "images/other-user/file.png",
+          sourceImageKeys: ["images/other-user/file.png"],
           provider: "imagen",
           userId: "user-1",
         })
@@ -164,7 +164,7 @@ describe("image-generation", () => {
 
       const result = await generateFromImage({
         prompt: "add a hat",
-        sourceImageKey: "images/user-1/src.png",
+        sourceImageKeys: ["images/user-1/src.png"],
         provider: "imagen",
         userId: "user-1",
       });
@@ -215,7 +215,7 @@ describe("image-generation", () => {
 
       const result = await generateFromImage({
         prompt: "remove background",
-        sourceImageKey: "images/user-5/src.png",
+        sourceImageKeys: ["images/user-5/src.png"],
         provider: "gpt-image",
         userId: "user-5",
       });
@@ -250,7 +250,7 @@ describe("image-generation", () => {
 
       await generateFromImage({
         prompt: "widescreen",
-        sourceImageKey: "images/u/src.png",
+        sourceImageKeys: ["images/u/src.png"],
         provider: "imagen",
         userId: "u",
         aspectRatio: "16:9",
@@ -272,7 +272,7 @@ describe("image-generation", () => {
 
       await generateFromImage({
         prompt: "widescreen",
-        sourceImageKey: "images/u/src.png",
+        sourceImageKeys: ["images/u/src.png"],
         provider: "gpt-image",
         userId: "u",
         aspectRatio: "16:9",
@@ -292,7 +292,7 @@ describe("image-generation", () => {
 
       await generateFromImage({
         prompt: "x",
-        sourceImageKey: "images/u/src.png",
+        sourceImageKeys: ["images/u/src.png"],
         provider: "gpt-image",
         userId: "u",
       });
@@ -313,7 +313,7 @@ describe("image-generation", () => {
 
       await generateFromImage({
         prompt: "x",
-        sourceImageKey: "images/u/src.png",
+        sourceImageKeys: ["images/u/src.png"],
         provider: "gpt-image",
         userId: "u",
         quality: "high",
@@ -336,7 +336,7 @@ describe("image-generation", () => {
       await expect(
         generateFromImage({
           prompt: "x",
-          sourceImageKey: "images/user-1/src.png",
+          sourceImageKeys: ["images/user-1/src.png"],
           provider: "gpt-image",
           userId: "user-1",
         })

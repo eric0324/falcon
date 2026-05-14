@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { runRuleScan } from "@/lib/code-scan/rules";
 import { scanOnDeploy } from "@/lib/code-scan";
+import { promoteAuthorAssets } from "@/lib/tool/asset-promote";
 
 async function getUserId(session: { user?: { email?: string | null } } | null) {
   if (!session?.user?.email) return null;
@@ -81,10 +82,25 @@ export async function POST(req: Request) {
       ? { allowedGroups: { set: allowedGroupIds.map((id: string) => ({ id })) } }
       : {};
 
+    // Determine the toolId BEFORE writing so we can promote image keys in `code`
+    // from the author's personal S3 namespace to `tools/<toolId>/...`. Without
+    // promotion, runtime image bridge calls would fail ownership check for any
+    // user other than the author.
+    let existingToolId: string | null = null;
+    if (conversationId) {
+      const existing = await prisma.tool.findUnique({
+        where: { conversationId },
+        select: { id: true },
+      });
+      existingToolId = existing?.id ?? null;
+    }
+    const toolId = existingToolId ?? crypto.randomUUID();
+    const { rewrittenCode } = await promoteAuthorAssets({ code, authorId: userId, toolId });
+
     const toolData = {
       name,
       description,
-      code,
+      code: rewrittenCode,
       category: category || null,
       tags: tags || [],
       visibility: visibility || "PRIVATE",
@@ -98,6 +114,7 @@ export async function POST(req: Request) {
       tool = await prisma.tool.upsert({
         where: { conversationId },
         create: {
+          id: toolId,
           ...toolData,
           authorId: userId,
           conversationId,
@@ -116,6 +133,7 @@ export async function POST(req: Request) {
     } else {
       tool = await prisma.tool.create({
         data: {
+          id: toolId,
           ...toolData,
           authorId: userId,
           ...(visibility === "GROUP" && Array.isArray(allowedGroupIds) && allowedGroupIds.length > 0

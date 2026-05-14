@@ -87,6 +87,7 @@ import { transcribeAudio } from "@/lib/integrations/openai-audio";
 import { generateFromText, generateFromImage, type ImageProvider, type AspectRatio, type ImageQuality } from "@/lib/ai/image-generation";
 import { uploadImage, getPresignedUrl, getObjectBuffer } from "@/lib/storage/s3";
 import { checkQuota } from "@/lib/quota";
+import { canUserAccessTool } from "@/lib/tool-visibility";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Params = Record<string, any>;
@@ -647,19 +648,62 @@ const EXT_TO_MIME: Record<string, string> = {
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
+/**
+ * Validate that an s3 image key is one the caller is allowed to read in the
+ * current request context. Two ownership classes:
+ *   - `images/<callerUserId>/...` — caller's own personal asset
+ *   - `tools/<requestToolId>/...` — asset bundled with the tool currently
+ *     being invoked (request must carry that toolId AND caller must have
+ *     access to that tool via the standard visibility rules)
+ * Anything else throws `BridgeError(400)`.
+ */
+async function assertImageKeyOwnership(
+  key: string,
+  callerUserId: string,
+  requestToolId: string | undefined
+): Promise<void> {
+  if (key.startsWith(`images/${callerUserId}/`)) return;
+
+  const toolMatch = key.match(/^tools\/([^/]+)\//);
+  if (toolMatch) {
+    const keyToolId = toolMatch[1];
+    if (!requestToolId || keyToolId !== requestToolId) {
+      throw new BridgeError(
+        `s3Key references tool ${keyToolId} but request is for ${requestToolId ?? "none"}`,
+        400
+      );
+    }
+    const tool = await prisma.tool.findUnique({
+      where: { id: keyToolId },
+      select: { id: true, authorId: true, visibility: true, status: true },
+    });
+    if (!tool) {
+      throw new BridgeError(`tool ${keyToolId} not found`, 400);
+    }
+    const ok = await canUserAccessTool(tool, callerUserId);
+    if (!ok) {
+      throw new BridgeError("caller has no access to this tool's assets", 400);
+    }
+    return;
+  }
+
+  throw new BridgeError("s3Key does not belong to caller", 400);
+}
+
 export async function handleImage(
   userId: string,
   action: string,
-  params: Params
+  params: Params,
+  toolId?: string
 ): Promise<unknown> {
   switch (action) {
     case "generate":
     case "edit":
-      return handleImageGenerate(userId, action, params);
+      return handleImageGenerate(userId, action, params, toolId);
     case "upload":
       return handleImageUpload(userId, params);
     case "read":
-      return handleImageRead(userId, params);
+      return handleImageRead(userId, params, toolId);
     default:
       throw new BridgeError(`Unknown image action: ${action}`, 400);
   }
@@ -668,7 +712,8 @@ export async function handleImage(
 async function handleImageGenerate(
   userId: string,
   action: "generate" | "edit",
-  params: Params
+  params: Params,
+  toolId: string | undefined
 ): Promise<{ s3Key: string; presignedUrl: string; provider: ImageProvider }> {
   const quota = await checkQuota(userId);
   if (quota.status === "blocked") {
@@ -678,9 +723,10 @@ async function handleImageGenerate(
     });
   }
 
-  const { prompt, sourceImageKey, provider, aspectRatio, quality } = params as {
+  const { prompt, sourceImageKey, sourceImageKeys, provider, aspectRatio, quality } = params as {
     prompt?: string;
     sourceImageKey?: string;
+    sourceImageKeys?: string[];
     provider?: ImageProvider;
     aspectRatio?: AspectRatio;
     quality?: ImageQuality;
@@ -695,18 +741,34 @@ async function handleImageGenerate(
 
   const result = action === "edit"
     ? await (async () => {
-        if (!sourceImageKey || typeof sourceImageKey !== "string") {
-          throw new BridgeError("image.edit requires sourceImageKey", 400);
-        }
-        if (!sourceImageKey.startsWith(`images/${userId}/`)) {
+        // Normalize legacy `sourceImageKey` (singular) into the array form.
+        // Array wins when both are provided.
+        const keys = Array.isArray(sourceImageKeys)
+          ? sourceImageKeys
+          : sourceImageKey && typeof sourceImageKey === "string"
+            ? [sourceImageKey]
+            : [];
+        if (keys.length === 0) {
           throw new BridgeError(
-            "sourceImageKey does not belong to caller",
+            "image.edit requires sourceImageKey or sourceImageKeys",
             400
           );
         }
+        if (keys.length > 4) {
+          throw new BridgeError(
+            `image.edit accepts at most 4 source images (got ${keys.length})`,
+            400
+          );
+        }
+        for (const k of keys) {
+          if (typeof k !== "string") {
+            throw new BridgeError("each sourceImageKey must be a string", 400);
+          }
+          await assertImageKeyOwnership(k, userId, toolId);
+        }
         return generateFromImage({
           prompt,
-          sourceImageKey,
+          sourceImageKeys: keys,
           provider: usedProvider,
           userId,
           ...(aspectRatio ? { aspectRatio } : {}),
@@ -796,16 +858,15 @@ async function handleImageUpload(
 
 async function handleImageRead(
   userId: string,
-  params: Params
+  params: Params,
+  toolId: string | undefined
 ): Promise<{ s3Key: string; presignedUrl: string; base64?: string; mimeType?: string }> {
   const { s3Key, includeBytes } = params as { s3Key?: string; includeBytes?: boolean };
 
   if (!s3Key || typeof s3Key !== "string") {
     throw new BridgeError("image.read requires s3Key", 400);
   }
-  if (!s3Key.startsWith(`images/${userId}/`)) {
-    throw new BridgeError("s3Key does not belong to caller", 400);
-  }
+  await assertImageKeyOwnership(s3Key, userId, toolId);
 
   const presignedUrl = await getPresignedUrl({ key: s3Key });
 
@@ -868,7 +929,7 @@ export async function dispatchBridge(
 
   // Image generation (platform capability — always allowed, billed per image)
   if (dataSourceId === "image") {
-    return handleImage(userId, action, params);
+    return handleImage(userId, action, params, context?.toolId);
   }
 
   // Simple prefix-to-handler mapping

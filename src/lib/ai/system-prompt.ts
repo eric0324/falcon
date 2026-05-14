@@ -565,12 +565,22 @@ const result = await window.companyAPI.execute("image", "generate", {
 });
 // result = { s3Key, presignedUrl, provider }
 
-// Image-to-image edit — sourceImageKey must belong to the current user
-// (s3 key starts with "images/<userId>/" — typically obtained from a prior generate)
+// Image-to-image edit (single source)
+// sourceImageKey must belong to the current user OR be a tool asset
+// (s3 key starts with "images/<userId>/" or "tools/<toolId>/")
 const edited = await window.companyAPI.execute("image", "edit", {
   prompt: "make the background pink",
   sourceImageKey: result.s3Key,
   provider: "gpt-image",
+});
+
+// Multi-source edit (compose multiple reference images)
+// Up to 4 keys. Each must pass the same ownership check as above.
+// Example: overlay a tool-bundled logo onto the user's photo
+const composed = await window.companyAPI.execute("image", "edit", {
+  prompt: "add the logo (second image) to the top-right corner of the photo (first image)",
+  sourceImageKeys: [userPhotoKey, logoKey],
+  provider: "imagen",   // Gemini handles multi-image well; gpt-image-1 also works
 });
 \`\`\`
 
@@ -578,7 +588,8 @@ Important:
 - Each call generates one image. There is no batch mode.
 - Generation takes 5-15 seconds — always show a loading state and disable the trigger button while waiting.
 - Use button-triggered actions only. Do NOT call this inside useEffect or in render loops — it costs real money.
-- Render the result via <img src={result.presignedUrl} />. Presigned URLs expire in 1 hour. For long-lived UIs, refresh via \`companyAPI.execute("image", "read", { s3Key })\` (see below).
+- Render the result via \`<img src={result.presignedUrl} />\`. Presigned URLs expire in 1 hour. For long-lived UIs, refresh via \`companyAPI.execute("image", "read", { s3Key })\` (see below).
+- **presignedUrl is a plain HTTPS URL** — use it directly in \`<img>\`, \`<canvas>\`, \`fetch()\`, etc. The S3 bucket has CORS open for GET, so client-side reads work. Do NOT pre-fetch bytes via \`image.read({ includeBytes: true })\` just to display the image — that doubles bandwidth.
 - Quota: if the caller is over their monthly quota, the call rejects with a 403. Surface the error gracefully.
 
 ### Letting the end user upload an image
@@ -609,6 +620,22 @@ async function onPickFile(file) {
 \`\`\`
 
 Limits: 10 MB after base64-decoding; PNG / JPEG / WebP only. Upload itself is NOT billed (no quota cost).
+
+### Tool-bundled images (assets)
+
+If the user (the tool author) drags an image into THIS chat and you reference its s3Key in the tool's code, that image is automatically copied to the tool's namespace (\`tools/<toolId>/images/...\`) when the tool deploys. Any end user running the tool can then read or edit it via \`companyAPI.execute("image", "read"/"edit", { s3Key })\` — there is no separate "upload as asset" step.
+
+So when the user says "use this logo / template / background", reference the s3Key from their attachment normally — the deploy machinery handles the rest:
+
+\`\`\`js
+// In tool code — the AUTHOR-uploaded image key here will become tools/<toolId>/images/...
+// after deploy, accessible to every end user.
+const TEMPLATE_KEY = "images/abc-123/template.png";
+const composed = await window.companyAPI.execute("image", "edit", {
+  prompt: "overlay the user photo onto this template",
+  sourceImageKey: TEMPLATE_KEY,
+});
+\`\`\`
 
 ### Reading or refreshing an existing image
 

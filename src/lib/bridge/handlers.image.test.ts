@@ -7,6 +7,8 @@ const mockTokenUsageCreate = vi.fn();
 const mockUploadImage = vi.fn();
 const mockGetPresignedUrl = vi.fn();
 const mockGetObjectBuffer = vi.fn();
+const mockToolFindUnique = vi.fn();
+const mockCanUserAccessTool = vi.fn();
 
 vi.mock("@/lib/ai/image-generation", () => ({
   generateFromText: (...args: unknown[]) => mockGenerateFromText(...args),
@@ -23,10 +25,17 @@ vi.mock("@/lib/quota", () => ({
   checkQuota: (...args: unknown[]) => mockCheckQuota(...args),
 }));
 
+vi.mock("@/lib/tool-visibility", () => ({
+  canUserAccessTool: (...args: unknown[]) => mockCanUserAccessTool(...args),
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     tokenUsage: {
       create: (...args: unknown[]) => mockTokenUsageCreate(...args),
+    },
+    tool: {
+      findUnique: (...args: unknown[]) => mockToolFindUnique(...args),
     },
     user: { findUnique: vi.fn() },
     toolTable: { findUnique: vi.fn(), findMany: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
@@ -51,6 +60,13 @@ beforeEach(() => {
   mockGetPresignedUrl.mockImplementation(({ key }: { key: string }) =>
     Promise.resolve(`https://signed.example/${key}`)
   );
+  mockToolFindUnique.mockResolvedValue({
+    id: "T1",
+    authorId: "author",
+    visibility: "PUBLIC",
+    status: "PUBLISHED",
+  });
+  mockCanUserAccessTool.mockResolvedValue(true);
 });
 
 describe("handleImage / generate", () => {
@@ -147,7 +163,7 @@ describe("handleImage / edit", () => {
 
     expect(mockGenerateFromImage).toHaveBeenCalledWith({
       prompt: "tweak",
-      sourceImageKey: `images/${USER_ID}/old.png`,
+      sourceImageKeys: [`images/${USER_ID}/old.png`],
       provider: "gpt-image",
       userId: USER_ID,
     });
@@ -352,5 +368,242 @@ describe("handleImage / read", () => {
     await handleImage(USER_ID, "read", { s3Key: KEY });
     expect(mockCheckQuota).not.toHaveBeenCalled();
     expect(mockTokenUsageCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe("handleImage / tool-asset ownership", () => {
+  const TOOL_ID = "T1";
+  const ASSET_KEY = `tools/${TOOL_ID}/images/logo.png`;
+  const OTHER_TOOL_KEY = `tools/T2/images/logo.png`;
+
+  describe("image.edit with tool-asset key", () => {
+    it("passes when request toolId matches and caller has access", async () => {
+      mockGenerateFromImage.mockResolvedValueOnce({
+        s3Key: `images/${USER_ID}/out.png`,
+        presignedUrl: "u",
+        provider: "imagen",
+        modelUsed: "gemini-2.5-flash-image",
+      });
+
+      await handleImage(
+        USER_ID,
+        "edit",
+        { prompt: "tweak", sourceImageKey: ASSET_KEY },
+        TOOL_ID
+      );
+
+      expect(mockCanUserAccessTool).toHaveBeenCalledWith(
+        expect.objectContaining({ id: TOOL_ID }),
+        USER_ID
+      );
+      expect(mockGenerateFromImage).toHaveBeenCalledWith(
+        expect.objectContaining({ sourceImageKeys: [ASSET_KEY] })
+      );
+    });
+
+    it("rejects when request toolId does not match the key's toolId", async () => {
+      await expect(
+        handleImage(
+          USER_ID,
+          "edit",
+          { prompt: "tweak", sourceImageKey: OTHER_TOOL_KEY },
+          TOOL_ID
+        )
+      ).rejects.toMatchObject({ name: "BridgeError", status: 400 });
+      expect(mockCanUserAccessTool).not.toHaveBeenCalled();
+      expect(mockGenerateFromImage).not.toHaveBeenCalled();
+    });
+
+    it("rejects when request has no toolId at all", async () => {
+      await expect(
+        handleImage(
+          USER_ID,
+          "edit",
+          { prompt: "tweak", sourceImageKey: ASSET_KEY },
+          undefined
+        )
+      ).rejects.toMatchObject({ name: "BridgeError", status: 400 });
+      expect(mockCanUserAccessTool).not.toHaveBeenCalled();
+    });
+
+    it("rejects when caller has no access to the tool", async () => {
+      mockCanUserAccessTool.mockResolvedValueOnce(false);
+
+      await expect(
+        handleImage(
+          USER_ID,
+          "edit",
+          { prompt: "tweak", sourceImageKey: ASSET_KEY },
+          TOOL_ID
+        )
+      ).rejects.toMatchObject({ name: "BridgeError", status: 400 });
+      expect(mockGenerateFromImage).not.toHaveBeenCalled();
+    });
+
+    it("rejects when the tool no longer exists", async () => {
+      mockToolFindUnique.mockResolvedValueOnce(null);
+
+      await expect(
+        handleImage(
+          USER_ID,
+          "edit",
+          { prompt: "tweak", sourceImageKey: ASSET_KEY },
+          TOOL_ID
+        )
+      ).rejects.toMatchObject({ name: "BridgeError", status: 400 });
+    });
+  });
+
+  describe("image.read with tool-asset key", () => {
+    it("passes when toolId matches and caller has access", async () => {
+      const r = (await handleImage(
+        USER_ID,
+        "read",
+        { s3Key: ASSET_KEY },
+        TOOL_ID
+      )) as { s3Key: string; presignedUrl: string };
+
+      expect(r.s3Key).toBe(ASSET_KEY);
+      expect(r.presignedUrl).toContain(ASSET_KEY);
+      expect(mockCanUserAccessTool).toHaveBeenCalledWith(
+        expect.objectContaining({ id: TOOL_ID }),
+        USER_ID
+      );
+    });
+
+    it("rejects when toolId mismatches", async () => {
+      await expect(
+        handleImage(USER_ID, "read", { s3Key: OTHER_TOOL_KEY }, TOOL_ID)
+      ).rejects.toMatchObject({ name: "BridgeError", status: 400 });
+    });
+
+    it("rejects when caller has no access", async () => {
+      mockCanUserAccessTool.mockResolvedValueOnce(false);
+      await expect(
+        handleImage(USER_ID, "read", { s3Key: ASSET_KEY }, TOOL_ID)
+      ).rejects.toMatchObject({ name: "BridgeError", status: 400 });
+    });
+  });
+});
+
+describe("handleImage / edit with sourceImageKeys array", () => {
+  beforeEach(() => {
+    mockGenerateFromImage.mockResolvedValue({
+      s3Key: `images/${USER_ID}/out.png`,
+      presignedUrl: "u",
+      provider: "imagen",
+      modelUsed: "gemini-2.5-flash-image",
+    });
+  });
+
+  it("passes a 2-key array to generateFromImage", async () => {
+    await handleImage(USER_ID, "edit", {
+      prompt: "compose",
+      sourceImageKeys: [
+        `images/${USER_ID}/a.png`,
+        `images/${USER_ID}/b.png`,
+      ],
+    });
+
+    expect(mockGenerateFromImage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceImageKeys: [
+          `images/${USER_ID}/a.png`,
+          `images/${USER_ID}/b.png`,
+        ],
+      })
+    );
+  });
+
+  it("array wins over singular when both are provided", async () => {
+    await handleImage(USER_ID, "edit", {
+      prompt: "compose",
+      sourceImageKey: `images/${USER_ID}/SINGLE.png`,
+      sourceImageKeys: [`images/${USER_ID}/A.png`, `images/${USER_ID}/B.png`],
+    });
+
+    expect(mockGenerateFromImage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceImageKeys: [`images/${USER_ID}/A.png`, `images/${USER_ID}/B.png`],
+      })
+    );
+  });
+
+  it("rejects empty array (and no singular key)", async () => {
+    await expect(
+      handleImage(USER_ID, "edit", { prompt: "x", sourceImageKeys: [] })
+    ).rejects.toMatchObject({ name: "BridgeError", status: 400 });
+    expect(mockGenerateFromImage).not.toHaveBeenCalled();
+  });
+
+  it("rejects arrays over 4 keys", async () => {
+    const keys = Array.from({ length: 5 }, (_, i) => `images/${USER_ID}/k${i}.png`);
+    await expect(
+      handleImage(USER_ID, "edit", { prompt: "x", sourceImageKeys: keys })
+    ).rejects.toMatchObject({ name: "BridgeError", status: 400 });
+    expect(mockGenerateFromImage).not.toHaveBeenCalled();
+  });
+
+  it("rejects entire call when any key fails ownership", async () => {
+    await expect(
+      handleImage(USER_ID, "edit", {
+        prompt: "x",
+        sourceImageKeys: [
+          `images/${USER_ID}/ok.png`,
+          "images/someone-else/bad.png",
+        ],
+      })
+    ).rejects.toMatchObject({ name: "BridgeError", status: 400 });
+    expect(mockGenerateFromImage).not.toHaveBeenCalled();
+  });
+
+  it("rejects when an array element is not a string", async () => {
+    await expect(
+      handleImage(USER_ID, "edit", {
+        prompt: "x",
+        sourceImageKeys: [`images/${USER_ID}/ok.png`, 42],
+      })
+    ).rejects.toMatchObject({ name: "BridgeError", status: 400 });
+    expect(mockGenerateFromImage).not.toHaveBeenCalled();
+  });
+
+  it("supports mixing personal and tool-asset keys with valid toolId", async () => {
+    const TOOL = "T1";
+    await handleImage(
+      USER_ID,
+      "edit",
+      {
+        prompt: "compose",
+        sourceImageKeys: [
+          `images/${USER_ID}/photo.png`,
+          `tools/${TOOL}/images/logo.png`,
+        ],
+      },
+      TOOL
+    );
+
+    expect(mockGenerateFromImage).toHaveBeenCalledTimes(1);
+    expect(mockGenerateFromImage.mock.calls[0][0].sourceImageKeys).toEqual([
+      `images/${USER_ID}/photo.png`,
+      `tools/${TOOL}/images/logo.png`,
+    ]);
+  });
+
+  it("bills once regardless of source count", async () => {
+    await handleImage(USER_ID, "edit", {
+      prompt: "x",
+      sourceImageKeys: [
+        `images/${USER_ID}/a.png`,
+        `images/${USER_ID}/b.png`,
+        `images/${USER_ID}/c.png`,
+        `images/${USER_ID}/d.png`,
+      ],
+    });
+
+    // Wait for the fire-and-forget tokenUsage create to resolve
+    await new Promise((r) => setImmediate(r));
+
+    expect(mockTokenUsageCreate).toHaveBeenCalledTimes(1);
+    expect(mockTokenUsageCreate.mock.calls[0][0].data.units).toBe(1);
   });
 });
