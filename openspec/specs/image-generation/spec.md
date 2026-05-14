@@ -26,20 +26,39 @@ TBD - created by archiving change add-image-generation. Update Purpose after arc
 - THEN 拋出可辨識的錯誤型別，包含 `reason`
 
 ### Requirement: 圖生圖
-系統 SHALL 能以使用者上傳的圖檔作為原圖，搭配 prompt 產生新圖。
 
-#### Scenario: 圖生圖成功
-- GIVEN `sourceImageKey` 指向 S3 中屬於該 user 的圖片
-- AND provider 支援 image-to-image
-- WHEN 呼叫 image-generation
-- THEN 從 S3 讀取原圖 buffer
-- AND 將原圖與 prompt 一併送入 provider
-- AND 新圖上傳 S3 並回傳 `{ s3Key, presignedUrl, provider }`
+系統 SHALL 提供圖生圖 API，輸入一張或多張 reference image + prompt，產出一張新 image。Reference 上限 4 張。
 
-#### Scenario: sourceImageKey 不屬於該 user
-- GIVEN `sourceImageKey` 對應的圖檔不屬於發起請求的 user
-- WHEN 呼叫 image-generation
-- THEN 拒絕執行並回報權限錯誤
+#### Scenario: 單張 reference（向後相容）
+- GIVEN 呼叫 `generateFromImage({ prompt, sourceImageKeys: ["images/u/a.png"], provider, userId })`
+- WHEN 處理
+- THEN 載入該張 image buffer，呼叫對應 provider edit API
+- AND 行為跟過去 `sourceImageKey: "images/u/a.png"` 完全一致
+
+#### Scenario: 多張 reference
+- GIVEN `sourceImageKeys` 含 2-4 張 key
+- WHEN 處理
+- THEN 系統依序載入每張 buffer
+- AND 對 Gemini：把多張 inlineData 一起放進 `contents[0].parts`、text part 在最前
+- AND 對 OpenAI gpt-image-1：用 FormData append 多次 image 欄位
+- AND 回傳一張產出的 image，沿用既有 s3Key 與 modelUsed 規則
+
+#### Scenario: 超過 4 張
+- GIVEN `sourceImageKeys.length > 4`
+- WHEN 驗證 params
+- THEN 拋出錯誤「最多 4 張 reference image」
+- AND 不呼叫 provider、不寫 TokenUsage
+
+#### Scenario: sourceImageKeys 空陣列
+- GIVEN `sourceImageKeys: []`
+- WHEN 驗證 params
+- THEN 拋出錯誤「至少需要 1 張 sourceImageKey」
+
+#### Scenario: 任一張 key 不通過 ownership 檢查
+- GIVEN 三張 key 中有一張不屬於 caller / 不屬於該 tool 的 asset
+- WHEN 驗證
+- THEN 整次 reject，回 400
+- AND 不載入任何 buffer、不呼叫 provider
 
 ### Requirement: Chat Tool
 AI SHALL 能透過 `generateImage` tool 呼叫圖片生成。
@@ -139,60 +158,57 @@ AI SHALL 能透過 `generateImage` tool 呼叫圖片生成。
 
 ### Requirement: Vibe Coding Bridge Capability
 
-User-built tools running in the Vibe Coding sandbox SHALL be able to generate or edit images through the api-bridge as a platform capability (always allowed, same treatment as `llm`, `transcribe`, `scrape`).
+User-built tools running in the Vibe Coding sandbox SHALL be able to generate or edit images through the api-bridge as a platform capability. The `edit` action SHALL accept either a single `sourceImageKey` (string) or a `sourceImageKeys` (string array) for multi-image edit, with the array capped at 4 entries.
 
-#### Scenario: Tool calls bridge.image.generate with text prompt
+#### Scenario: Tool calls bridge.image.edit with single sourceImageKey
 
-- GIVEN a user-built tool calls `window.companyAPI.execute("image", "generate", { prompt: "a red apple", provider: "imagen", aspectRatio: "1:1" })`
-- WHEN the bridge dispatches the action
-- THEN the server calls `generateFromText` with the caller's userId
-- AND responds with `{ s3Key, presignedUrl, provider }` on success
-- AND the s3Key starts with `images/<callerUserId>/`
-
-#### Scenario: Tool calls bridge.image.edit with sourceImageKey
-
-- GIVEN a user-built tool calls `window.companyAPI.execute("image", "edit", { prompt: "make the apple green", sourceImageKey: "images/<userId>/abc.png", provider: "gpt-image" })`
+- GIVEN a user-built tool calls `window.companyAPI.execute("image", "edit", { prompt: "make it green", sourceImageKey: "images/<callerUserId>/a.png" })`
 - WHEN the bridge dispatches
-- THEN the server calls `generateFromImage` with the source key and the caller's userId
-- AND responds with `{ s3Key, presignedUrl, provider }`
+- THEN the handler normalizes to `sourceImageKeys: ["images/<callerUserId>/a.png"]`
+- AND the edit proceeds as before
 
-#### Scenario: sourceImageKey ownership check
+#### Scenario: Tool calls bridge.image.edit with sourceImageKeys array
 
-- GIVEN the tool passes a `sourceImageKey` whose path does NOT start with `images/<callerUserId>/`
-- WHEN the bridge validates the params
-- THEN the bridge returns a 400-style error citing key ownership
-- AND no image generation or S3 read is performed
-
-#### Scenario: Missing prompt
-
-- GIVEN the tool calls either action without `prompt`
+- GIVEN a user-built tool calls `window.companyAPI.execute("image", "edit", { prompt: "merge user photo with template", sourceImageKeys: ["images/<callerUserId>/photo.png", "tools/<toolId>/images/template.png"] })`
 - WHEN the bridge validates
-- THEN it returns a 400-style error stating that `prompt` is required
+- THEN every key passes the ownership check (personal-namespace match OR tool-asset match)
+- AND `generateFromImage` is called with the array
+- AND the response is `{ s3Key, presignedUrl, provider }` for the single output
 
-#### Scenario: edit action missing sourceImageKey
+#### Scenario: sourceImageKeys and sourceImageKey both provided
 
-- GIVEN the tool calls `image.edit` without `sourceImageKey`
+- GIVEN the tool passes both `sourceImageKey: "k1"` and `sourceImageKeys: ["k2", "k3"]`
+- WHEN the bridge normalizes
+- THEN `sourceImageKeys` wins
+- AND `sourceImageKey` is ignored
+
+#### Scenario: sourceImageKeys empty
+
+- GIVEN the tool passes `sourceImageKeys: []` (and no `sourceImageKey`)
 - WHEN the bridge validates
-- THEN it returns a 400-style error stating that `sourceImageKey` is required for `edit`
+- THEN it returns a 400-style error stating that at least one source image is required
 
-#### Scenario: Unknown action
+#### Scenario: sourceImageKeys exceeds 4
 
-- GIVEN the tool calls `image` with action other than `generate` or `edit`
+- GIVEN the tool passes 5 keys in `sourceImageKeys`
 - WHEN the bridge validates
-- THEN it returns a 400-style error citing the unknown action
+- THEN it returns a 400-style error stating the 4-key maximum
+- AND no buffers are loaded
+- AND no provider call is made
 
-#### Scenario: image is treated as a platform capability
+#### Scenario: One key in sourceImageKeys fails ownership
 
-- GIVEN `dataSourceId: "image"` is passed to `/api/bridge`
-- WHEN the route checks permissions
-- THEN the request is allowed without checking `tool.dataSources` (same treatment as `llm`, `transcribe`, `scrape`)
+- GIVEN 3 keys: 2 valid for the caller, 1 owned by someone else
+- WHEN the bridge validates
+- THEN it returns a 400-style error citing the offending key
+- AND the call is fully rejected, not partially executed
 
-#### Scenario: Quota-exceeded caller is blocked
+#### Scenario: Billing still 1 image per edit call
 
-- GIVEN the caller's quota status is `"blocked"` at request time
-- WHEN the bridge dispatches `image.generate` or `image.edit`
-- THEN the bridge returns a 403 with `{ error: "quota_exceeded", quota }`
-- AND no image is generated or billed
+- GIVEN any successful `image.edit` with N source keys (1 ≤ N ≤ 4)
+- WHEN the call completes
+- THEN exactly one `TokenUsage` row is written with `units = 1` and `kind = "image"`
+- AND `costUsd` is determined by `imagePricing[modelUsed] * 1`, regardless of N
 
 ### Requirement: Bridge Billing
 
@@ -232,7 +248,7 @@ The Vibe Coding system prompt SHALL include instructions describing `window.comp
 
 ### Requirement: Vibe Coding Bridge — Image Upload and Read
 
-User-built tools running in the Vibe Coding sandbox SHALL be able to upload images from end-user input and read back stored images via the api-bridge platform capability `image`, using actions `upload` and `read`.
+User-built tools running in the Vibe Coding sandbox SHALL be able to upload images from end-user input and read back stored images via the api-bridge platform capability `image`, using actions `upload` and `read`. The `read` action SHALL accept keys belonging to either the caller's personal namespace OR the running tool's asset namespace under the same rules as `image.edit`.
 
 #### Scenario: Tool calls image.upload with base64 PNG
 
@@ -255,43 +271,45 @@ User-built tools running in the Vibe Coding sandbox SHALL be able to upload imag
 - THEN it returns a 413-style error stating the size and 10MB limit
 - AND nothing is written to S3
 
-#### Scenario: image.upload missing base64 or mimeType
+#### Scenario: image.upload always writes to caller's personal namespace
 
-- GIVEN the tool calls `image.upload` without `base64`, or without `mimeType`
+- GIVEN the request carries a `toolId`
+- WHEN `image.upload` is dispatched
+- THEN the key is still constructed as `images/<callerUserId>/<uuid>.<ext>` (NOT a tool asset)
+- AND the caller can later pass that key as `sourceImageKey` for `image.edit`
+
+#### Scenario: image.read accepts personal key
+
+- GIVEN the tool calls `image.read` with `s3Key: "images/<callerUserId>/abc.png"`
 - WHEN the bridge validates
-- THEN it returns a 400-style error naming the missing field
+- THEN ownership check passes
+- AND it returns `{ s3Key, presignedUrl }` (and base64/mimeType when `includeBytes: true`)
 
-#### Scenario: image.upload result is reusable as sourceImageKey
+#### Scenario: image.read accepts tool-asset key with valid toolId + access
 
-- GIVEN `image.upload` returned `{ s3Key: "images/<userId>/abc.png", presignedUrl }`
-- WHEN the tool subsequently calls `image.edit` passing `sourceImageKey: "images/<userId>/abc.png"`
-- THEN the edit proceeds (ownership check passes because the upload wrote to the caller's prefix)
-
-#### Scenario: image.read defaults to URL-only
-
-- GIVEN the tool calls `window.companyAPI.execute("image", "read", { s3Key: "images/<userId>/abc.png" })`
-- WHEN the bridge dispatches
-- THEN it returns `{ s3Key, presignedUrl }` only
-- AND it does NOT fetch the object body from S3
-- AND `base64` / `mimeType` are absent from the response
+- GIVEN the request carries `toolId: "T1"`
+- AND `s3Key: "tools/T1/images/template.png"`
+- AND the caller passes `canUserAccessTool("T1", callerUserId)`
+- WHEN the bridge validates
+- THEN ownership check passes
+- AND the read proceeds
 
 #### Scenario: image.read with includeBytes returns base64 + mimeType
 
-- GIVEN the tool calls `image.read` with `includeBytes: true`
+- GIVEN the tool calls `image.read` with `includeBytes: true` (and a valid key under either ownership rule)
 - WHEN the bridge dispatches
 - THEN it fetches the buffer from S3
-- AND responds with `{ s3Key, presignedUrl, base64, mimeType }` where `mimeType` is derived from the file extension (`.png` → `image/png`, etc.)
+- AND responds with `{ s3Key, presignedUrl, base64, mimeType }`
 
-#### Scenario: image.read enforces ownership
+#### Scenario: image.read rejects tool-asset key with mismatching toolId
 
-- GIVEN the tool calls `image.read` with `s3Key` whose path does NOT start with `images/<callerUserId>/`
+- GIVEN the request carries `toolId: "T1"` and `s3Key: "tools/T2/images/x.png"`
 - WHEN the bridge validates
-- THEN it returns a 400-style error citing ownership
-- AND no S3 access is performed
+- THEN it returns a 400-style error citing key/toolId mismatch
 
 #### Scenario: image.read on missing key
 
-- GIVEN the tool calls `image.read` with `includeBytes: true` and an `s3Key` whose object does not exist in S3
+- GIVEN the tool calls `image.read` with `includeBytes: true` and a valid-shape `s3Key` whose object does not exist in S3
 - WHEN the bridge tries to fetch the buffer
 - THEN it returns a 404-style error
 
