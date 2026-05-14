@@ -4,10 +4,19 @@ const mockGenerateFromText = vi.fn();
 const mockGenerateFromImage = vi.fn();
 const mockCheckQuota = vi.fn();
 const mockTokenUsageCreate = vi.fn();
+const mockUploadImage = vi.fn();
+const mockGetPresignedUrl = vi.fn();
+const mockGetObjectBuffer = vi.fn();
 
 vi.mock("@/lib/ai/image-generation", () => ({
   generateFromText: (...args: unknown[]) => mockGenerateFromText(...args),
   generateFromImage: (...args: unknown[]) => mockGenerateFromImage(...args),
+}));
+
+vi.mock("@/lib/storage/s3", () => ({
+  uploadImage: (...args: unknown[]) => mockUploadImage(...args),
+  getPresignedUrl: (...args: unknown[]) => mockGetPresignedUrl(...args),
+  getObjectBuffer: (...args: unknown[]) => mockGetObjectBuffer(...args),
 }));
 
 vi.mock("@/lib/quota", () => ({
@@ -38,6 +47,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockCheckQuota.mockResolvedValue({ status: "ok" });
   mockTokenUsageCreate.mockResolvedValue({});
+  mockUploadImage.mockResolvedValue(undefined);
+  mockGetPresignedUrl.mockImplementation(({ key }: { key: string }) =>
+    Promise.resolve(`https://signed.example/${key}`)
+  );
 });
 
 describe("handleImage / generate", () => {
@@ -197,6 +210,147 @@ describe("handleImage / common", () => {
       handleImage(USER_ID, "generate", { prompt: "x" })
     ).rejects.toThrow(/provider down/);
 
+    expect(mockTokenUsageCreate).not.toHaveBeenCalled();
+  });
+});
+
+// 1x1 transparent PNG (smallest valid PNG)
+const TINY_PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+
+describe("handleImage / upload", () => {
+  it("uploads PNG to images/<userId>/ and returns presigned URL", async () => {
+    const result = (await handleImage(USER_ID, "upload", {
+      base64: TINY_PNG_BASE64,
+      mimeType: "image/png",
+    })) as { s3Key: string; presignedUrl: string };
+
+    expect(mockUploadImage).toHaveBeenCalledTimes(1);
+    const call = mockUploadImage.mock.calls[0][0];
+    expect(call.key.startsWith(`images/${USER_ID}/`)).toBe(true);
+    expect(call.key.endsWith(".png")).toBe(true);
+    expect(call.contentType).toBe("image/png");
+    expect(Buffer.isBuffer(call.buffer)).toBe(true);
+    expect(result.s3Key).toBe(call.key);
+    expect(result.presignedUrl).toContain(call.key);
+    expect(mockTokenUsageCreate).not.toHaveBeenCalled();
+  });
+
+  it("uses .jpg extension for image/jpeg", async () => {
+    await handleImage(USER_ID, "upload", {
+      base64: TINY_PNG_BASE64,
+      mimeType: "image/jpeg",
+    });
+    expect(mockUploadImage.mock.calls[0][0].key.endsWith(".jpg")).toBe(true);
+  });
+
+  it("rejects missing base64", async () => {
+    await expect(
+      handleImage(USER_ID, "upload", { mimeType: "image/png" })
+    ).rejects.toMatchObject({ name: "BridgeError", status: 400 });
+    expect(mockUploadImage).not.toHaveBeenCalled();
+  });
+
+  it("rejects missing mimeType", async () => {
+    await expect(
+      handleImage(USER_ID, "upload", { base64: TINY_PNG_BASE64 })
+    ).rejects.toMatchObject({ name: "BridgeError", status: 400 });
+    expect(mockUploadImage).not.toHaveBeenCalled();
+  });
+
+  it("rejects unsupported MIME with 415", async () => {
+    await expect(
+      handleImage(USER_ID, "upload", {
+        base64: TINY_PNG_BASE64,
+        mimeType: "image/gif",
+      })
+    ).rejects.toMatchObject({ name: "BridgeError", status: 415 });
+    expect(mockUploadImage).not.toHaveBeenCalled();
+  });
+
+  it("rejects files over 10MB with 413", async () => {
+    const big = Buffer.alloc(11 * 1024 * 1024).toString("base64");
+    await expect(
+      handleImage(USER_ID, "upload", { base64: big, mimeType: "image/png" })
+    ).rejects.toMatchObject({ name: "BridgeError", status: 413 });
+    expect(mockUploadImage).not.toHaveBeenCalled();
+  });
+
+  it("does not check quota for upload", async () => {
+    await handleImage(USER_ID, "upload", {
+      base64: TINY_PNG_BASE64,
+      mimeType: "image/png",
+    });
+    expect(mockCheckQuota).not.toHaveBeenCalled();
+  });
+});
+
+describe("handleImage / read", () => {
+  const KEY = `images/${USER_ID}/abc.png`;
+
+  it("returns presignedUrl only by default", async () => {
+    const result = await handleImage(USER_ID, "read", { s3Key: KEY });
+
+    expect(result).toEqual({
+      s3Key: KEY,
+      presignedUrl: `https://signed.example/${KEY}`,
+    });
+    expect(mockGetObjectBuffer).not.toHaveBeenCalled();
+  });
+
+  it("returns base64 + mimeType when includeBytes=true", async () => {
+    mockGetObjectBuffer.mockResolvedValueOnce(Buffer.from("hello world"));
+
+    const result = (await handleImage(USER_ID, "read", {
+      s3Key: KEY,
+      includeBytes: true,
+    })) as { base64: string; mimeType: string };
+
+    expect(mockGetObjectBuffer).toHaveBeenCalledWith({ key: KEY });
+    expect(result.base64).toBe(Buffer.from("hello world").toString("base64"));
+    expect(result.mimeType).toBe("image/png");
+  });
+
+  it("derives mimeType from extension", async () => {
+    mockGetObjectBuffer.mockResolvedValue(Buffer.from(""));
+
+    const r1 = (await handleImage(USER_ID, "read", {
+      s3Key: `images/${USER_ID}/x.jpg`,
+      includeBytes: true,
+    })) as { mimeType: string };
+    expect(r1.mimeType).toBe("image/jpeg");
+
+    const r2 = (await handleImage(USER_ID, "read", {
+      s3Key: `images/${USER_ID}/x.webp`,
+      includeBytes: true,
+    })) as { mimeType: string };
+    expect(r2.mimeType).toBe("image/webp");
+  });
+
+  it("rejects s3Key not owned by caller", async () => {
+    await expect(
+      handleImage(USER_ID, "read", { s3Key: "images/someone-else/x.png" })
+    ).rejects.toMatchObject({ name: "BridgeError", status: 400 });
+    expect(mockGetPresignedUrl).not.toHaveBeenCalled();
+  });
+
+  it("rejects missing s3Key", async () => {
+    await expect(handleImage(USER_ID, "read", {})).rejects.toMatchObject({
+      name: "BridgeError",
+      status: 400,
+    });
+  });
+
+  it("maps NoSuchKey to 404", async () => {
+    mockGetObjectBuffer.mockRejectedValueOnce(new Error("NoSuchKey: blah"));
+    await expect(
+      handleImage(USER_ID, "read", { s3Key: KEY, includeBytes: true })
+    ).rejects.toMatchObject({ name: "BridgeError", status: 404 });
+  });
+
+  it("does not check quota or bill", async () => {
+    await handleImage(USER_ID, "read", { s3Key: KEY });
+    expect(mockCheckQuota).not.toHaveBeenCalled();
     expect(mockTokenUsageCreate).not.toHaveBeenCalled();
   });
 });

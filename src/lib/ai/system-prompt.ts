@@ -578,8 +578,52 @@ Important:
 - Each call generates one image. There is no batch mode.
 - Generation takes 5-15 seconds — always show a loading state and disable the trigger button while waiting.
 - Use button-triggered actions only. Do NOT call this inside useEffect or in render loops — it costs real money.
-- Render the result via <img src={result.presignedUrl} />. Presigned URLs expire in 1 hour; for long-lived UIs, refresh via \`/api/chat/presign-image?key=<s3Key>\`.
-- Quota: if the caller is over their monthly quota, the call rejects with a 403. Surface the error gracefully.`;
+- Render the result via <img src={result.presignedUrl} />. Presigned URLs expire in 1 hour. For long-lived UIs, refresh via \`companyAPI.execute("image", "read", { s3Key })\` (see below).
+- Quota: if the caller is over their monthly quota, the call rejects with a 403. Surface the error gracefully.
+
+### Letting the end user upload an image
+
+Tools that need user-supplied images call \`image.upload\`:
+
+\`\`\`js
+// Helper: convert a File from <input type="file"> to base64
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function onPickFile(file) {
+  const base64 = await fileToBase64(file);
+  const { s3Key, presignedUrl } = await window.companyAPI.execute("image", "upload", {
+    base64,
+    mimeType: file.type,    // must be image/png, image/jpeg, or image/webp
+  });
+  // Show the upload right away:
+  setImageUrl(presignedUrl);
+  // Then pass s3Key to image.edit, store it, etc.
+}
+\`\`\`
+
+Limits: 10 MB after base64-decoding; PNG / JPEG / WebP only. Upload itself is NOT billed (no quota cost).
+
+### Reading or refreshing an existing image
+
+\`\`\`js
+// Refresh a presigned URL (cheap, no S3 download)
+const { presignedUrl } = await window.companyAPI.execute("image", "read", { s3Key });
+
+// Get the bytes too (e.g. to re-encode or hash client-side)
+const { presignedUrl, base64, mimeType } = await window.companyAPI.execute("image", "read", {
+  s3Key,
+  includeBytes: true,
+});
+\`\`\`
+
+The s3Key must belong to the caller (path starts with \`images/<callerUserId>/\`). \`read\` is NOT billed.`;
 
 const SCRAPER_BRIDGE_INSTRUCTIONS = `
 

@@ -85,6 +85,7 @@ import { scrapeUrl } from "@/lib/scraper";
 import { handleToolDB } from "@/lib/bridge/tooldb-handler";
 import { transcribeAudio } from "@/lib/integrations/openai-audio";
 import { generateFromText, generateFromImage, type ImageProvider, type AspectRatio, type ImageQuality } from "@/lib/ai/image-generation";
+import { uploadImage, getPresignedUrl, getObjectBuffer } from "@/lib/storage/s3";
 import { checkQuota } from "@/lib/quota";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -631,15 +632,44 @@ async function handleTranscribe(
 
 // ===== Image Generation =====
 
+const IMAGE_MIME_TO_EXT: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+};
+
+const EXT_TO_MIME: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+};
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
 export async function handleImage(
   userId: string,
   action: string,
   params: Params
 ): Promise<unknown> {
-  if (action !== "generate" && action !== "edit") {
-    throw new BridgeError(`Unknown image action: ${action}`, 400);
+  switch (action) {
+    case "generate":
+    case "edit":
+      return handleImageGenerate(userId, action, params);
+    case "upload":
+      return handleImageUpload(userId, params);
+    case "read":
+      return handleImageRead(userId, params);
+    default:
+      throw new BridgeError(`Unknown image action: ${action}`, 400);
   }
+}
 
+async function handleImageGenerate(
+  userId: string,
+  action: "generate" | "edit",
+  params: Params
+): Promise<{ s3Key: string; presignedUrl: string; provider: ImageProvider }> {
   const quota = await checkQuota(userId);
   if (quota.status === "blocked") {
     throw new BridgeError("quota_exceeded", 403, {
@@ -718,6 +748,91 @@ export async function handleImage(
     s3Key: result.s3Key,
     presignedUrl: result.presignedUrl,
     provider: result.provider,
+  };
+}
+
+async function handleImageUpload(
+  userId: string,
+  params: Params
+): Promise<{ s3Key: string; presignedUrl: string }> {
+  const { base64, mimeType } = params as { base64?: string; mimeType?: string };
+
+  if (!base64 || typeof base64 !== "string") {
+    throw new BridgeError("image.upload requires base64", 400);
+  }
+  if (!mimeType || typeof mimeType !== "string") {
+    throw new BridgeError("image.upload requires mimeType", 400);
+  }
+  const ext = IMAGE_MIME_TO_EXT[mimeType];
+  if (!ext) {
+    throw new BridgeError(
+      `Unsupported mimeType: ${mimeType} (expected image/png, image/jpeg, or image/webp)`,
+      415
+    );
+  }
+
+  let buffer: Buffer;
+  try {
+    buffer = Buffer.from(base64, "base64");
+  } catch {
+    throw new BridgeError("image.upload base64 is malformed", 400);
+  }
+  if (buffer.byteLength === 0) {
+    throw new BridgeError("image.upload base64 decoded to 0 bytes", 400);
+  }
+  if (buffer.byteLength > MAX_UPLOAD_BYTES) {
+    throw new BridgeError(
+      `image too large: ${buffer.byteLength} bytes (max ${MAX_UPLOAD_BYTES})`,
+      413
+    );
+  }
+
+  const s3Key = `images/${userId}/${crypto.randomUUID()}.${ext}`;
+  await uploadImage({ buffer, key: s3Key, contentType: mimeType });
+  const presignedUrl = await getPresignedUrl({ key: s3Key });
+
+  return { s3Key, presignedUrl };
+}
+
+async function handleImageRead(
+  userId: string,
+  params: Params
+): Promise<{ s3Key: string; presignedUrl: string; base64?: string; mimeType?: string }> {
+  const { s3Key, includeBytes } = params as { s3Key?: string; includeBytes?: boolean };
+
+  if (!s3Key || typeof s3Key !== "string") {
+    throw new BridgeError("image.read requires s3Key", 400);
+  }
+  if (!s3Key.startsWith(`images/${userId}/`)) {
+    throw new BridgeError("s3Key does not belong to caller", 400);
+  }
+
+  const presignedUrl = await getPresignedUrl({ key: s3Key });
+
+  if (!includeBytes) {
+    return { s3Key, presignedUrl };
+  }
+
+  let buffer: Buffer;
+  try {
+    buffer = await getObjectBuffer({ key: s3Key });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/NoSuchKey|NotFound|404/i.test(msg)) {
+      throw new BridgeError(`image not found: ${s3Key}`, 404);
+    }
+    throw e;
+  }
+
+  const extMatch = s3Key.match(/\.([a-z0-9]+)$/i);
+  const ext = extMatch ? extMatch[1].toLowerCase() : "";
+  const mimeType = EXT_TO_MIME[ext] || "application/octet-stream";
+
+  return {
+    s3Key,
+    presignedUrl,
+    base64: buffer.toString("base64"),
+    mimeType,
   };
 }
 
