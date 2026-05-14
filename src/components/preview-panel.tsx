@@ -30,6 +30,45 @@ const DEFAULT_CODE = `export default function App() {
   );
 }`;
 
+interface PreviewErrorMessage {
+  kind?: "runtime" | "syntax" | "unhandledrejection";
+  message?: string;
+  source?: string;
+  lineno?: number;
+  colno?: number;
+  stack?: string;
+}
+
+/**
+ * Turn the raw error payload from the iframe into a user/AI-readable string
+ * that includes line number and a 3-line code snippet around the failure point.
+ */
+function formatPreviewError(payload: PreviewErrorMessage, sourceCode: string): string {
+  const kind = payload.kind ?? "runtime";
+  const label = kind === "syntax" ? "SyntaxError" : kind === "unhandledrejection" ? "UnhandledRejection" : "Error";
+  const msg = payload.message?.trim() || "(no message)";
+  const line = payload.lineno && payload.lineno > 0 ? payload.lineno : undefined;
+  const col = payload.colno && payload.colno > 0 ? payload.colno : undefined;
+  const loc = line ? ` (line ${line}${col ? `:${col}` : ""})` : "";
+
+  let snippet = "";
+  if (line && sourceCode) {
+    const lines = sourceCode.split("\n");
+    const start = Math.max(0, line - 2);
+    const end = Math.min(lines.length, line + 1);
+    snippet = lines
+      .slice(start, end)
+      .map((l, i) => {
+        const n = start + i + 1;
+        const marker = n === line ? ">" : " ";
+        return `${marker} ${String(n).padStart(3)} | ${l}`;
+      })
+      .join("\n");
+  }
+
+  return [`${label}: ${msg}${loc}`, snippet, payload.stack].filter(Boolean).join("\n\n");
+}
+
 function detectComponentName(code: string): string {
   const m = code.match(/export\s+default\s+function\s+([A-Z]\w*)/) ||
     code.match(/export\s+default\s+([A-Z]\w*)\s*;?\s*$/) ||
@@ -45,34 +84,83 @@ function buildPreviewHtml(code: string, apiClientCode?: string): string {
   if (componentName !== "App") cleanCode += `\nconst App = ${componentName};`;
 
   const apiScript = apiClientCode ? `<script>${apiClientCode}</script>` : "";
+  // Pass user code to the iframe as a JSON-escaped string so we can manually
+  // call Babel.transform() in try/catch and surface SyntaxError.loc properly.
+  const codeJson = JSON.stringify(cleanCode);
 
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    // Install error listeners FIRST so any later script errors are captured
+    // with full detail. \`crossorigin="anonymous"\` below allows the iframe
+    // to see real errors from CDN scripts instead of "Script error.".
+    function postError(payload) {
+      try { window.parent.postMessage(Object.assign({ type: 'preview-error' }, payload), '*'); } catch (_) {}
+    }
+    window.addEventListener('error', function(e) {
+      var stack = e.error && e.error.stack ? String(e.error.stack) : '';
+      postError({
+        kind: 'runtime',
+        message: e.message || String(e),
+        source: e.filename || '',
+        lineno: e.lineno || 0,
+        colno: e.colno || 0,
+        stack: stack,
+      });
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      var reason = e.reason;
+      var message = reason && reason.message ? reason.message : String(reason);
+      var stack = reason && reason.stack ? String(reason.stack) : '';
+      postError({ kind: 'unhandledrejection', message: message, stack: stack });
+    });
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>html, body, #root { margin: 0; padding: 0; min-height: 100%; }</style>
 </head>
 <body>
   <div id="root"></div>
   ${apiScript}
-  <script type="text/babel">
-    const { useState, useEffect, useCallback, useMemo, useRef, useReducer, useContext, createContext, Fragment } = React;
-
-    ${cleanCode}
-
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-    window.parent.postMessage({ type: 'preview-success' }, '*');
-  </script>
   <script>
-    window.onerror = (msg) => {
-      window.parent.postMessage({ type: 'preview-error', message: String(msg) }, '*');
-    };
+    (function() {
+      var USER_CODE = ${codeJson};
+      var preamble =
+        "const { useState, useEffect, useCallback, useMemo, useRef, useReducer, useContext, createContext, Fragment } = React;\\n";
+      var epilogue =
+        "\\nReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));\\n" +
+        "window.parent.postMessage({ type: 'preview-success' }, '*');";
+      try {
+        var out = Babel.transform(preamble + USER_CODE + epilogue, {
+          presets: ['react'],
+          filename: 'tool.jsx',
+        }).code;
+        try {
+          // Wrap in a function so internal errors propagate as runtime errors
+          // (caught by the window 'error' listener with proper lineno).
+          new Function(out)();
+        } catch (runErr) {
+          postError({
+            kind: 'runtime',
+            message: runErr && runErr.message ? runErr.message : String(runErr),
+            stack: runErr && runErr.stack ? String(runErr.stack) : '',
+          });
+        }
+      } catch (compileErr) {
+        var loc = compileErr && compileErr.loc;
+        postError({
+          kind: 'syntax',
+          message: compileErr && compileErr.message ? compileErr.message : String(compileErr),
+          lineno: loc && loc.line ? loc.line - 1 : 0, // -1 to skip preamble line
+          colno: loc && loc.column ? loc.column : 0,
+        });
+      }
+    })();
   </script>
 </body>
 </html>`;
@@ -91,8 +179,9 @@ export function PreviewPanel({ code, toolId, dataSources, error, fixDisabled, on
   const handleMessage = useCallback(
     async (event: MessageEvent) => {
       if (event.data?.type === "preview-error") {
-        setError(event.data.message);
-        onError?.(event.data.message);
+        const formatted = formatPreviewError(event.data, displayCode);
+        setError(formatted);
+        onError?.(formatted);
         return;
       }
       if (event.data?.type === "preview-success") {
@@ -152,7 +241,7 @@ export function PreviewPanel({ code, toolId, dataSources, error, fixDisabled, on
         }
       }
     },
-    [onError, hasDataSources, toolId, dataSources]
+    [onError, hasDataSources, toolId, dataSources, displayCode]
   );
 
   useEffect(() => {

@@ -18,39 +18,116 @@ function detectComponentName(code: string): string {
   return m?.[1] || "App";
 }
 
+interface ToolErrorMessage {
+  kind?: "runtime" | "syntax" | "unhandledrejection";
+  message?: string;
+  source?: string;
+  lineno?: number;
+  colno?: number;
+  stack?: string;
+}
+
+function formatToolError(payload: ToolErrorMessage, sourceCode: string): string {
+  const kind = payload.kind ?? "runtime";
+  const label = kind === "syntax" ? "SyntaxError" : kind === "unhandledrejection" ? "UnhandledRejection" : "Error";
+  const msg = payload.message?.trim() || "(no message)";
+  const line = payload.lineno && payload.lineno > 0 ? payload.lineno : undefined;
+  const col = payload.colno && payload.colno > 0 ? payload.colno : undefined;
+  const loc = line ? ` (line ${line}${col ? `:${col}` : ""})` : "";
+
+  let snippet = "";
+  if (line && sourceCode) {
+    const lines = sourceCode.split("\n");
+    const start = Math.max(0, line - 2);
+    const end = Math.min(lines.length, line + 1);
+    snippet = lines
+      .slice(start, end)
+      .map((l, i) => {
+        const n = start + i + 1;
+        const marker = n === line ? ">" : " ";
+        return `${marker} ${String(n).padStart(3)} | ${l}`;
+      })
+      .join("\n");
+  }
+
+  return [`${label}: ${msg}${loc}`, snippet].filter(Boolean).join("\n\n");
+}
+
 function buildToolHtml(code: string, apiClientCode: string): string {
   const componentName = detectComponentName(code);
   let cleanCode = code
     .replace(/^import\s+.*?from\s+['"][^'"]+['"];?\s*\n?/gm, "")
     .replace(/export\s+default\s+/, "");
   if (componentName !== "App") cleanCode += `\nconst App = ${componentName};`;
+  const codeJson = JSON.stringify(cleanCode);
 
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    function postError(payload) {
+      try { window.parent.postMessage(Object.assign({ type: 'tool-error' }, payload), '*'); } catch (_) {}
+    }
+    window.addEventListener('error', function(e) {
+      postError({
+        kind: 'runtime',
+        message: e.message || String(e),
+        source: e.filename || '',
+        lineno: e.lineno || 0,
+        colno: e.colno || 0,
+        stack: e.error && e.error.stack ? String(e.error.stack) : '',
+      });
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      var r = e.reason;
+      postError({
+        kind: 'unhandledrejection',
+        message: r && r.message ? r.message : String(r),
+        stack: r && r.stack ? String(r.stack) : '',
+      });
+    });
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>html, body, #root { margin: 0; padding: 0; min-height: 100%; }</style>
 </head>
 <body>
   <div id="root"></div>
   <script>${apiClientCode}</script>
-  <script type="text/babel">
-    const { useState, useEffect, useCallback, useMemo, useRef, useReducer, useContext, createContext, Fragment } = React;
-
-    ${cleanCode}
-
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-  </script>
   <script>
-    window.onerror = (msg) => {
-      window.parent.postMessage({ type: 'tool-error', message: String(msg) }, '*');
-    };
+    (function() {
+      var USER_CODE = ${codeJson};
+      var preamble =
+        "const { useState, useEffect, useCallback, useMemo, useRef, useReducer, useContext, createContext, Fragment } = React;\\n";
+      var epilogue =
+        "\\nReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));";
+      try {
+        var out = Babel.transform(preamble + USER_CODE + epilogue, {
+          presets: ['react'],
+          filename: 'tool.jsx',
+        }).code;
+        try { new Function(out)(); }
+        catch (runErr) {
+          postError({
+            kind: 'runtime',
+            message: runErr && runErr.message ? runErr.message : String(runErr),
+            stack: runErr && runErr.stack ? String(runErr.stack) : '',
+          });
+        }
+      } catch (compileErr) {
+        var loc = compileErr && compileErr.loc;
+        postError({
+          kind: 'syntax',
+          message: compileErr && compileErr.message ? compileErr.message : String(compileErr),
+          lineno: loc && loc.line ? loc.line - 1 : 0,
+          colno: loc && loc.column ? loc.column : 0,
+        });
+      }
+    })();
   </script>
 </body>
 </html>`;
@@ -68,7 +145,7 @@ export function ToolRunner({ code, toolId, dataSources }: ToolRunnerProps) {
   const handleMessage = useCallback(
     async (event: MessageEvent) => {
       if (event.data?.type === "tool-error") {
-        setError(event.data.message);
+        setError(formatToolError(event.data, code));
         return;
       }
 
@@ -119,7 +196,7 @@ export function ToolRunner({ code, toolId, dataSources }: ToolRunnerProps) {
         }
       }
     },
-    [toolId, dataSources, hasDataSources]
+    [toolId, dataSources, hasDataSources, code]
   );
 
   useEffect(() => {
