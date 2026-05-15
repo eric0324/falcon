@@ -530,7 +530,6 @@ export async function POST(req: Request) {
       imageGenerationEnabled: !!imageProviderChoice,
       volatileExtras,
     });
-    const systemPrompt = systemSegments.core + systemSegments.capabilities + systemSegments.volatile;
 
     // Truncate older tool results before re-sending to LLM. Recent 2 turns
     // stay byte-identical so the model can still cite raw data; older results
