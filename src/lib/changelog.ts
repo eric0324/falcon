@@ -14,6 +14,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.34.0",
+    date: "2026-05-15",
+    title: "首頁多『全部』入口、所有分類頁改分頁",
+    summary:
+      "首頁底部分類列最前面多一個『🌐 全部』按鈕，可以一次看遍公司所有工具不用挑分類。同時七個既有分類頁也改成分頁載入，初始 24 筆 + 載入更多，避免工具一多就卡 SSR。",
+    items: [
+      "首頁分類列 prepend『🌐 全部』，連到 /marketplace/category/all",
+      "所有分類頁（含全部）首批 SSR 24 筆，底下『載入更多』按鈕逐批補",
+      "載到底自動換成『已載入全部』靜態文字，載入失敗 toast 提示可重試",
+      "膠囊列在當前分類自動反白，跨分類切換不用回首頁",
+    ],
+    showDialog: true,
+  },
+  {
     version: "v0.33.2",
     date: "2026-05-15",
     title: "歷史 tool result 自動裁切",

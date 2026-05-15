@@ -24,6 +24,16 @@
     "topRated": "No rated tools yet. Be the first to review!",
     "mostUsed": "No tools have been used yet.",
     "rising": "No rising stars yet.",
-    "newest": "No tools yet. Create one now!"
+    "newest": "No tools yet. Create one now!",
+    "all": "No tools to display.",
+    "categoryTitle": "No tools in this category yet",
+    "categorySubtitle": "Be the first to publish a tool in this category!"
+  },
+  "pagination": {
+    "loadMore": "Load more",
+    "loading": "Loading...",
+    "endOfList": "All loaded",
+    "loadFailedTitle": "Load failed",
+    "loadFailedDescription": "Please try again later"
   }
 }

@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { buildVisibilityFilter } from "@/lib/tool-visibility";
 import { TOOL_CATEGORIES, getCategoryById } from "@/lib/categories";
 import { getFavoriteToolIds } from "@/lib/tool-favorites";
-import { MarketplaceToolCard } from "@/components/marketplace-tool-card";
+import { CategoryToolsGrid } from "@/components/category-tools-grid";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -15,8 +15,14 @@ interface CategoryPageProps {
   params: Promise<{ id: string }>;
 }
 
+const PAGE_SIZE = 24;
+
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
   const { id } = await params;
+  if (id === "all") {
+    const t = await getTranslations("categories");
+    return { title: `🌐 ${t("all")}` };
+  }
   const category = getCategoryById(id);
   if (!category) return { title: "分類" };
   const t = await getTranslations("categories");
@@ -31,17 +37,20 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     redirect("/login");
   }
 
-  const category = getCategoryById(categoryId);
-  if (!category) {
+  const isAll = categoryId === "all";
+  const category = isAll ? null : getCategoryById(categoryId);
+  if (!isAll && !category) {
     notFound();
   }
 
-  const [tools, favoriteIds] = await Promise.all([
+  const visibilityFilter = buildVisibilityFilter(session.user.id);
+  const where = isAll
+    ? visibilityFilter
+    : { category: categoryId, ...visibilityFilter };
+
+  const [tools, total, favoriteIds] = await Promise.all([
     prisma.tool.findMany({
-      where: {
-        category: categoryId,
-        ...buildVisibilityFilter(session.user.id),
-      },
+      where,
       include: {
         author: {
           select: { id: true, name: true, image: true },
@@ -49,7 +58,9 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         stats: true,
       },
       orderBy: { createdAt: "desc" },
+      take: PAGE_SIZE,
     }),
+    prisma.tool.count({ where }),
     getFavoriteToolIds(session.user.id),
   ]);
 
@@ -69,6 +80,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   });
 
   const tCategories = await getTranslations("categories");
+  const tCommon = await getTranslations("common");
 
   return (
     <div className="p-4 sm:p-6">
@@ -77,13 +89,24 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
           <Button variant="ghost" size="sm" asChild className="-ml-2">
             <Link href="/">
               <ArrowLeft className="h-4 w-4 mr-1" />
-              返回
+              {tCommon("back")}
             </Link>
           </Button>
         </div>
 
         {/* Categories */}
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+          <Link
+            href="/marketplace/category/all"
+            className={`flex items-center gap-1 px-3 py-1.5 border rounded-full text-sm whitespace-nowrap transition-colors ${
+              isAll
+                ? "bg-foreground text-background border-foreground"
+                : "hover:bg-muted"
+            }`}
+          >
+            <span>🌐</span>
+            <span>{tCategories("all")}</span>
+          </Link>
           {TOOL_CATEGORIES.map((c) => (
             <Link
               key={c.id}
@@ -100,23 +123,14 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
           ))}
         </div>
 
-        {/* Tools Grid */}
-        {tools.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {tools.map((tool) => (
-              <MarketplaceToolCard
-                key={tool.id}
-                tool={formatTool(tool)}
-                isFavorited={favoriteIds.has(tool.id)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16 text-muted-foreground">
-            <p className="text-lg mb-2">這個分類還沒有工具</p>
-            <p className="text-sm">成為第一個在此分類發布工具的人吧！</p>
-          </div>
-        )}
+        <CategoryToolsGrid
+          initialTools={tools.map(formatTool)}
+          initialHasMore={tools.length < total}
+          favoriteIds={favoriteIds}
+          category={isAll ? undefined : categoryId}
+          emptyTitleKey={isAll ? "all" : "categoryTitle"}
+          emptySubtitleKey={isAll ? undefined : "categorySubtitle"}
+        />
     </div>
   );
 }

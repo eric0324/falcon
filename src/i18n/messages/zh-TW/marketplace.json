@@ -24,6 +24,16 @@
     "topRated": "還沒有獲得評價的工具，快去評論吧！",
     "mostUsed": "還沒有被使用的工具。",
     "rising": "還沒有新星工具。",
-    "newest": "還沒有工具，快去建立一個吧！"
+    "newest": "還沒有工具，快去建立一個吧！",
+    "all": "目前沒有可顯示的工具",
+    "categoryTitle": "這個分類還沒有工具",
+    "categorySubtitle": "成為第一個在此分類發布工具的人吧！"
+  },
+  "pagination": {
+    "loadMore": "載入更多",
+    "loading": "載入中...",
+    "endOfList": "已載入全部",
+    "loadFailedTitle": "載入失敗",
+    "loadFailedDescription": "請稍後再試"
   }
 }

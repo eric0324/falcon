@@ -214,6 +214,13 @@ export default async function HomePage() {
       <section data-tour="marketplace-categories" className="mb-12">
         <div className="overflow-x-auto scrollbar-hide">
           <div className="flex sm:justify-center gap-3 pb-2">
+            <Link
+              href="/marketplace/category/all"
+              className="flex items-center gap-1.5 border rounded-full px-3 py-1.5 hover:bg-muted/50 hover:border-foreground/20 transition-colors whitespace-nowrap"
+            >
+              <span className="text-sm">🌐</span>
+              <span className="text-xs font-medium">{tCategories("all")}</span>
+            </Link>
             {TOOL_CATEGORIES.map((category) => (
               <Link
                 key={category.id}
