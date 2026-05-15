@@ -4,19 +4,54 @@ const EPHEMERAL = {
   anthropic: { cacheControl: { type: "ephemeral" as const } },
 };
 
-export type CacheableSystem =
-  | string
-  | {
-      role: "system";
-      content: string;
-      providerOptions: typeof EPHEMERAL;
-    };
+export type SystemSegments = {
+  core: string;
+  capabilities: string;
+  volatile: string;
+};
 
-export function cacheableSystem(text: string, modelId: ModelId): CacheableSystem {
-  if (!isAnthropicModel(modelId)) return text;
+type SystemMessage = {
+  role: "system";
+  content: string;
+  providerOptions?: typeof EPHEMERAL;
+};
+
+export type CacheableSystem = string | SystemMessage | SystemMessage[];
+
+function isSegments(input: string | SystemSegments): input is SystemSegments {
+  return typeof input === "object" && input !== null && "core" in input;
+}
+
+export function cacheableSystem(
+  input: string | SystemSegments,
+  modelId: ModelId
+): CacheableSystem {
+  if (isSegments(input)) {
+    const { core, capabilities, volatile } = input;
+
+    if (!isAnthropicModel(modelId)) {
+      // OpenAI / Gemini: concatenated string in stability order.
+      return [core, capabilities, volatile].filter(Boolean).join("");
+    }
+
+    // Anthropic: one SystemModelMessage per non-empty segment.
+    // The @ai-sdk/anthropic plugin merges consecutive system messages into a
+    // single API-level `system: [{type:"text", text, cache_control}, ...]`
+    // with one cache_control breakpoint per message's providerOptions.
+    const messages: SystemMessage[] = [];
+    if (core) messages.push({ role: "system", content: core, providerOptions: EPHEMERAL });
+    if (capabilities)
+      messages.push({ role: "system", content: capabilities, providerOptions: EPHEMERAL });
+    if (volatile) messages.push({ role: "system", content: volatile });
+
+    return messages;
+  }
+
+  // Legacy single-string signature
+  if (!isAnthropicModel(modelId)) return input;
   return {
     role: "system",
-    content: text,
+    content: input,
     providerOptions: EPHEMERAL,
   };
 }

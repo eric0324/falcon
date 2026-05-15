@@ -1057,11 +1057,24 @@ Only suggest sources from the list above.`;
  * selected an image provider — otherwise the instructions are omitted
  * to keep the model from suggesting generateImage.
  */
-export function buildSystemPrompt(
-  dataSources?: string[],
-  availableSources?: string[],
-  imageGenerationEnabled = false
-): string {
+export type SystemPromptSegments = {
+  /** Falcon identity + always-on bridges. Most stable; expected to hit prompt cache. */
+  core: string;
+  /** Selected dataSources + image + suggestions. Stable within a user session. */
+  capabilities: string;
+  /** Current time + per-request extras (memory recall, skill, currentToolCode, etc.). Not cached. */
+  volatile: string;
+};
+
+export interface BuildLayeredSystemPromptOptions {
+  dataSources?: string[];
+  availableSources?: string[];
+  imageGenerationEnabled?: boolean;
+  /** Per-request volatile content concatenated after Current Time. */
+  volatileExtras?: string;
+}
+
+function buildCurrentTimeBlock(): string {
   const now = new Date();
   const dateStr = now.toLocaleDateString("zh-TW", {
     year: "numeric",
@@ -1076,26 +1089,29 @@ export function buildSystemPrompt(
     hour12: false,
     timeZone: "Asia/Taipei",
   });
+  return `\n\n## Current Time\n現在是 ${dateStr} ${timeStr}（台北時間）。請根據此時間判斷「今天」「這週」「這個月」等相對時間。`;
+}
 
-  let prompt = BASE_PROMPT + `\n\n## Current Time\n現在是 ${dateStr} ${timeStr}（台北時間）。請根據此時間判斷「今天」「這週」「這個月」等相對時間。`;
+function buildCapabilitiesSegment(
+  dataSources?: string[],
+  availableSources?: string[],
+  imageGenerationEnabled = false
+): string {
+  let out = "";
 
   if (!dataSources || dataSources.length === 0) {
     if (availableSources && availableSources.length > 0) {
-      prompt += buildSuggestDataSourcesInstructions(availableSources);
+      out += buildSuggestDataSourcesInstructions(availableSources);
     } else {
-      prompt += NO_DATA_SOURCE_INSTRUCTIONS;
+      out += NO_DATA_SOURCE_INSTRUCTIONS;
     }
     if (imageGenerationEnabled) {
-      prompt += IMAGE_GENERATION_INSTRUCTIONS;
-      prompt += IMAGE_BRIDGE_INSTRUCTIONS;
+      out += IMAGE_GENERATION_INSTRUCTIONS;
+      out += IMAGE_BRIDGE_INSTRUCTIONS;
     }
-    prompt += LLM_BRIDGE_INSTRUCTIONS;
-    prompt += SCRAPER_BRIDGE_INSTRUCTIONS;
-    prompt += TOOLDB_INSTRUCTIONS;
-    return prompt;
+    return out;
   }
 
-  // Extract enabled Google services
   const enabledGoogleServices = dataSources
     .filter(ds => ds.startsWith("google_"))
     .map(ds => ds.replace("google_", ""));
@@ -1107,83 +1123,84 @@ export function buildSystemPrompt(
   const hasGA4 = dataSources.includes("ga4");
   const hasMetaAds = dataSources.includes("meta_ads");
   const hasGitHub = dataSources.includes("github");
-
-  // YouTube is handled separately from other Google services
   const hasYouTube = dataSources.includes("google_youtube");
   const googleServicesWithoutYouTube = enabledGoogleServices.filter(s => s !== "youtube");
 
   if (googleServicesWithoutYouTube.length > 0) {
-    prompt += buildGoogleInstructions(googleServicesWithoutYouTube);
+    out += buildGoogleInstructions(googleServicesWithoutYouTube);
+  }
+  if (hasYouTube) out += YOUTUBE_INSTRUCTIONS;
+  if (hasNotion) out += NOTION_INSTRUCTIONS;
+  if (hasSlack) out += SLACK_INSTRUCTIONS;
+  if (hasAsana) out += ASANA_INSTRUCTIONS;
+  if (hasPlausible) out += PLAUSIBLE_INSTRUCTIONS;
+  if (hasGA4) out += GA4_INSTRUCTIONS;
+  if (hasMetaAds) out += META_ADS_INSTRUCTIONS;
+  if (hasGitHub) out += GITHUB_INSTRUCTIONS;
+
+  if (dataSources.some(ds => ds.startsWith("extdb_"))) {
+    out += EXTERNAL_DB_INSTRUCTIONS;
+  }
+  if (dataSources.some(ds => ds.startsWith("kb_"))) {
+    out += KNOWLEDGE_BASE_INSTRUCTIONS;
   }
 
-  if (hasYouTube) {
-    prompt += YOUTUBE_INSTRUCTIONS;
-  }
+  out += buildCompanyApiInstructions(dataSources);
 
-  if (hasNotion) {
-    prompt += NOTION_INSTRUCTIONS;
-  }
-
-  if (hasSlack) {
-    prompt += SLACK_INSTRUCTIONS;
-  }
-
-  if (hasAsana) {
-    prompt += ASANA_INSTRUCTIONS;
-  }
-
-  if (hasPlausible) {
-    prompt += PLAUSIBLE_INSTRUCTIONS;
-  }
-
-  if (hasGA4) {
-    prompt += GA4_INSTRUCTIONS;
-  }
-
-  if (hasMetaAds) {
-    prompt += META_ADS_INSTRUCTIONS;
-  }
-
-  if (hasGitHub) {
-    prompt += GITHUB_INSTRUCTIONS;
-  }
-
-  // External databases
-  const hasExtDb = dataSources.some(ds => ds.startsWith("extdb_"));
-  if (hasExtDb) {
-    prompt += EXTERNAL_DB_INSTRUCTIONS;
-  }
-
-  // Knowledge bases
-  const hasKb = dataSources.some(ds => ds.startsWith("kb_"));
-  if (hasKb) {
-    prompt += KNOWLEDGE_BASE_INSTRUCTIONS;
-  }
-
-  // companyAPI instructions for tool building with live data
-  prompt += buildCompanyApiInstructions(dataSources);
-
-  // Suggest data sources for unselected but available services
   if (availableSources && availableSources.length > 0) {
-    prompt += buildSuggestDataSourcesInstructions(availableSources);
+    out += buildSuggestDataSourcesInstructions(availableSources);
   }
 
-  // Image generation — only when the user has selected a provider
   if (imageGenerationEnabled) {
-    prompt += IMAGE_GENERATION_INSTRUCTIONS;
-    prompt += IMAGE_BRIDGE_INSTRUCTIONS;
+    out += IMAGE_GENERATION_INSTRUCTIONS;
+    out += IMAGE_BRIDGE_INSTRUCTIONS;
   }
 
-  // LLM bridge — always available regardless of data source selection
-  prompt += LLM_BRIDGE_INSTRUCTIONS;
+  return out;
+}
 
-  // Web scraper — always available
-  prompt += SCRAPER_BRIDGE_INSTRUCTIONS;
+/**
+ * Build the system prompt as three ordered segments sorted by stability:
+ *   core → capabilities → volatile
+ *
+ * Stable segments (core, capabilities) are intended to be marked with
+ * Anthropic `cache_control: ephemeral` breakpoints by cacheableSystem(),
+ * and naturally land in the prefix region that OpenAI / Gemini cache
+ * implicitly.
+ */
+export function buildLayeredSystemPrompt(
+  opts: BuildLayeredSystemPromptOptions = {}
+): SystemPromptSegments {
+  const { dataSources, availableSources, imageGenerationEnabled = false, volatileExtras } = opts;
 
-  // Tool database — always available
-  prompt += TOOLDB_INSTRUCTIONS;
+  const core =
+    BASE_PROMPT +
+    LLM_BRIDGE_INSTRUCTIONS +
+    SCRAPER_BRIDGE_INSTRUCTIONS +
+    TOOLDB_INSTRUCTIONS;
 
-  return prompt;
+  const capabilities = buildCapabilitiesSegment(
+    dataSources,
+    availableSources,
+    imageGenerationEnabled
+  );
+
+  const volatile = buildCurrentTimeBlock() + (volatileExtras ?? "");
+
+  return { core, capabilities, volatile };
+}
+
+export function buildSystemPrompt(
+  dataSources?: string[],
+  availableSources?: string[],
+  imageGenerationEnabled = false
+): string {
+  const seg = buildLayeredSystemPrompt({
+    dataSources,
+    availableSources,
+    imageGenerationEnabled,
+  });
+  return seg.core + seg.capabilities + seg.volatile;
 }
 
 // For backwards compatibility

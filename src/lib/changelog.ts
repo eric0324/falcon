@@ -14,6 +14,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.33.1",
+    date: "2026-05-15",
+    title: "長對話 prompt cache 命中率提升",
+    summary:
+      "system prompt 拆成三段並按穩定度排序，Anthropic 多打兩個 cache breakpoint。資料源切換或時間流動時不會整段 cache miss，OpenAI / Gemini 的 prefix cache 也能吃到折扣。對使用者體感無變化，省的是 token 成本。",
+    items: [
+      "system prompt 拆 core / capabilities / volatile 三段，Current Time 從前段移到後段",
+      "Anthropic 模型：core + capabilities 各打一個 cache_control breakpoint（連同 tools 共 3 個，在 4 個上限內）",
+      "OpenAI / Gemini：穩定段落集中在 prompt prefix，提升自動 / implicit cache 命中",
+      "server log 加上 `system segments — core=N cap=N vol=N total=N`，方便觀察各段大小",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.33.0",
     date: "2026-05-14",
     title: "工具可攜帶圖片素材、合成多張圖",

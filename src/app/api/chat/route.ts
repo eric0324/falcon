@@ -27,7 +27,7 @@ import { createYouTubeTools } from "@/lib/ai/youtube-tools";
 import { createVimeoTools } from "@/lib/ai/vimeo-tools";
 import { createWebinarjamTools } from "@/lib/ai/webinarjam-tools";
 import { createExternalDbTools } from "@/lib/ai/external-db-tools";
-import { buildSystemPrompt } from "@/lib/ai/system-prompt";
+import { buildLayeredSystemPrompt } from "@/lib/ai/system-prompt";
 import { isNotionConfigured } from "@/lib/integrations/notion";
 import { isSlackConfigured } from "@/lib/integrations/slack";
 import { isAsanaConfigured } from "@/lib/integrations/asana";
@@ -498,33 +498,37 @@ export async function POST(req: Request) {
     const availableSources = integrationChecks
       .filter((id) => id !== null && !selectedSet.has(id)) as string[];
 
-    // Build dynamic system prompt based on selected data sources + available unselected
-    let systemPrompt = buildSystemPrompt(dataSources, availableSources, !!imageProviderChoice);
-
-    // Recall personal memories and inject into system prompt (best-effort, never blocks)
+    // Recall personal memories — folded into Volatile segment (per-request)
     const memoryRecall = await safeRecall(message, userId);
-    if (memoryRecall.promptText) {
-      systemPrompt += `\n\n${memoryRecall.promptText}`;
-    }
 
     // Fire explicit memory extraction in parallel — don't block stream
     const explicitMemoryPromise = processExplicitMemory(message, userId);
 
-    // Append skill prompt if provided
-    if (skillPrompt && typeof skillPrompt === "string") {
-      systemPrompt += `\n\n--- Skill ---\n${skillPrompt}`;
+    // Build the per-request volatile extras (memory, skill, currentCode, large-tool notice).
+    // These vary on every request and intentionally live outside the cached prefix.
+    let volatileExtras = "";
+    if (memoryRecall.promptText) {
+      volatileExtras += `\n\n${memoryRecall.promptText}`;
     }
-
-    // Inject current code so AI always knows the latest code when editing
+    if (skillPrompt && typeof skillPrompt === "string") {
+      volatileExtras += `\n\n--- Skill ---\n${skillPrompt}`;
+    }
     if (currentCode && typeof currentCode === "string") {
       const editGuidance = existingToolIsLarge
         ? `This tool is large (~${existingToolCodeTokens} tokens) — \`updateCode\` has been disabled. You **must** use \`editCode\` for every change. Even if the user asks to "rewrite" or "redesign", break the work into multiple sequential editCode calls instead of trying to regenerate the whole file.`
         : `You can see and modify this code. For small changes use \`editCode\`; only call \`updateCode\` when the user explicitly asks for a full rewrite.`;
-      systemPrompt += `\n\n## Current Tool Code\nThe user is editing an existing tool. Here is the current code:\n\`\`\`jsx\n${currentCode}\n\`\`\`\n${editGuidance}`;
+      volatileExtras += `\n\n## Current Tool Code\nThe user is editing an existing tool. Here is the current code:\n\`\`\`jsx\n${currentCode}\n\`\`\`\n${editGuidance}`;
     } else if (existingToolIsLarge) {
-      // currentCode 沒透過前端帶上來，但 DB 裡的工具仍然大 —— 提醒 AI updateCode 已停用
-      systemPrompt += `\n\n## Large Tool Notice\nThe current tool is large (~${existingToolCodeTokens} tokens); \`updateCode\` has been disabled. Use \`editCode\` for any modification, splitting big changes into multiple calls.`;
+      volatileExtras += `\n\n## Large Tool Notice\nThe current tool is large (~${existingToolCodeTokens} tokens); \`updateCode\` has been disabled. Use \`editCode\` for any modification, splitting big changes into multiple calls.`;
     }
+
+    const systemSegments = buildLayeredSystemPrompt({
+      dataSources,
+      availableSources,
+      imageGenerationEnabled: !!imageProviderChoice,
+      volatileExtras,
+    });
+    const systemPrompt = systemSegments.core + systemSegments.capabilities + systemSegments.volatile;
 
     // Process messages to include files and reconstruct tool call history
     const processedMessages: CoreMessage[] = [];
@@ -597,9 +601,17 @@ export async function POST(req: Request) {
     let messagesToSend = processedMessages;
 
     // Estimate overhead from system prompt + tool definitions
-    const systemTokens = estimateTokens(systemPrompt);
+    const segmentTokens = {
+      core: estimateTokens(systemSegments.core),
+      cap: estimateTokens(systemSegments.capabilities),
+      vol: estimateTokens(systemSegments.volatile),
+    };
+    const systemTokens = segmentTokens.core + segmentTokens.cap + segmentTokens.vol;
     const toolsTokens = estimateTokens(JSON.stringify(filteredTools));
     const promptOverhead = systemTokens + toolsTokens;
+    console.log(
+      `[Chat API] system segments — core=${segmentTokens.core} cap=${segmentTokens.cap} vol=${segmentTokens.vol} total=${systemTokens} / model=${modelName}`
+    );
 
     if (shouldCompact(processedMessages, modelName, promptOverhead)) {
       const messagesTokens = estimateMessagesTokens(processedMessages);
@@ -668,7 +680,7 @@ export async function POST(req: Request) {
 
           const result = streamText({
             model: selectedModel,
-            system: cacheableSystem(systemPrompt, modelName),
+            system: cacheableSystem(systemSegments, modelName),
             messages: currentMessages,
             tools: cacheableTools(filteredTools, modelName),
             maxOutputTokens: getDefaultMaxOutputTokens(modelName),
@@ -835,12 +847,15 @@ export async function POST(req: Request) {
         // If we exhausted all steps and the last step had tool calls,
         // do one final call WITHOUT tools to force a text response
         if (step >= MAX_STEPS) {
+          const finalSegments = {
+            ...systemSegments,
+            volatile:
+              systemSegments.volatile +
+              "\n\n（你已用完所有工具呼叫次數，請根據已取得的資料回答使用者。如果資訊不完整，告知使用者你找到了什麼，以及還需要什麼。）",
+          };
           const finalResult = streamText({
             model: selectedModel,
-            system: cacheableSystem(
-              systemPrompt + "\n\n（你已用完所有工具呼叫次數，請根據已取得的資料回答使用者。如果資訊不完整，告知使用者你找到了什麼，以及還需要什麼。）",
-              modelName
-            ),
+            system: cacheableSystem(finalSegments, modelName),
             messages: currentMessages,
             tools: {}, // no tools = force text response
             maxOutputTokens: getDefaultMaxOutputTokens(modelName),
