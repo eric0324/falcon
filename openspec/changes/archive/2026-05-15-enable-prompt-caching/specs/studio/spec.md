@@ -40,7 +40,7 @@ The system SHALL mark system prompt and tool definitions as cacheable when calli
 - THEN no cacheControl is attached
 - AND the request proceeds without errors
 
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Chat API Token Usage
 The system SHALL report token usage per chat request including cached-input breakdown for Anthropic models.
