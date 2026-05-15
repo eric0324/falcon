@@ -39,6 +39,7 @@ import { isVimeoConfigured } from "@/lib/integrations/vimeo";
 import { isWebinarjamConfigured } from "@/lib/integrations/webinarjam";
 import { createKnowledgeBaseTools } from "@/lib/ai/knowledge-base-tools";
 import { shouldCompact, estimateTokens, estimateMessagesTokens, trimMessagesToFit } from "@/lib/ai/token-utils";
+import { truncateHistoricalToolResultsWithStats } from "@/lib/ai/truncate-history";
 import { compactMessages } from "@/lib/ai/compact";
 import { cacheableSystem, cacheableTools } from "@/lib/ai/cache-control";
 import { estimateTokens as estimateTokenCount } from "@/lib/ai/token-utils";
@@ -55,6 +56,7 @@ import { getObjectBuffer } from "@/lib/storage/s3";
 import { audioPricing, estimateCost } from "@/lib/ai/models";
 import { prisma } from "@/lib/prisma";
 import { getMessages, appendMessages } from "@/lib/conversation-messages";
+import type { Message } from "@/types/message";
 import { checkQuota } from "@/lib/quota";
 import { logDataSourceCall, extractDataSourceInfo, sanitizeResponse } from "@/lib/data-source-log";
 
@@ -530,11 +532,27 @@ export async function POST(req: Request) {
     });
     const systemPrompt = systemSegments.core + systemSegments.capabilities + systemSegments.volatile;
 
+    // Truncate older tool results before re-sending to LLM. Recent 2 turns
+    // stay byte-identical so the model can still cite raw data; older results
+    // > 1000 tokens get a [TRUNCATED] marker. Saves significant input tokens
+    // in long conversations where the same large tool output would otherwise
+    // be re-sent on every step of the tool loop.
+    const { messages: trimmedHistory, stats: truncStats } =
+      truncateHistoricalToolResultsWithStats(messages as Message[], {
+        keepRecentTurns: 2,
+        maxResultTokens: 1000,
+      });
+    if (truncStats.truncatedCount > 0) {
+      console.log(
+        `[Chat API] historical tool results truncated: ${truncStats.truncatedCount} results, saved ≈${truncStats.tokensSaved} tokens`
+      );
+    }
+
     // Process messages to include files and reconstruct tool call history
     const processedMessages: CoreMessage[] = [];
-    for (let i = 0; i < messages.length; i++) {
-      const m = messages[i] as { role: string; content: string; toolCalls?: Array<{ id: string; name: string; args: Record<string, unknown>; result?: unknown }> };
-      const isLastUserMessage = i === messages.length - 1 && m.role === "user";
+    for (let i = 0; i < trimmedHistory.length; i++) {
+      const m = trimmedHistory[i] as { role: string; content: string; toolCalls?: Array<{ id: string; name: string; args: Record<string, unknown>; result?: unknown }> };
+      const isLastUserMessage = i === trimmedHistory.length - 1 && m.role === "user";
 
       if (m.role === "assistant" && m.toolCalls && m.toolCalls.length > 0) {
         // Reconstruct assistant message with tool calls in AI SDK format

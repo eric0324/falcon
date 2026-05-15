@@ -14,6 +14,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.33.2",
+    date: "2026-05-15",
+    title: "歷史 tool result 自動裁切",
+    summary:
+      "長對話每步都重發整包歷史，舊輪的大型 tool result（Slack search、Notion query 等）原封不動最貴。改成保留最近 2 輪完整、更舊的 result 超過 1000 tokens 才裁到 1000 並標示，DB 跟 UI 顯示都不動，純粹省送 LLM 的 input。",
+    items: [
+      "送 LLM 前，超過 1000 tokens 的歷史 tool result 自動裁到 1000 並附 [TRUNCATED] 標記",
+      "最近 2 個 user message 起的所有訊息保持完整，模型仍能精準引用",
+      "裁切只在記憶體層，DB 跟對話頁顯示都還是完整 raw",
+      "server log 加上 `historical tool results truncated: N results, saved ≈M tokens` 方便觀察",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.33.1",
     date: "2026-05-15",
     title: "長對話 prompt cache 命中率提升",
