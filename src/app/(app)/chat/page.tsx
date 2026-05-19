@@ -49,7 +49,6 @@ interface Message {
   content: string;
   toolCalls?: ToolCall[];
   attachments?: import("@/types/message").MessageAttachment[];
-  routing?: import("@/types/message").Message["routing"];
 }
 
 interface CompactInfo {
@@ -642,7 +641,6 @@ function StudioContent() {
       let buffer = "";
       let savedConvId = convId;
       let savedTitle: string | undefined;
-      let routing: Message["routing"] | undefined;
       const toolCallsMap = new Map<string, ToolCall>();
 
       if (reader) {
@@ -672,7 +670,6 @@ function StudioContent() {
                       {
                         ...lastMessage,
                         content: assistantMessage,
-                        ...(routing ? { routing } : {}),
                       },
                     ];
                   } else {
@@ -681,7 +678,6 @@ function StudioContent() {
                       {
                         role: "assistant",
                         content: assistantMessage,
-                        ...(routing ? { routing } : {}),
                       },
                     ];
                   }
@@ -771,24 +767,10 @@ function StudioContent() {
                 const info = data as {
                   conversationId: string;
                   title?: string;
-                  selectedModel?: string;
-                  actualModel?: string;
-                  modelRouteReason?: string;
                 };
                 if (info.conversationId && !savedConvId) {
                   savedConvId = info.conversationId;
                   if (info.title) savedTitle = info.title;
-                }
-                if (
-                  info.selectedModel &&
-                  info.actualModel &&
-                  info.selectedModel !== info.actualModel
-                ) {
-                  routing = {
-                    selectedModel: info.selectedModel,
-                    actualModel: info.actualModel,
-                    reason: info.modelRouteReason,
-                  };
                 }
                 break;
               }
@@ -842,7 +824,6 @@ function StudioContent() {
                   ...lastMessage,
                   content: assistantMessage,
                   toolCalls: Array.from(toolCallsMap.values()),
-                  ...(routing ? { routing } : {}),
                 },
               ];
             }
@@ -853,7 +834,6 @@ function StudioContent() {
                 role: "assistant" as const,
                 content: assistantMessage,
                 toolCalls: Array.from(toolCallsMap.values()),
-                ...(routing ? { routing } : {}),
               },
             ];
           });
