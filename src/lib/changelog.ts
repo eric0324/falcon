@@ -14,6 +14,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.34.2",
+    date: "2026-05-19",
+    title: "對話串流可中途停止",
+    summary:
+      "AI 回覆中送出按鈕會切換成停止按鈕，按下立刻中斷串流、保留已收到的內容。後端 streamText 也會同步收到取消訊號，沒跑完的回合不會繼續燒 token。",
+    items: [
+      "輸入框送出鈕在 AI 回覆途中切換為停止按鈕，按下立即中斷",
+      "中斷後已串流到的內容保留在對話中，不會跳錯誤 toast 也不會被清掉",
+      "後端 streamText 接收到 abort signal 就停止呼叫上游 LLM，省下未完成回合的 token",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.34.1",
     date: "2026-05-18",
     title: "Sheets / Gmail tool result 修剪",

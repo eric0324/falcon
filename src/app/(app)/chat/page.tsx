@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Send, Loader2, CornerDownLeft, ChevronDown, Star, Pencil, Trash2, PlugZap, X, Upload } from "lucide-react";
+import { Send, Loader2, Square, CornerDownLeft, ChevronDown, Star, Pencil, Trash2, PlugZap, X, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -49,6 +49,7 @@ interface Message {
   content: string;
   toolCalls?: ToolCall[];
   attachments?: import("@/types/message").MessageAttachment[];
+  routing?: import("@/types/message").Message["routing"];
 }
 
 interface CompactInfo {
@@ -641,6 +642,7 @@ function StudioContent() {
       let buffer = "";
       let savedConvId = convId;
       let savedTitle: string | undefined;
+      let routing: Message["routing"] | undefined;
       const toolCallsMap = new Map<string, ToolCall>();
 
       if (reader) {
@@ -667,10 +669,21 @@ function StudioContent() {
                   if (lastMessage?.role === "assistant") {
                     return [
                       ...prev.slice(0, -1),
-                      { ...lastMessage, content: assistantMessage },
+                      {
+                        ...lastMessage,
+                        content: assistantMessage,
+                        ...(routing ? { routing } : {}),
+                      },
                     ];
                   } else {
-                    return [...prev, { role: "assistant", content: assistantMessage }];
+                    return [
+                      ...prev,
+                      {
+                        role: "assistant",
+                        content: assistantMessage,
+                        ...(routing ? { routing } : {}),
+                      },
+                    ];
                   }
                 });
 
@@ -758,10 +771,24 @@ function StudioContent() {
                 const info = data as {
                   conversationId: string;
                   title?: string;
+                  selectedModel?: string;
+                  actualModel?: string;
+                  modelRouteReason?: string;
                 };
                 if (info.conversationId && !savedConvId) {
                   savedConvId = info.conversationId;
                   if (info.title) savedTitle = info.title;
+                }
+                if (
+                  info.selectedModel &&
+                  info.actualModel &&
+                  info.selectedModel !== info.actualModel
+                ) {
+                  routing = {
+                    selectedModel: info.selectedModel,
+                    actualModel: info.actualModel,
+                    reason: info.modelRouteReason,
+                  };
                 }
                 break;
               }
@@ -811,11 +838,24 @@ function StudioContent() {
             if (lastMessage?.role === "assistant") {
               return [
                 ...prev.slice(0, -1),
-                { ...lastMessage, content: assistantMessage, toolCalls: Array.from(toolCallsMap.values()) },
+                {
+                  ...lastMessage,
+                  content: assistantMessage,
+                  toolCalls: Array.from(toolCallsMap.values()),
+                  ...(routing ? { routing } : {}),
+                },
               ];
             }
             // AI only responded with tool calls, no text — still add assistant message
-            return [...prev, { role: "assistant" as const, content: assistantMessage, toolCalls: Array.from(toolCallsMap.values()) }];
+            return [
+              ...prev,
+              {
+                role: "assistant" as const,
+                content: assistantMessage,
+                toolCalls: Array.from(toolCallsMap.values()),
+                ...(routing ? { routing } : {}),
+              },
+            ];
           });
         }
       }
@@ -826,18 +866,27 @@ function StudioContent() {
         if (savedTitle) setConvTitle(savedTitle);
         window.history.replaceState(null, "", `/chat?id=${savedConvId}`);
       }
-    } catch {
-      toast({
-        title: t("toast.error"),
-        description: t("toast.responseError"),
-        variant: "destructive",
-      });
-      setMessages((prev) => prev.slice(0, -1));
+    } catch (err) {
+      // User-initiated abort: keep messages, no error toast
+      const aborted = err instanceof Error && err.name === "AbortError";
+      if (!aborted) {
+        toast({
+          title: t("toast.error"),
+          description: t("toast.responseError"),
+          variant: "destructive",
+        });
+        setMessages((prev) => prev.slice(0, -1));
+      }
     } finally {
       setIsLoading(false);
       setCurrentToolCalls([]);
       isSubmittingRef.current = false;
+      abortControllerRef.current = null;
     }
+  };
+
+  const handleStop = () => {
+    abortControllerRef.current?.abort();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -1293,18 +1342,27 @@ function StudioContent() {
                   className="min-h-[80px] pr-12 resize-none"
                   disabled={isQuotaBlocked}
                 />
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="absolute bottom-2 right-2"
-                  disabled={!input.trim() || isLoading || isQuotaBlocked}
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
+                {isLoading ? (
+                  <Button
+                    type="button"
+                    size="icon"
+                    onClick={handleStop}
+                    className="absolute bottom-2 right-2"
+                    aria-label={t("input.stop")}
+                    title={t("input.stop")}
+                  >
+                    <Square className="h-4 w-4 fill-current" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    size="icon"
+                    className="absolute bottom-2 right-2"
+                    disabled={!input.trim() || isQuotaBlocked}
+                  >
                     <Send className="h-4 w-4" />
-                  )}
-                </Button>
+                  </Button>
+                )}
               </div>
 
               {/* Toolbar */}

@@ -701,6 +701,7 @@ export async function POST(req: Request) {
             messages: currentMessages,
             tools: cacheableTools(filteredTools, modelName),
             maxOutputTokens: getDefaultMaxOutputTokens(modelName),
+            abortSignal: req.signal,
           });
 
           let hasToolCalls = false;
@@ -876,6 +877,7 @@ export async function POST(req: Request) {
             messages: currentMessages,
             tools: {}, // no tools = force text response
             maxOutputTokens: getDefaultMaxOutputTokens(modelName),
+            abortSignal: req.signal,
           });
 
           for await (const part of finalResult.fullStream) {

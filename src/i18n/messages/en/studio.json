@@ -9,7 +9,8 @@
   },
   "input": {
     "placeholder": "Ask something, or describe the feature you want...",
-    "enterToSend": "Enter to send"
+    "enterToSend": "Enter to send",
+    "stop": "Stop generating"
   },
   "thinking": "Thinking...",
   "editTitle": "Edit Title",
