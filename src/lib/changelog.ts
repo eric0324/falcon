@@ -257,21 +257,6 @@ export const changelog: ChangelogEntry[] = [
     showDialog: false,
   },
   {
-    version: "v0.27.4",
-    date: "2026-04-21",
-    title: "簡單問題自動改用 Haiku 回答",
-    summary:
-      "你選了 Opus / Sonnet 但只問了一句簡單問題時，系統會自動改用 Haiku 回應、在回覆下方標示「自動改用 Haiku」。牽涉到寫程式、分析報告、附檔或對話中已呼叫過工具的訊息，還是會用你選的模型。",
-    items: [
-      "你選了 Opus / Sonnet 但訊息很短、沒附檔、沒涉及程式 / 分析 / 設計類關鍵字時，系統會自動改用 Haiku 回答",
-      "改用後會在回覆下方顯示「自動改用 Haiku」標籤，提示這次沒用你原本選的模型",
-      "牽涉到寫程式、分析報告、附檔、或對話中已用過工具的訊息，仍會用你選的模型",
-      "你選的就是 Haiku 或非 Anthropic 模型時，不會做任何改動",
-      "費用會依實際使用的模型計算，不會多收",
-    ],
-    showDialog: false,
-  },
-  {
     version: "v0.27.3",
     date: "2026-04-20",
     title: "主聊天輸出 token 防呆",
