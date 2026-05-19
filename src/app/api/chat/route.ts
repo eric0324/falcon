@@ -43,7 +43,6 @@ import { truncateHistoricalToolResultsWithStats } from "@/lib/ai/truncate-histor
 import { compactMessages } from "@/lib/ai/compact";
 import { cacheableSystem, cacheableTools } from "@/lib/ai/cache-control";
 import { estimateTokens as estimateTokenCount } from "@/lib/ai/token-utils";
-import { getModelRoutingDecision } from "@/lib/ai/route-model";
 import { classifyAttachmentSize, HARD_TOKENS, WARN_TOKENS } from "@/lib/attachments/limits";
 import { truncateHead, truncateCsvSmart } from "@/lib/attachments/text-truncate";
 import { generateConversationTitle } from "@/lib/ai/generate-title";
@@ -329,25 +328,7 @@ export async function POST(req: Request) {
       conversationId = conv.id;
     }
 
-    const hasFiles =
-      (Array.isArray(files) && files.length > 0) ||
-      attachments.length > 0 ||
-      uploadedKeys.length > 0;
-    const hasToolHistory = historyMessages.some(
-      (m) => Array.isArray(m.toolCalls) && m.toolCalls.length > 0
-    );
-    const modelRouting = getModelRoutingDecision({
-      userMessage: message,
-      selectedModel: selectedModelName,
-      hasFiles,
-      hasToolHistory,
-    });
-    const modelName = modelRouting.model;
-    if (modelRouting.routed) {
-      console.log(
-        `[Chat API] model routed: ${selectedModelName} -> ${modelName} (${modelRouting.reason})`
-      );
-    }
+    const modelName = selectedModelName;
     const selectedModel = await getModel(modelName);
 
     // Build messages array: history + new user message.
@@ -701,13 +682,6 @@ export async function POST(req: Request) {
             `i:${JSON.stringify({
               conversationId,
               title: generatedTitle,
-              ...(modelRouting.routed
-                ? {
-                    selectedModel: selectedModelName,
-                    actualModel: modelName,
-                    modelRouteReason: modelRouting.reason,
-                  }
-                : {}),
             })}\n`
           );
         }

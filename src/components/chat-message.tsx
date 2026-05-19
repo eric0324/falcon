@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Check, Copy, Loader2, Zap } from "lucide-react";
+import { Check, Copy, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { getFileIcon } from "@/components/file-upload";
-import type { MessageAttachment, Message as ChatMessageType } from "@/types/message";
+import type { MessageAttachment } from "@/types/message";
 
 interface ToolCallInfo {
   name: string;
@@ -18,7 +18,6 @@ interface ChatMessageProps {
     role: "user" | "assistant";
     content: string;
     attachments?: MessageAttachment[];
-    routing?: ChatMessageType["routing"];
   };
   isStreaming?: boolean;
   toolCalls?: ToolCallInfo[];
@@ -146,18 +145,6 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function RoutingBadge({ routing }: { routing: NonNullable<ChatMessageType["routing"]> }) {
-  return (
-    <div
-      className="inline-flex items-center gap-1.5 mt-2 px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 text-xs font-medium border border-emerald-200 dark:border-emerald-900"
-      title={`原選 ${routing.selectedModel}，此回答實際使用 ${routing.actualModel}。`}
-    >
-      <Zap className="h-3 w-3" />
-      自動改用 Haiku
-    </div>
-  );
-}
-
 export function ChatMessage({ message, isStreaming = false, toolCalls = [] }: ChatMessageProps) {
   const isUser = message.role === "user";
   const displayContent = formatMessageContent(message.content, !isUser);
@@ -210,7 +197,6 @@ export function ChatMessage({ message, isStreaming = false, toolCalls = [] }: Ch
           <CopyButton text={message.content} />
         </div>
       )}
-      {message.routing && <RoutingBadge routing={message.routing} />}
       {isGeneratingCode && (
         <div className="inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 text-xs font-medium">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
