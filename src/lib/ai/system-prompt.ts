@@ -860,7 +860,7 @@ function buildCompanyApiInstructions(dataSources: string[]): string {
 \`\`\`
 list("google_sheets", {})                                → [{ id, name, type }]
 list("google_sheets", { resource: "ID" })                → { id, title, sheets: [{ id, title }] }
-list("google_sheets", { resource: "ID/Sheet1" })         → { headers: [...], rows: [{ col: "val" }], raw: [[...]] }
+list("google_sheets", { resource: "ID/Sheet1" })         → { headers: [...], rows: [{ col: "val" }] }
 list("google_drive", {})                                 → [{ id, name, mimeType, createdAt, modifiedAt, size, webViewLink, isFolder }]
 list("google_calendar", {})                              → [{ id, name, isPrimary }]
 list("google_calendar", { resource: "primary" })         → [{ id, summary, description, location, start, end, isAllDay, status, htmlLink, meetLink, attendees, organizer }]

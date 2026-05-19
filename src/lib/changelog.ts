@@ -14,6 +14,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: "v0.34.1",
+    date: "2026-05-18",
+    title: "Sheets / Gmail tool result 修剪",
+    summary:
+      "AI 在 chat 中查 Sheets 時，舊版會同時回 rows 物件陣列 + raw 2D 陣列（同一份資料兩份），刪掉 raw 直接省 30-50% payload。Gmail 讀單封信則加上 5000 字上限，遇到長轉寄信不再讓 LLM 吞全文。只動 chat 路徑，部署後工具透過 window.companyAPI 拿到的仍是完整資料。",
+    items: [
+      "Sheets read 給 LLM 的 result 移除重複的 raw 欄位",
+      "Gmail read body > 5000 chars 自動裁切，附 [Body truncated: kept first 5000 chars of N total] 標記",
+      "system prompt 同步移除 raw: [[...]] 描述，引導 AI 只用 .rows",
+      "src/lib/bridge/handlers.ts 完全不動，部署工具 runtime 行為不變",
+    ],
+    showDialog: false,
+  },
+  {
     version: "v0.34.0",
     date: "2026-05-15",
     title: "首頁多『全部』入口、所有分類頁改分頁",

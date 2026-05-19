@@ -6,6 +6,7 @@ import { GoogleCalendarConnector } from "@/lib/connectors/google/calendar";
 import { GoogleGmailConnector } from "@/lib/connectors/google/gmail";
 import { getGoogleConnectionStatus } from "@/lib/google/token-manager";
 import { googleServiceToDataSourceType } from "@/types/data-source";
+import { trimSheetsReadPayload, trimGmailBody } from "@/lib/ai/trim-tool-payload";
 
 type GoogleService = "sheets" | "drive" | "calendar" | "gmail";
 
@@ -158,12 +159,22 @@ export function createGoogleTools(userId: string, allowedServices?: Set<string>)
           const resourceId = extractResourceId(resource || "");
           const resourceName = extractResourceName(service, resource || "", result.data);
 
+          // Trim redundant / oversized payload before returning to the LLM.
+          // Bridge handlers (window.companyAPI) bypass this — runtime tools
+          // continue to receive the full payload via src/lib/bridge/handlers.ts.
+          let trimmedData: unknown = result.data;
+          if (service === "sheets") {
+            trimmedData = trimSheetsReadPayload(trimmedData);
+          } else if (service === "gmail") {
+            trimmedData = trimGmailBody(trimmedData);
+          }
+
           return {
             success: true,
             service,
             action,
             resource: resource || "(root)",
-            data: result.data,
+            data: trimmedData,
             rowCount: result.rowCount,
             metadata: result.metadata,
             // 追蹤使用的資料來源（前端會收集這些）
