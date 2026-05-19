@@ -23,5 +23,10 @@ export interface Message {
   content: string;
   toolCalls?: ToolCall[];
   attachments?: MessageAttachment[];
+  routing?: {
+    selectedModel: string;
+    actualModel: string;
+    reason?: string;
+  };
   tokenUsage?: { model: string; inputTokens: number; outputTokens: number };
 }
